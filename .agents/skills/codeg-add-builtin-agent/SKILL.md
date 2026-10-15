@@ -58,7 +58,7 @@ description: 给 Codeg 新增一个内置 ACP 智能体（像 Kiro CLI 那样）
 - `src-tauri/src/commands/{experts,office_tools,science}.rs`：技能安装矩阵；`acp/delegation/tool_schema.json`、`acp/delegation/companion.rs`：委托目标列表。
 
 **会话历史**
-- `src-tauri/src/parsers/<agent>.rs`（新文件）+ `parsers/mod.rs` 注册 + `parsers/summary_cache.rs`（历史由多个文件组成时用 companion 缓存）+ `db/service/import_service.rs`（导入/备份）。工具调用用和实时流**同一个**规范化函数，保证实时和重新打开后显示一致。
+- `src-tauri/src/parsers/<agent>.rs`（新文件）+ `parsers/mod.rs` 注册 + `parsers/summary_cache.rs`（历史由多个文件组成时用 companion 缓存）+ `db/service/import_service.rs`（导入/备份）。解析器按启动环境找历史目录：提供 `<Agent>Parser::for_env(&AgentEnv)` 和 `resolve_<agent>_..._for_env`，用 `env.var_os(...)` 读搬目录的环境变量，在 `build_agent_parser` 里用 `for_env(env)` 构造；否则用户在智能体设置的环境变量里改了数据目录，codeg 还在默认目录里找历史（上游 #948）。工具调用用和实时流**同一个**规范化函数，保证实时和重新打开后显示一致。
 - `src-tauri/tests/parsers_snapshot.rs` 加用例，`INSTA_UPDATE=new cargo test --features test-utils --test parsers_snapshot`，审过 `.snap.new` 再改名为 `.snap`。
 
 **数据库迁移**（只在需要时）：例如用户以前把它注册成自定义 agent、registry id 和内置冲突 → 迁移把 `custom:<id>` 改成新的 wire 名（参考 `m20261001_000001_kiro_builtin_agent.rs`：覆盖所有存 agent 类型的表和 JSON 配置、冲突时不丢数据、`down` 为空）。日期晚于上游最新迁移。
