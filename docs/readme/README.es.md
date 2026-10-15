@@ -31,7 +31,7 @@
 <table>
   <tr>
     <td width="50%" valign="top">🤖 <strong>Kiro CLI integrado</strong><br/>Usa el <code>kiro-cli</code> que ya instalaste: elige modelo y modo, añade servidores MCP y skills, y reanuda sesiones anteriores.</td>
-    <td width="50%" valign="top">🪟 <strong>Pestañas por ventana</strong><br/>Las ventanas del navegador sobre un mismo servidor ya no siguen las pestañas de las demás; conversaciones y mensajes se siguen sincronizando.</td>
+    <td width="50%" valign="top">🪟 <strong>Pestañas por ventana</strong><br/>Con varias ventanas sobre un mismo servidor, desactiva la sincronización de pestañas y cada ventana conserva las suyas; conversaciones y mensajes se siguen sincronizando.</td>
   </tr>
   <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code muestra su pensamiento</strong><br/>Pide a la API resúmenes del pensamiento, así que esa sección ya no aparece vacía.</td>
@@ -60,10 +60,10 @@
 <summary><strong>Pestañas por ventana</strong>: detalles</summary>
 <br/>
 
-- Abrir, enfocar o cerrar una pestaña de conversación en una ventana deja las demás como estaban.
-- Al recargar vuelven las pestañas de esa ventana.
-- Las conversaciones, los mensajes y las eliminaciones siguen llegando a todas las ventanas.
-- Es el interruptor «Sincronizar pestañas de conversación entre ventanas» en Ajustes → General: desactivado por defecto en el navegador y activado en la aplicación de escritorio. Activado, todas las ventanas comparten un mismo conjunto de pestañas, como en la versión oficial.
+- Es el interruptor «Sincronizar pestañas de conversación entre ventanas» en Ajustes → General, activado por defecto: todas las ventanas y dispositivos del servidor (ordenador, tableta, móvil) comparten un único conjunto de pestañas abiertas, como en la versión oficial.
+- Desactivado, abrir, enfocar o cerrar una pestaña de conversación en una ventana deja las demás como estaban, y al recargar vuelven las pestañas de esa ventana.
+- Las conversaciones, los mensajes y las eliminaciones llegan siempre a todas las ventanas, sea cual sea el ajuste.
+- El ajuste se guarda en el servidor: al cambiarlo en cualquier ventana o dispositivo, cambian con él todas las ventanas y dispositivos conectados a ese servidor. (Hasta la 0.35.2-1 se guardaba por navegador y venía desactivado en los navegadores.)
 - Solicitado al proyecto original en [spacering-net/codeg#547](https://github.com/spacering-net/codeg/issues/547).
 
 </details>

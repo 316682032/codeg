@@ -99,9 +99,6 @@ function reopenLast() {
 }
 
 beforeEach(() => {
-  // The persisted-positions case saves through the shared (synced) tab set,
-  // which jsdom — counted as a browser — would otherwise default away from.
-  localStorage.setItem("workspace:tab-sync", "true")
   resetTabStore()
   resetAppWorkspaceStore()
   resetClosedTabStackForTests()

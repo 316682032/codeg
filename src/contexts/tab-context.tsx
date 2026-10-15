@@ -117,9 +117,11 @@ export function TabProvider({ children }: TabProviderProps) {
   // this window's own copy).
   useEffect(() => useTabStore.getState().hydrate(), [])
 
-  // Follow the tab-sync preference live. Re-run on hydration too: a flip that
-  // landed while the snapshot was loading is applied once there is a set.
+  // Follow the backend's tab-sync switch live (any client may flip it). Re-run
+  // on hydration too: a flip that landed while the snapshot was loading is
+  // applied once there is a set. Unknown (`null`) leaves the mode alone.
   useEffect(() => {
+    if (tabSyncEnabled == null) return
     useTabStore.getState().setTabSync(tabSyncEnabled)
   }, [tabSyncEnabled, tabsHydrated])
 

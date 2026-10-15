@@ -2,36 +2,50 @@ import { act, render } from "@testing-library/react"
 import { useEffect } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { TabProvider, useTabContext } from "@/contexts/tab-context"
-import { CONVERSATION_CHANGED_EVENT, TABS_CHANGED_EVENT } from "@/lib/types"
+import {
+  CONVERSATION_CHANGED_EVENT,
+  TAB_SYNC_SETTINGS_CHANGED_EVENT,
+  TABS_CHANGED_EVENT,
+} from "@/lib/types"
 import type {
   AgentType,
   ConversationChange,
   DbConversationSummary,
   FolderDetail,
   OpenedTab,
+  TabSyncSettings,
   TabTarget,
   TabsChanged,
 } from "@/lib/types"
-import { saveTabSyncEnabled } from "@/lib/tab-sync-prefs"
+import { resetTabSyncPrefs, saveTabSyncEnabled } from "@/lib/tab-sync-prefs"
 import {
   resetAppWorkspaceStore,
   useAppWorkspaceStore,
 } from "@/stores/app-workspace-store"
 import { resetTabStore, useTabStore } from "@/stores/tab-store"
 
-// The window-local tab set (cross-client tab sync off): what a browser window
-// keeps when it should not follow the other windows on the same server.
+// The window-local tab set (the backend's tab sync switch off): what a window
+// keeps when it should not follow the other windows on the same server — and
+// how every window follows that switch when any client flips it.
 
 const listOpenedTabsMock = vi.fn()
 const saveOpenedTabsMock = vi.fn()
 const filterLiveTabTargetsMock = vi.fn()
 const getFolderConversationMock = vi.fn()
+const getTabSyncSettingsMock = vi.fn()
+const setTabSyncSettingsMock = vi.fn()
 const subscribeMock = vi.fn()
 const onTransportReconnectMock = vi.fn()
 let tabsChangedHandler: ((change: TabsChanged) => void) | null = null
 let conversationChangedHandler: ((change: ConversationChange) => void) | null =
   null
-let reconnectHandler: (() => void) | null = null
+let tabSyncChangedHandler: ((settings: TabSyncSettings) => void) | null = null
+let reconnectHandlers: (() => void)[] = []
+
+/** What a WebSocket reconnect does: every registered re-read runs. */
+function reconnect() {
+  for (const handler of reconnectHandlers) handler()
+}
 
 vi.mock("next-intl", () => {
   const t = (key: string) => key
@@ -45,6 +59,8 @@ vi.mock("@/lib/api", () => ({
     filterLiveTabTargetsMock(...args),
   getFolderConversation: (...args: unknown[]) =>
     getFolderConversationMock(...args),
+  getTabSyncSettings: (...args: unknown[]) => getTabSyncSettingsMock(...args),
+  setTabSyncSettings: (...args: unknown[]) => setTabSyncSettingsMock(...args),
 }))
 
 vi.mock("@/lib/platform", () => ({
@@ -181,7 +197,9 @@ beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear()
   sessionStorage.clear()
-  localStorage.setItem("workspace:tab-sync", "false")
+  resetTabSyncPrefs()
+  getTabSyncSettingsMock.mockResolvedValue({ enabled: false })
+  setTabSyncSettingsMock.mockImplementation(async (s: TabSyncSettings) => s)
   resetAppWorkspaceStore()
   useAppWorkspaceStore.setState({
     conversations: [1, 2, 3, 4].map((id) => conversation(id)),
@@ -197,7 +215,8 @@ beforeEach(() => {
   getFolderConversationMock.mockReturnValue(new Promise(() => {}))
   tabsChangedHandler = null
   conversationChangedHandler = null
-  reconnectHandler = null
+  tabSyncChangedHandler = null
+  reconnectHandlers = []
   subscribeMock.mockImplementation((event: string, handler: unknown) => {
     if (event === TABS_CHANGED_EVENT)
       tabsChangedHandler = handler as (change: TabsChanged) => void
@@ -205,25 +224,30 @@ beforeEach(() => {
       conversationChangedHandler = handler as (
         change: ConversationChange
       ) => void
+    if (event === TAB_SYNC_SETTINGS_CHANGED_EVENT)
+      tabSyncChangedHandler = handler as (settings: TabSyncSettings) => void
     return Promise.resolve(() => {})
   })
   onTransportReconnectMock.mockImplementation((handler: () => void) => {
-    reconnectHandler = handler
+    reconnectHandlers.push(handler)
     return () => {}
   })
 })
 
 describe("TabProvider with tab sync off (window-local tabs)", () => {
-  it("restores this window's own tabs and focus, never reading the shared set", async () => {
+  it("restores this window's own tabs and focus, not the shared set", async () => {
     storeWindowTabs(SESSION_TABS_KEY, sessionStorage, [
       tabItem(1),
       tabItem(2, true),
     ])
     storeWindowTabs(LAST_TABS_KEY, localStorage, [tabItem(3, true)])
+    listOpenedTabsMock.mockResolvedValue({
+      items: [tabItem(4, true)],
+      version: 5,
+    })
 
     await renderHydrated()
 
-    expect(listOpenedTabsMock).not.toHaveBeenCalled()
     expect(conversationTabIds()).toEqual([tabId(1), tabId(2)])
     expect(useTabStore.getState().activeTabId).toBe(tabId(2))
   })
@@ -264,6 +288,7 @@ describe("TabProvider with tab sync off (window-local tabs)", () => {
 
   it("starts empty without storing anything when the shared set can't be read", async () => {
     listOpenedTabsMock.mockRejectedValue(new Error("backend down"))
+    vi.spyOn(console, "error").mockImplementation(() => {})
 
     await renderHydrated()
 
@@ -342,14 +367,14 @@ describe("TabProvider with tab sync off (window-local tabs)", () => {
   it("re-checks after a reconnect, sparing tabs opened while the check ran", async () => {
     storeWindowTabs(SESSION_TABS_KEY, sessionStorage, [tabItem(1), tabItem(2)])
     await renderHydrated()
-    expect(reconnectHandler).not.toBeNull()
+    expect(reconnectHandlers.length).toBeGreaterThan(0)
 
     let answer: (live: TabTarget[]) => void = () => {}
     filterLiveTabTargetsMock.mockImplementationOnce(
       () => new Promise<TabTarget[]>((resolve) => (answer = resolve))
     )
     act(() => {
-      reconnectHandler?.()
+      reconnect()
     })
     act(() => {
       latestContext?.openTab(1, 3, "codex", true, "Conversation 3")
@@ -361,9 +386,10 @@ describe("TabProvider with tab sync off (window-local tabs)", () => {
     expect(conversationTabIds()).toEqual([tabId(1), tabId(3)])
   })
 
-  it("joins the shared set on turning sync on, keeping the union of both sides", async () => {
+  it("joins the shared set when another client turns sync on, keeping the union of both sides", async () => {
     storeWindowTabs(SESSION_TABS_KEY, sessionStorage, [tabItem(1, true)])
     await renderHydrated()
+    expect(tabSyncChangedHandler).not.toBeNull()
     listOpenedTabsMock.mockResolvedValue({
       items: [tabItem(2, true)],
       version: 7,
@@ -371,7 +397,7 @@ describe("TabProvider with tab sync off (window-local tabs)", () => {
     vi.useFakeTimers()
     try {
       await act(async () => {
-        saveTabSyncEnabled(true)
+        tabSyncChangedHandler?.({ enabled: true })
       })
       await act(async () => {
         await vi.advanceTimersByTimeAsync(500)
@@ -394,9 +420,8 @@ describe("TabProvider with tab sync off (window-local tabs)", () => {
     expect(expectedVersion).toBe(7)
   })
 
-  it("keeps its tabs as its own on turning sync off", async () => {
-    localStorage.setItem("workspace:tab-sync", "true")
-    resetTabStore()
+  it("keeps its tabs as its own when this window turns sync off", async () => {
+    getTabSyncSettingsMock.mockResolvedValue({ enabled: true })
     listOpenedTabsMock.mockResolvedValue({
       items: [tabItem(1, true), tabItem(2)],
       version: 3,
@@ -404,9 +429,12 @@ describe("TabProvider with tab sync off (window-local tabs)", () => {
     await renderHydrated()
     expect(conversationTabIds()).toEqual([tabId(1), tabId(2)])
 
+    // Saved for the whole backend; this window switches on the answer,
+    // without waiting for its own broadcast.
     await act(async () => {
-      saveTabSyncEnabled(false)
+      await saveTabSyncEnabled(false)
     })
+    expect(setTabSyncSettingsMock).toHaveBeenCalledWith({ enabled: false })
     expect(storedIds(sessionStorage, SESSION_TABS_KEY)).toEqual([1, 2])
 
     act(() => {
@@ -417,5 +445,63 @@ describe("TabProvider with tab sync off (window-local tabs)", () => {
     expect(conversationTabIds()).toEqual([tabId(1)])
     expect(storedIds(sessionStorage, SESSION_TABS_KEY)).toEqual([1])
     expect(saveOpenedTabsMock).not.toHaveBeenCalled()
+  })
+})
+
+describe("TabProvider following the backend's tab sync switch", () => {
+  it("uses the shared set when the backend has sync on, whatever this window stored", async () => {
+    getTabSyncSettingsMock.mockResolvedValue({ enabled: true })
+    storeWindowTabs(SESSION_TABS_KEY, sessionStorage, [tabItem(1, true)])
+    listOpenedTabsMock.mockResolvedValue({
+      items: [tabItem(2), tabItem(3, true)],
+      version: 4,
+    })
+
+    await renderHydrated()
+
+    expect(conversationTabIds()).toEqual([tabId(2), tabId(3)])
+    expect(useTabStore.getState().activeTabId).toBe(tabId(3))
+    // And it follows the other clients again.
+    act(() => {
+      tabsChangedHandler?.({
+        version: 5,
+        origin: "phone",
+        tabs: [tabItem(2, true)],
+      })
+    })
+    expect(conversationTabIds()).toEqual([tabId(2)])
+    expect(useTabStore.getState().activeTabId).toBe(tabId(2))
+  })
+
+  it("falls back to the shared set when the switch can't be read, and moves once it can", async () => {
+    getTabSyncSettingsMock.mockRejectedValue(new Error("backend down"))
+    storeWindowTabs(SESSION_TABS_KEY, sessionStorage, [tabItem(1, true)])
+    listOpenedTabsMock.mockResolvedValue({
+      items: [tabItem(2, true)],
+      version: 4,
+    })
+
+    await renderHydrated()
+    expect(conversationTabIds()).toEqual([tabId(2)])
+
+    // The reconnect re-read answers: sync is off on this backend. The window
+    // keeps the tabs it has, as its own.
+    getTabSyncSettingsMock.mockResolvedValue({ enabled: false })
+    await act(async () => {
+      reconnect()
+    })
+    await act(async () => {})
+    expect(storedIds(sessionStorage, SESSION_TABS_KEY)).toEqual([2])
+    act(() => {
+      tabsChangedHandler?.({ version: 5, origin: "phone", tabs: [] })
+    })
+    expect(conversationTabIds()).toEqual([tabId(2)])
+  })
+
+  it("reads the switch once for the provider and hydration together", async () => {
+    await renderHydrated()
+    // One read on mount, one more once the broadcast subscription is live
+    // (a save in between would otherwise go unheard) — not one per caller.
+    expect(getTabSyncSettingsMock.mock.calls.length).toBeLessThanOrEqual(2)
   })
 })

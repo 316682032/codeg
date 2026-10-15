@@ -31,7 +31,7 @@
 <table>
   <tr>
     <td width="50%" valign="top">🤖 <strong>Kiro CLI built in</strong><br/>Uses the <code>kiro-cli</code> you installed: pick its model and mode, add MCP servers and skills, resume past sessions.</td>
-    <td width="50%" valign="top">🪟 <strong>Tabs per window</strong><br/>Browser windows on one server no longer follow each other's tabs; conversations and messages still sync.</td>
+    <td width="50%" valign="top">🪟 <strong>Tabs per window</strong><br/>With several windows on one server, turn tab sync off and each window keeps its own tabs; conversations and messages still sync.</td>
   </tr>
   <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code shows its thinking</strong><br/>Requests thinking summaries from the API, so the thinking section is no longer empty.</td>
@@ -60,10 +60,10 @@
 <summary><strong>Tabs per window</strong>: details</summary>
 <br/>
 
-- Opening, focusing or closing a conversation tab in one window leaves the others as they were.
-- A reload brings back that window's own tabs.
-- Conversations, messages and deletions still reach every window.
-- It's the "Sync open conversation tabs across windows" switch in Settings → General: off by default in a browser, on in the desktop app. Turned on, all windows share one set of tabs, as in the official build.
+- It's the "Sync open conversation tabs across windows" switch in Settings → General, on by default: every window and device on the server (computer, tablet, phone) shares one set of open tabs, as in the official build.
+- Turned off, opening, focusing or closing a conversation tab in one window leaves the others as they were, and a reload brings back that window's own tabs.
+- Conversations, messages and deletions always reach every window, whichever way it is set.
+- The switch is stored on the server: flip it in any window or on any device and every window and device connected to that server switches with it. (Up to 0.35.2-1 it was kept per browser and off by default in browsers.)
 - Requested upstream in [spacering-net/codeg#547](https://github.com/spacering-net/codeg/issues/547).
 
 </details>

@@ -31,7 +31,7 @@
 <table>
   <tr>
     <td width="50%" valign="top">🤖 <strong>Kiro CLI intégré</strong><br/>Utilise le <code>kiro-cli</code> que vous avez installé : choix du modèle et du mode, serveurs MCP et skills, reprise des sessions passées.</td>
-    <td width="50%" valign="top">🪟 <strong>Des onglets par fenêtre</strong><br/>Les fenêtres du navigateur sur un même serveur ne suivent plus les onglets des autres ; conversations et messages restent synchronisés.</td>
+    <td width="50%" valign="top">🪟 <strong>Des onglets par fenêtre</strong><br/>Avec plusieurs fenêtres sur un même serveur, désactivez la synchronisation des onglets et chaque fenêtre garde les siens ; conversations et messages restent synchronisés.</td>
   </tr>
   <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code affiche sa réflexion</strong><br/>Demande à l'API des résumés de la réflexion : cette zone n'est plus vide.</td>
@@ -60,10 +60,10 @@
 <summary><strong>Des onglets par fenêtre</strong> : détails</summary>
 <br/>
 
-- Ouvrir, activer ou fermer un onglet de conversation dans une fenêtre laisse les autres telles quelles.
-- Un rechargement restaure les onglets de cette fenêtre.
-- Les conversations, les messages et les suppressions atteignent toujours toutes les fenêtres.
-- C'est l'interrupteur « Synchroniser les onglets de conversation entre les fenêtres » dans Réglages → Général : désactivé par défaut dans un navigateur, activé dans l'application de bureau. Activé, toutes les fenêtres partagent un même ensemble d'onglets, comme dans la version officielle.
+- C'est l'interrupteur « Synchroniser les onglets de conversation entre les fenêtres » dans Réglages → Général, activé par défaut : toutes les fenêtres et tous les appareils du serveur (ordinateur, tablette, téléphone) partagent un même ensemble d'onglets ouverts, comme dans la version officielle.
+- Désactivé, ouvrir, activer ou fermer un onglet de conversation dans une fenêtre laisse les autres telles quelles, et un rechargement restaure les onglets de cette fenêtre.
+- Les conversations, les messages et les suppressions atteignent toujours toutes les fenêtres, quel que soit le réglage.
+- Le réglage est enregistré sur le serveur : le changer dans n'importe quelle fenêtre ou sur n'importe quel appareil fait basculer toutes les fenêtres et tous les appareils connectés à ce serveur. (Jusqu'à la 0.35.2-1, il était enregistré par navigateur et désactivé par défaut dans les navigateurs.)
 - Demandé en amont dans [spacering-net/codeg#547](https://github.com/spacering-net/codeg/issues/547).
 
 </details>

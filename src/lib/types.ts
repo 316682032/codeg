@@ -710,6 +710,16 @@ export interface TabTarget {
   conversation_id: number
 }
 
+/** The backend-wide "sync open conversation tabs across windows" switch.
+ *  Mirrors the Rust `TabSyncSettings`. */
+export interface TabSyncSettings {
+  enabled: boolean
+}
+
+/** Broadcast on every tab-sync settings save so all clients of the backend
+ *  switch together. Mirrors the Rust `TAB_SYNC_SETTINGS_CHANGED_EVENT`. */
+export const TAB_SYNC_SETTINGS_CHANGED_EVENT = "tab-sync-settings://changed"
+
 /** Response of the `save_opened_tabs` compare-and-set. When `accepted` is false
  *  the save was stale (another client won) and `tabs` is the current truth to
  *  reconcile against. */

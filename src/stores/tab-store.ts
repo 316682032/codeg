@@ -387,9 +387,10 @@ let runtime: TabRuntime = defaultRuntime()
 let version = 0
 // Which set this window holds: the shared, server-kept one (`opened_tabs`, CAS
 // saves, `tabs://changed`) or its own (`window-tabs-storage.ts`). Taken from
-// the preference by `hydrate` and moved only by `setTabSync`, so every path
-// below agrees on which set it is looking at.
-let tabSyncEnabled = loadTabSyncEnabled()
+// the backend's switch by `hydrate` (shared until then, and when the switch
+// can't be read) and moved only by `setTabSync`, so every path below agrees on
+// which set it is looking at.
+let tabSyncEnabled = true
 let applyingRemote = false
 let remoteActivationPending = false
 let pendingRemote: TabsChanged | null = null
@@ -780,12 +781,21 @@ function sanitizeDrafts(value: unknown): PersistedDraft[] {
   return out
 }
 
+function readSharedGroupBlob(): string | null {
+  if (typeof window === "undefined") return null
+  try {
+    return localStorage.getItem(TAB_GROUPS_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
 /** Seed group state from the device-local blob (canonical tab ids — they match
  *  nothing until `hydrate` restores canonical-id tabs; `applyGroupInvariants`
  *  defers pruning until then). Falls back to a single group, seeding its tile
  *  flag from the legacy pre-groups key. The blob's draft entries are parked in
  *  module scope (not store state) for `hydrate` to splice back in. */
-function readPersistedGroupState(): {
+function readPersistedGroupState(raw: string | null = readSharedGroupBlob()): {
   groupLayout: LayoutNode
   groupOf: Record<string, string>
   groupSelection: Record<string, string>
@@ -801,11 +811,6 @@ function readPersistedGroupState(): {
   })
   if (typeof window === "undefined") return fallback()
   try {
-    // A window that keeps its own tabs keeps its own layout: its session copy
-    // first, the shared blob only for a window that has none yet.
-    const raw =
-      (loadTabSyncEnabled() ? null : readWindowGroupBlob()) ??
-      localStorage.getItem(TAB_GROUPS_STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as Record<string, unknown>
       if (parsed && isLayoutNode(parsed.layout)) {
@@ -2160,14 +2165,30 @@ export const useTabStore = create<TabStoreState>()((set, get) => ({
 
   hydrate: () => {
     let cancelled = false
-    tabSyncEnabled = loadTabSyncEnabled()
     void (async () => {
       let snapshotLoaded = false
       try {
-        const snap = tabSyncEnabled
-          ? await listOpenedTabs()
-          : await readLiveWindowTabs()
+        // The shared set is read alongside the switch rather than after it, so
+        // learning the mode costs no extra round trip; a window-local set only
+        // uses it to seed a window that has nothing stored yet.
+        const sharedRead = listOpenedTabs().then(
+          (snap) => ({ ok: true as const, snap }),
+          (err: unknown) => ({ ok: false as const, err })
+        )
+        tabSyncEnabled = (await loadTabSyncEnabled()) ?? true
+        const shared = await sharedRead
         if (cancelled) return
+        let snap: OpenedTabsSnapshot
+        if (tabSyncEnabled) {
+          if (!shared.ok) throw shared.err
+          snap = shared.snap
+        } else {
+          // Nothing heard about the shared set applies to this window.
+          pendingRemote = null
+          adoptWindowGroupState()
+          snap = await readLiveWindowTabs(shared.ok ? shared.snap.items : null)
+          if (cancelled) return
+        }
         snapshotLoaded = true
         tabsSnapshotLoaded = true
         version = snap.version
@@ -2290,8 +2311,15 @@ export const useTabStore = create<TabStoreState>()((set, get) => ({
           // applyRemoteSnapshot directly (not handleTabsChanged): `pending` is
           // an authoritative server snapshot, and routing it through the live
           // handler's `version` gate would drop an equal-version reconcile.
+          // After a FAILED read the set is unknown and the stash is the only
+          // truth there is, so — as in `refetchTabs` — it goes by contents, not
+          // version (a populated set can legitimately arrive as version 0).
           const pending = pendingRemote
-          if (pending && pending.version > version) {
+          if (
+            pending &&
+            tabSyncEnabled &&
+            (pending.version > version || !tabsSnapshotLoaded)
+          ) {
             pendingRemote = null
             applyRemoteSnapshot(pending)
           }
@@ -2340,6 +2368,9 @@ export const useTabStore = create<TabStoreState>()((set, get) => ({
       saveTimer = null
       saveOpenedTabs(items, expectedVersion, TAB_ORIGIN)
         .then((res) => {
+          // The switch went off while this was in flight: the window's own
+          // set is its truth now, and nothing here should touch its baseline.
+          if (!tabSyncEnabled) return
           version = Math.max(version, res.version)
           if (!res.accepted) {
             // Rejected (another client committed first) → adopt server truth.
@@ -2936,7 +2967,7 @@ export function resetTabStore() {
     groupPersistTimer = null
   }
   version = 0
-  tabSyncEnabled = loadTabSyncEnabled()
+  tabSyncEnabled = true
   applyingRemote = false
   remoteActivationPending = false
   pendingRemote = null
@@ -2969,6 +3000,10 @@ registerBackendScopedStoreReset(resetTabStore)
  * `applyRemoteSnapshot` callback).
  */
 function applyRemoteSnapshot(change: TabsChanged) {
+  // A window keeping its own tabs has no shared set to converge on. Reads and
+  // saves of the shared set can still be in flight when the switch turns off;
+  // this is where whatever they bring back stops.
+  if (!tabSyncEnabled) return
   // Stale-safe: a snapshot older than what we've applied must not move the UI or
   // version backwards. Equal versions still reconcile.
   if (change.version < version) return
@@ -3188,30 +3223,37 @@ async function keepLiveTabs(items: OpenedTab[]): Promise<OpenedTab[]> {
  *  (or the most recent window's, for a new one), minus what was deleted while
  *  nothing was listening. Version 0 — nothing here is compare-and-set.
  *
- *  With nothing stored anywhere — the first load with sync off, typically
- *  right after it became the browser default — the window starts from the
- *  shared set once, the same way turning sync off mid-session keeps the tabs
- *  it had. A failed read starts empty and is tried again next load.
+ *  With nothing stored anywhere — the first load after the switch went off —
+ *  the window starts from `shared` (the shared set, `null` when it couldn't be
+ *  read), the same way turning sync off mid-session keeps the tabs it had. A
+ *  failed read starts empty and is tried again next load.
  *
  *  Whatever was read is written straight back as this window's own copy: one
  *  started from the most recent window's set must own it from the first load,
  *  or a reload before its first change would pick up that other window's
  *  latest tabs instead of its own. */
-async function readLiveWindowTabs(): Promise<OpenedTabsSnapshot> {
+async function readLiveWindowTabs(
+  shared: OpenedTab[] | null
+): Promise<OpenedTabsSnapshot> {
   let stored = readWindowTabs()
   let found = stored != null
-  if (stored == null) {
-    stored = await listOpenedTabs().then(
-      (snap) => {
-        found = true
-        return snap.items.filter((it) => it.conversation_id != null)
-      },
-      () => []
-    )
+  if (stored == null && shared != null) {
+    stored = shared.filter((it) => it.conversation_id != null)
+    found = true
   }
-  const items = await keepLiveTabs(stored)
+  const items = await keepLiveTabs(stored ?? [])
   if (found) writeWindowTabs(items)
   return { items, version: 0 }
+}
+
+/** A window keeping its own tabs keeps its own layout: replace the group state
+ *  read at store creation (the shared blob — the mode wasn't known yet) with
+ *  this window's session copy, when it has one. Runs in `hydrate` before the
+ *  drafts are spliced back, so they come from the same blob. */
+function adoptWindowGroupState() {
+  const blob = readWindowGroupBlob()
+  if (blob == null) return
+  useTabStore.setState(readPersistedGroupState(blob))
 }
 
 /** Re-check the open conversation tabs and drop the ones whose target is gone.

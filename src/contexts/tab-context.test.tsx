@@ -202,10 +202,6 @@ function seedWorkspaceStore() {
   // `persistGroupState` writes localStorage during hydrated tests and would
   // otherwise leak split layouts across tests.
   localStorage.clear()
-  sessionStorage.clear()
-  // These suites cover the shared (synced) tab set; jsdom counts as a browser,
-  // where tab sync defaults to off. The window-local set has its own suite.
-  localStorage.setItem("workspace:tab-sync", "true")
   // The tab store is a module-level singleton: reset it (state + coordination
   // vars + injected runtime + one-shot correction/recovery flags) after seeding
   // the workspace store so `lastConversations` aligns with the seeded list.

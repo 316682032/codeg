@@ -233,6 +233,14 @@ pub fn build_router(
             post(handlers::conversations::filter_live_tab_targets),
         )
         .route(
+            "/get_tab_sync_settings",
+            post(handlers::tab_sync::get_tab_sync_settings),
+        )
+        .route(
+            "/set_tab_sync_settings",
+            post(handlers::tab_sync::set_tab_sync_settings),
+        )
+        .route(
             "/import_local_conversations",
             post(handlers::conversations::import_local_conversations),
         )

@@ -1686,6 +1686,8 @@ mod tauri_app {
                 conversations::list_opened_tabs,
                 conversations::save_opened_tabs,
                 conversations::filter_live_tab_targets,
+                crate::commands::tab_sync::get_tab_sync_settings,
+                crate::commands::tab_sync::set_tab_sync_settings,
                 conversations::import_local_conversations,
                 conversations::scan_importable_sessions,
                 conversations::import_selected_sessions,

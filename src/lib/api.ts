@@ -122,6 +122,7 @@ import type {
   OpenedTab,
   OpenedTabsSnapshot,
   SaveTabsOutcome,
+  TabSyncSettings,
   TabTarget,
   GitBlobBase64,
   GitStatusEntry,
@@ -2272,6 +2273,16 @@ export async function filterLiveTabTargets(
   targets: TabTarget[]
 ): Promise<TabTarget[]> {
   return getTransport().call("filter_live_tab_targets", { targets })
+}
+
+export async function getTabSyncSettings(): Promise<TabSyncSettings> {
+  return getTransport().call("get_tab_sync_settings")
+}
+
+export async function setTabSyncSettings(
+  settings: TabSyncSettings
+): Promise<TabSyncSettings> {
+  return getTransport().call("set_tab_sync_settings", { settings })
 }
 
 export async function listOpenFolderDetails(): Promise<FolderDetail[]> {
