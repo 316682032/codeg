@@ -35,7 +35,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code muestra su pensamiento</strong><br/>Pide a la API resúmenes del pensamiento, así que esa sección ya no aparece vacía.</td>
-    <td width="50%" valign="top">🔄 <strong>Al día con el original</strong><br/>Los cambios del proyecto original se incorporan con regularidad; lo que no aparece aquí funciona igual que en la versión oficial.</td>
+    <td width="50%" valign="top">🌐 <strong>Respuestas y mensajes traducidos</strong><br/>Las respuestas del agente se traducen a tu idioma una vez terminadas, y un mensaje pasa al inglés con una tecla, con modelos de traducción de Alibaba Cloud o Tencent Cloud, en un segundo por cada 1.000 caracteres.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Al día con el original</strong><br/>Los cambios del proyecto original se incorporan con regularidad; lo que no aparece aquí funciona igual que en la versión oficial.</td>
   </tr>
 </table>
 
@@ -78,6 +81,20 @@
   ```
 
 - El pensamiento de conversaciones anteriores nunca se llegó a enviar, así que no se puede recuperar.
+
+</details>
+
+<details>
+<summary><strong>Respuestas y mensajes traducidos</strong>: detalles</summary>
+<br/>
+
+- Se activa en Ajustes → Traducción con una clave de API de [Alibaba Cloud Bailian](https://bailian.console.aliyun.com/) o [Tencent Cloud TokenHub](https://console.cloud.tencent.com/tokenhub/apikey); cada plataforma cobra su propio uso. Por defecto usa `qwen-mt-flash` de Bailian, que tardó unos 0,5 s por párrafo en las pruebas.
+- Respuestas: con el interruptor "Traducción de respuestas" activado, una respuesta se traduce cuando el agente la termina, entera en una sola solicitud para que el modelo vea toda la respuesta como contexto, y se muestra en lugar del original; mientras el agente escribe ves el original. El botón de traducir bajo cada respuesta vuelve al original o, si la traducción automática está desactivada, traduce solo esa respuesta. El razonamiento se traduce al desplegarlo y sigue el mismo botón; no se traducen bloques de código ni llamadas a herramientas. El botón de copiar copia lo que se ve en pantalla.
+- Nombres de sesión: con la traducción automática de respuestas activada, los nombres que el agente da a las sesiones también se muestran en tu idioma, en la barra lateral, las pestañas y la cabecera de la conversación. Un nombre que pusiste tú se queda como lo escribiste, y al pasar el puntero sobre una sesión de la barra lateral se ve el original.
+- Mensajes: el botón de traducir del cuadro de mensaje, `⌘⇧L` (`Ctrl+Shift+L` en Windows y Linux) o el menú contextual traducen el cuadro en su sitio al idioma de destino (inglés por defecto). Menciones, comandos de barra, rutas y código se quedan igual, y `⌘Z` recupera el original de una vez. Solo se traduce cuando lo pides, así que un borrador a medias nunca sale del equipo. "Traducir al enviar" lo hace en cada envío. Ya enviado, el botón de traducir junto al mensaje vuelve a lo que escribiste antes de traducir, y copiar sigue lo que se muestra.
+- Ante un límite de solicitudes pasa a `qwen-mt-lite` o al otro motor; un glosario fija cómo se traducen términos concretos, y una entrada sin traducción mantiene el término tal cual.
+- Las claves de API se guardan en el llavero del sistema (en un servidor, en `tokens.json` dentro del directorio de datos), nunca en la base de datos. Las solicitudes de traducción se conectan directamente, sin proxy, y solo usan el proxy cuando la red no permite otra salida.
+- La traducción de las respuestas es solo para mostrarla: el historial de la conversación conserva el texto original del agente. Lo que escribiste antes de traducir un mensaje se guarda en la base de datos local, y vaciar la caché de traducción no lo borra.
 
 </details>
 

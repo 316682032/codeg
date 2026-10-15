@@ -35,7 +35,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code shows its thinking</strong><br/>Requests thinking summaries from the API, so the thinking section is no longer empty.</td>
-    <td width="50%" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build.</td>
+    <td width="50%" valign="top">🌐 <strong>Translated replies and messages</strong><br/>Agent replies are translated into your language once they are finished, and a message translates to English in one keystroke, via Alibaba Cloud or Tencent Cloud translation models, at about a second per 1,000 characters.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build.</td>
   </tr>
 </table>
 
@@ -78,6 +81,20 @@
   ```
 
 - Thinking from earlier conversations was never sent, so it can't be recovered.
+
+</details>
+
+<details>
+<summary><strong>Translated replies and messages</strong>: details</summary>
+<br/>
+
+- Turned on in Settings → Translation with an API key from [Alibaba Cloud Bailian](https://bailian.console.aliyun.com/) or [Tencent Cloud TokenHub](https://console.cloud.tencent.com/tokenhub/apikey); each platform bills its own usage. The default is Bailian's `qwen-mt-flash`, which took about 0.5 s per paragraph in testing.
+- Replies: with the "Reply translation" switch on, a reply is translated once the agent has finished it, all of it in one request so the model sees the whole reply as context, and shown in place of the original; while the agent writes you see the original. The translate button under each reply switches back to the original, or translates that one reply when automatic translation is off. Thinking is translated when you expand it and follows the same button; code blocks and tool calls are not translated. The copy button copies what is on screen.
+- Session names: with automatic reply translation on, the names the agent gives sessions are shown in your language too, in the sidebar, the tabs and the conversation header. A name you set yourself is left as written, and hovering a session in the sidebar shows the original.
+- Messages: the composer's translate button, `⌘⇧L` (`Ctrl+Shift+L` on Windows and Linux) or the right-click menu translate the message box in place into the target language (English by default). Mentions, slash commands, paths and code stay as written, and `⌘Z` brings the original back in one step. Nothing is sent for translation until you ask, so a half-written draft never leaves the machine. "Translate when sending" does it on every send. Once sent, the translate button beside the message switches back to what you wrote before translating, and copying follows what is shown.
+- On a rate limit it falls back to `qwen-mt-lite` or the other engine; a glossary pins down how specific terms are translated, and an entry with no translation keeps its term as written.
+- API keys are kept in the OS keychain (on a server, in `tokens.json` in the data directory), never in the database. Translation requests connect directly, bypassing any proxy, and go through the proxy only when the network allows nothing else.
+- Reply translations are for display only: the conversation history keeps the agent's original text. What you wrote before a message was translated is kept in the local database, and clearing the translation cache leaves it alone.
 
 </details>
 

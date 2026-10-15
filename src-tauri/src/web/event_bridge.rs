@@ -197,6 +197,12 @@ pub const CHAT_AUTHORING_SETTINGS_CHANGED_EVENT: &str = "chat-authoring-settings
 /// the next save. Payload: `DelegationSettings`.
 pub const DELEGATION_SETTINGS_CHANGED_EVENT: &str = "delegation-settings://changed";
 
+/// Announces a translation-settings write. Same cross-window rationale as
+/// [`FEEDBACK_SETTINGS_CHANGED_EVENT`]: conversation windows learn that
+/// auto-translation was switched on, or that a key was added, only through this
+/// broadcast. Payload: `TranslationSettingsView` (key presence only, never a key).
+pub const TRANSLATION_SETTINGS_CHANGED_EVENT: &str = "translation-settings://changed";
+
 /// Payload for the global [`CONVERSATION_CHANGED_EVENT`] side-channel. Drives
 /// cross-client sidebar sync (membership + status) independent of the
 /// per-connection ACP attach protocol, so clients that are NOT attached to a

@@ -674,6 +674,13 @@ export const BROWSER_TOOLS_SETTINGS_CHANGED_EVENT =
  *  Rust `DELEGATION_SETTINGS_CHANGED_EVENT`. */
 export const DELEGATION_SETTINGS_CHANGED_EVENT = "delegation-settings://changed"
 
+/** Global side-channel announcing a translation-settings write (payload is
+ *  `TranslationSettingsView`, key presence only). Conversation windows learn
+ *  that auto-translation was switched on, or a key added, only through this
+ *  broadcast. Mirrors the Rust `TRANSLATION_SETTINGS_CHANGED_EVENT`. */
+export const TRANSLATION_SETTINGS_CHANGED_EVENT =
+  "translation-settings://changed"
+
 /** Payload for the global `tabs://changed` side-channel that keeps every
  *  client's open-tab set in sync across desktop + browsers. Mirrors the Rust
  *  `TabsChanged` struct. The full conversation-bound tab set is sent as a

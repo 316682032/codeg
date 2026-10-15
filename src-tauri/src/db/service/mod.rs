@@ -19,4 +19,6 @@ pub mod sender_context_service;
 pub mod tab_service;
 pub mod thread_binding_service;
 pub mod token_usage_service;
+pub mod translation_cache_service;
+pub mod translation_original_service;
 pub mod work_task_service;

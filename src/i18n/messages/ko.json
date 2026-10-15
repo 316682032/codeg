@@ -56,7 +56,8 @@
       "browser": "브라우저 사용",
       "computer_use": "컴퓨터 사용",
       "quick_messages": "빠른 메시지",
-      "logs": "실행 로그"
+      "logs": "실행 로그",
+      "translation": "번역"
     }
   },
   "AppearanceSettings": {
@@ -534,6 +535,10 @@
       "zoom_reset": {
         "title": "확대/축소 초기화",
         "description": "창 확대/축소를 100%로 되돌립니다"
+      },
+      "translate_input": {
+        "title": "메시지 번역",
+        "description": "입력창의 내용을 메시지 번역 언어로 번역합니다"
       }
     }
   },
@@ -3534,7 +3539,11 @@
         "jumpToPreviousUserMessage": "이전 사용자 메시지로 이동",
         "showMore": "더보기",
         "showLess": "접기",
-        "resizeWidth": "드래그하여 채팅 너비 조정 · 더블 클릭하여 초기화"
+        "resizeWidth": "드래그하여 채팅 너비 조정 · 더블 클릭하여 초기화",
+        "translateReply": "답변 번역",
+        "showOriginal": "원문 보기",
+        "showSentOriginal": "번역 전 원문 보기",
+        "showSent": "보낸 내용 보기"
       },
       "liveTurnStats": {
         "thinking": "생각 중...",
@@ -7158,6 +7167,118 @@
         "bypassed": "이 컴퓨터의 브라우저 엔진이 일부 주소를 터널을 거치지 않고 보내므로, 이 컴퓨터에서 불러오지 않도록 원격 호스트의 페이지는 열리지 않습니다.",
         "probeFailed": "내장 브라우저가 터널을 통해 원격 호스트에 도달하는지 확인할 수 없습니다. 잠시 후 다시 시도하세요."
       }
+    }
+  },
+  "Translation": {
+    "replyFailed": "답변을 번역하지 못했습니다: {message}",
+    "translateInput": "메시지 번역",
+    "inputChanged": "번역하는 동안 메시지가 바뀌었습니다. 다시 번역해 주세요.",
+    "inputDamaged": "번역에서 멘션, 명령 또는 코드가 사라져 원문을 그대로 두었습니다.",
+    "inputFailed": "메시지를 번역하지 못했습니다: {message}",
+    "errors": {
+      "missingKey": "{provider}의 API 키가 없습니다. 설정 → 번역에서 추가하세요.",
+      "unsupportedLanguage": "{language}(으)로의 번역은 지원하지 않습니다.",
+      "auth": "{model}이(가) API 키를 거부했습니다. 설정 → 번역에서 확인하세요.",
+      "rateLimited": "{model}의 요청 한도에 걸렸습니다. 잠시 후 다시 시도하세요.",
+      "rejected": "{model}이(가) 요청을 거부했습니다: {message}",
+      "network": "{model}에 연결할 수 없습니다.",
+      "badResponse": "{model}이(가) 번역을 반환하지 않았습니다.",
+      "unknown": "번역에 실패했습니다."
+    }
+  },
+  "TranslationSettings": {
+    "title": "번역",
+    "description": "보내기 전에 내 메시지를 번역하고, 에이전트의 답변을 내 언어로 번역합니다. 번역은 별도의 계층이라 에이전트 자체의 작성 방식은 바뀌지 않습니다.",
+    "loading": "불러오는 중…",
+    "loadFailed": "번역 설정을 불러오지 못했습니다: {message}",
+    "saveFailed": "저장하지 못했습니다: {message}",
+    "keySaved": "API 키를 저장했습니다",
+    "keyRemoved": "API 키를 삭제했습니다",
+    "cacheCleared": "{count, plural, =0 {캐시가 이미 비어 있었습니다} other {번역 #개를 삭제했습니다}}",
+    "providers": {
+      "dashscope": "Alibaba Cloud Bailian",
+      "tokenhub": "Tencent Cloud TokenHub"
+    },
+    "engine": {
+      "title": "번역 엔진",
+      "description": "선택한 엔진이 모든 번역을 맡습니다. 엔진을 펼치면 API 키 입력, 모델 변경, 테스트를 할 수 있습니다.",
+      "primary": "기본",
+      "backup": "예비",
+      "idle": "사용 안 함",
+      "setPrimary": "{provider}을(를) 기본 엔진으로 설정",
+      "needsKeyFirst": "먼저 API 키를 입력하세요",
+      "configured": "설정됨",
+      "needsSetup": "API 키 필요",
+      "notSetUp": "설정 안 됨",
+      "model": "모델",
+      "modelHint": {
+        "balanced": "추천: 속도와 품질의 균형",
+        "quality": "더 높은 품질, 다소 느림",
+        "speed": "가장 빠름, 품질은 다소 낮음"
+      },
+      "advanced": "고급",
+      "baseUrl": "API 주소",
+      "baseUrlHint": "보통 바꿀 필요가 없습니다. 비워 두면 기본 주소를 사용합니다.",
+      "resetBaseUrl": "기본값으로",
+      "fallback": "요청 한도 시 자동 전환",
+      "fallbackPath": "기본 엔진이 요청 한도에 걸리거나 장애가 나면 차례로 전환: {path}",
+      "fallbackNone": "전환할 엔진이 아직 없습니다. 다른 엔진에 API 키를 넣으면 요청 한도 시 자동으로 전환됩니다."
+    },
+    "key": {
+      "title": "API 키",
+      "getKey": "키 발급",
+      "placeholder": "API 키 붙여넣기",
+      "label": "{provider} API 키",
+      "save": "저장",
+      "cancel": "취소",
+      "saved": "저장됨",
+      "replace": "변경",
+      "remove": "API 키 삭제",
+      "show": "API 키 표시",
+      "hide": "API 키 숨기기"
+    },
+    "test": {
+      "description": "예문을 번역해 키, 모델, 네트워크를 확인합니다(캐시와 예비 엔진 없이).",
+      "run": "테스트",
+      "running": "테스트 중…",
+      "ok": "{model} 사용 가능 · {ms}ms",
+      "slow": "{model} 사용 가능, 다소 느림 · {ms}ms"
+    },
+    "output": {
+      "title": "답변 번역",
+      "description": "켜면 에이전트가 답변을 다 쓴 뒤 답변 전체를 한 번에 번역하고 번역문만 보여 줍니다. 쓰는 동안에는 원문을 보여 줍니다. 생각 과정은 펼칠 때 번역하고, 에이전트가 붙인 세션 이름도 번역합니다. 끄면 각 답변 아래 버튼으로 번역합니다.",
+      "target": "번역할 언어",
+      "followUi": "인터페이스 언어({language})"
+    },
+    "input": {
+      "title": "메시지 번역",
+      "description": "입력창의 번역 버튼, 단축키 또는 오른쪽 클릭 메뉴로 메시지를 그 자리에서 번역합니다. 멘션, 명령, 경로, 코드는 그대로 남고, 실행 취소로 원문을 되돌릴 수 있습니다. 보낸 뒤에는 메시지 옆 버튼으로 번역 전 원문을 볼 수 있습니다.",
+      "target": "번역할 언어",
+      "onSend": "보낼 때 자동 번역({language})",
+      "onSendDescription": "번역에 실패하면 보내지 않습니다.",
+      "shortcut": "단축키",
+      "shortcutNone": "설정 안 됨",
+      "shortcutEdit": "변경"
+    },
+    "glossary": {
+      "title": "용어집",
+      "description": "특정 용어의 번역을 고정합니다(양방향 적용). 번역을 비워 두면 원문 그대로 둡니다. 영어와 중국어 사이에는 agent → 智能体, prompt → 提示词, session → 会话가 내장되어 있으며, 같은 용어의 항목이 이를 덮어씁니다.",
+      "term": "용어",
+      "translation": "번역",
+      "termPlaceholder": "예: worktree",
+      "translationPlaceholder": "비우면 원문 유지",
+      "add": "용어 추가",
+      "remove": "\"{term}\" 삭제",
+      "removeEmpty": "이 행 삭제",
+      "bulkEdit": "일괄 편집",
+      "tableEdit": "목록으로 편집",
+      "bulkPlaceholder": "worktree = 워크트리\nCodeg",
+      "bulkHint": "한 줄에 하나씩 \"용어 = 번역\" 형식으로 적습니다. 용어만 적으면 원문 그대로 둡니다."
+    },
+    "cache": {
+      "title": "번역 캐시",
+      "description": "번역 결과는 30일 동안 보관되어 대화를 다시 열면 바로 표시됩니다. 모델을 바꾼 뒤처럼 모두 다시 번역하려면 캐시를 비우세요.",
+      "clear": "캐시 비우기"
     }
   }
 }

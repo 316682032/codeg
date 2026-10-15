@@ -108,6 +108,10 @@ vi.mock("@/lib/platform", () => ({
   isDesktop: () => false,
   openFileDialog: vi.fn(),
   openUrl: platform.openUrl,
+  // The composer reads the translation settings, which follow a backend
+  // broadcast; nothing here broadcasts.
+  subscribe: vi.fn(async () => () => {}),
+  onTransportReconnect: vi.fn(() => null),
 }))
 vi.mock("@/lib/transport", () => ({
   getActiveRemoteConnectionId: () => null,
@@ -121,8 +125,26 @@ vi.mock("@/hooks/use-open-file-target", () => ({
 }))
 // The right-click menu refreshes the quick-message list as it opens; keep that
 // off the backend so the menu tests exercise only the menu.
+// Translation is off unless a test sets it up: the composer's translate
+// button and translate-on-send read these.
+const translation = vi.hoisted(() => ({
+  settings: null as import("@/lib/api").TranslationSettingsView | null,
+  translateTexts: vi.fn(async (texts: string[]) => ({
+    translations: texts.map(() => "Please check the specs of this computer"),
+    model: "qwen-mt-flash",
+  })),
+  saveSentOriginal: vi.fn(async () => {}),
+}))
+vi.mock("@/hooks/use-translation-settings", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("@/hooks/use-translation-settings")
+  >()),
+  useTranslationSettings: () => translation.settings,
+}))
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
+  translateTexts: translation.translateTexts,
+  saveSentOriginal: translation.saveSentOriginal,
   quickMessagesList: vi.fn(async () => []),
 }))
 // Real classifier only recognizes actual backend NoActiveTurn payloads; the
@@ -2662,5 +2684,67 @@ describe("MessageInput folder data arriving after mount", () => {
     expect(handle.getText()).toBe("keep this draft")
     act(() => editor.commands.undo())
     expect(handle.getText()).toBe("")
+  })
+})
+
+// Translate-on-send: what went out is the translation, and what the user typed
+// is kept under it, so the sent bubble can switch back to it.
+describe("MessageInput translate on send", () => {
+  afterEach(() => {
+    cleanup()
+    composerHandle.current = null
+    translation.settings = null
+    translation.translateTexts.mockClear()
+    translation.saveSentOriginal.mockClear()
+  })
+
+  it("sends the translation and keeps the original under it", async () => {
+    translation.settings = {
+      provider: "dashscope",
+      dashscope_model: "qwen-mt-flash",
+      dashscope_base_url: "",
+      tokenhub_model: "hy-mt2-plus",
+      tokenhub_base_url: "",
+      fallback_enabled: true,
+      output_auto: false,
+      output_target: null,
+      input_target: "en",
+      input_translate_on_send: true,
+      glossary: [],
+      has_dashscope_key: true,
+      has_tokenhub_key: false,
+    }
+    const onSend = vi.fn()
+    render(
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        <MessageInput onSend={onSend} promptCapabilities={CAPS} />
+      </NextIntlClientProvider>
+    )
+    await waitFor(
+      () => expect(composerHandle.current?.getEditor()).toBeTruthy(),
+      { timeout: 5000 }
+    )
+    const editor = composerHandle.current!.getEditor()!
+    act(() => {
+      editor.commands.setContent("<p>请检查这台电脑的配置</p>")
+    })
+    act(() => {
+      ;(editor.view.dom as HTMLElement).dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+          cancelable: true,
+        })
+      )
+    })
+
+    await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1))
+    expect(onSend.mock.calls[0][0].displayText).toBe(
+      "Please check the specs of this computer"
+    )
+    expect(translation.saveSentOriginal).toHaveBeenCalledWith(
+      ["Please check the specs of this computer"],
+      "请检查这台电脑的配置"
+    )
   })
 })

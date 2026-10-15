@@ -35,6 +35,7 @@ import {
   Reasoning,
   ReasoningTrigger,
   ReasoningContent,
+  useReasoning,
 } from "@/components/ai-elements/reasoning"
 import { AgentToolCallPart } from "./agent-tool-call"
 import { ToolGroupPart } from "./tool-group-part"
@@ -86,6 +87,7 @@ import { GoalRunPart, GoalToolCallPart } from "./goal-tool-call"
 import { PlanCard, PlanEntriesList } from "./plan-card"
 import { PlanMarkdownCard, PlanModeCard } from "./plan-mode-card"
 import { PlainTextWithBadges } from "./plain-text-with-badges"
+import { useTranslatedMarkdown } from "./translation-context"
 import {
   FileTextIcon,
   FilePenLineIcon,
@@ -2253,12 +2255,15 @@ const TextPart = memo(function TextPart({
   text,
   isUser = false,
   isStreaming = false,
+  translatable = false,
 }: {
   text: string
   // User messages render as plain text + inline reference badges (no Markdown),
   // matching the plain-text composer. Assistant / system text keeps full Markdown.
   isUser?: boolean
   isStreaming?: boolean
+  /** An assistant reply's own text, which reply translation may stand in for. */
+  translatable?: boolean
 }) {
   if (isUser) {
     return (
@@ -2267,7 +2272,13 @@ const TextPart = memo(function TextPart({
       </div>
     )
   }
-  return <AssistantText text={text} isStreaming={isStreaming} />
+  return (
+    <AssistantText
+      text={text}
+      isStreaming={isStreaming}
+      translatable={translatable}
+    />
+  )
 })
 
 /**
@@ -2281,9 +2292,11 @@ const TextPart = memo(function TextPart({
 function AssistantText({
   text,
   isStreaming,
+  translatable,
 }: {
   text: string
   isStreaming: boolean
+  translatable: boolean
 }) {
   const segments = useMemo(
     () => (hasCodexVisualizeRef(text) ? splitCodexVisualizeRefs(text) : null),
@@ -2299,7 +2312,13 @@ function AssistantText({
 
   const hasInline = segments?.some((s) => s.kind === "visualize") ?? false
   if (!hasInline && mentions.length === 0) {
-    return <MarkdownText text={text} isStreaming={isStreaming} />
+    return (
+      <MarkdownText
+        text={text}
+        isStreaming={isStreaming}
+        translatable={translatable}
+      />
+    )
   }
   return (
     <div className="space-y-2">
@@ -2316,11 +2335,16 @@ function AssistantText({
               key={`md-${index}`}
               text={segment.text}
               isStreaming={isStreaming}
+              translatable={translatable}
             />
           )
         )
       ) : (
-        <MarkdownText text={text} isStreaming={isStreaming} />
+        <MarkdownText
+          text={text}
+          isStreaming={isStreaming}
+          translatable={translatable}
+        />
       )}
       {mentions.length > 0 ? <HtmlFilePreviews paths={mentions} /> : null}
     </div>
@@ -2330,20 +2354,30 @@ function AssistantText({
 function MarkdownText({
   text,
   isStreaming,
+  translatable = false,
 }: {
   text: string
   isStreaming: boolean
+  translatable?: boolean
 }) {
+  // Once the turn has finished, its prose blocks swapped for their translation
+  // when reply translation is on; the text as written otherwise (and outside a
+  // TranslationProvider). Remounted when a block flips, see `revision`.
+  const shown = useTranslatedMarkdown(text, {
+    translatable,
+    settled: !isStreaming,
+  })
   return (
     <div className='break-words text-sm prose prose-sm dark:prose-invert max-w-none [&_ul]:list-inside [&_ol]:list-inside [&_[data-streamdown="code-block-body"]]:max-h-96 [&_[data-streamdown="code-block-body"]]:overflow-auto'>
       {/* An assistant reply's own text: the one place a ```spec fence may
           render as a json-render card. */}
       <JsonRenderScope>
         <MessageResponse
+          key={shown.revision}
           mode={isStreaming ? "streaming" : "static"}
           parseIncompleteMarkdown={isStreaming}
         >
-          {text}
+          {shown.markdown}
         </MessageResponse>
       </JsonRenderScope>
     </div>
@@ -3054,18 +3088,47 @@ const ToolResultPart = memo(function ToolResultPart({
 
 const ReasoningPart = memo(function ReasoningPart({
   part,
+  translatable = false,
 }: {
   part: Extract<AdaptedContentPart, { type: "reasoning" }>
+  /** An assistant's own thinking, which reply translation may stand in for. */
+  translatable?: boolean
 }) {
   const hasContent = part.content.trim().length > 0
   const expandable = hasContent || part.isStreaming
   return (
     <Reasoning isStreaming={part.isStreaming} expandable={expandable}>
       <ReasoningTrigger />
-      {expandable && <ReasoningContent>{part.content}</ReasoningContent>}
+      {expandable && (
+        <ReasoningBody content={part.content} translatable={translatable} />
+      )}
     </Reasoning>
   )
 })
+
+/**
+ * The thinking, translated like the reply around it once the block is
+ * finished — but only while the panel is open: thinking stays folded unless
+ * the reader asks for it, and a folded panel should cost no request.
+ */
+function ReasoningBody({
+  content,
+  translatable,
+}: {
+  content: string
+  translatable: boolean
+}) {
+  const { isOpen, isStreaming } = useReasoning()
+  const shown = useTranslatedMarkdown(content, {
+    translatable: translatable && isOpen,
+    settled: !isStreaming,
+  })
+  return (
+    <ReasoningContent revision={shown.revision}>
+      {shown.markdown}
+    </ReasoningContent>
+  )
+}
 
 const PlanPart = memo(function PlanPart({
   part,
@@ -3124,6 +3187,7 @@ export const ContentPartsRenderer = memo(function ContentPartsRenderer({
           text={part.text}
           isUser={role === "user"}
           isStreaming={isStreaming}
+          translatable={role === "assistant"}
         />
       )
     }
@@ -3169,7 +3233,13 @@ export const ContentPartsRenderer = memo(function ContentPartsRenderer({
     }
 
     if (part.type === "reasoning") {
-      return <ReasoningPart key={`reasoning-${keyId}`} part={part} />
+      return (
+        <ReasoningPart
+          key={`reasoning-${keyId}`}
+          part={part}
+          translatable={role === "assistant"}
+        />
+      )
     }
 
     if (part.type === "plan") {

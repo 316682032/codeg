@@ -233,6 +233,12 @@ export interface RichComposerProps {
    * clipboard read is unavailable).
    */
   onPlainPaste?: () => boolean
+  /**
+   * Translate-the-composer binding (Settings → Shortcuts) and what it does.
+   * Consumed only when the host handles it (`onTranslate` returns true).
+   */
+  translateShortcut?: string
+  onTranslate?: () => boolean
 }
 
 /**
@@ -269,6 +275,8 @@ export const RichComposer = forwardRef<RichComposerHandle, RichComposerProps>(
       onPasteFiles,
       onDropFiles,
       onPlainPaste,
+      translateShortcut,
+      onTranslate,
     },
     ref
   ) {
@@ -295,6 +303,8 @@ export const RichComposer = forwardRef<RichComposerHandle, RichComposerProps>(
     const onPasteFilesRef = useRef(onPasteFiles)
     const onDropFilesRef = useRef(onDropFiles)
     const onPlainPasteRef = useRef(onPlainPaste)
+    const translateShortcutRef = useRef(translateShortcut)
+    const onTranslateRef = useRef(onTranslate)
     // The live editor, captured for command access inside editorProps handlers
     // (which are created before `editor` is assigned in this closure).
     const editorInstanceRef = useRef<Editor | null>(null)
@@ -316,6 +326,8 @@ export const RichComposer = forwardRef<RichComposerHandle, RichComposerProps>(
       onPasteFilesRef.current = onPasteFiles
       onDropFilesRef.current = onDropFiles
       onPlainPasteRef.current = onPlainPaste
+      translateShortcutRef.current = translateShortcut
+      onTranslateRef.current = onTranslate
     })
 
     // ── Unified `@` mention panel state bridge ──
@@ -459,6 +471,12 @@ export const RichComposer = forwardRef<RichComposerHandle, RichComposerProps>(
           // fallback in a non-secure context where the async read is unavailable.
           if (matchShortcutEvent(event, "mod+shift+v")) {
             return onPlainPasteRef.current?.() === true
+          }
+          // An unbound action is stored as an empty string; a host that does
+          // not pass the binding at all leaves it undefined.
+          const translateBinding = translateShortcutRef.current
+          if (translateBinding && matchShortcutEvent(event, translateBinding)) {
+            return onTranslateRef.current?.() === true
           }
           // Bindings are free-form (Enter, Shift+Enter, Mod+Enter, Tab, …). The
           // composer is plain text, so there is no code block or list to carve

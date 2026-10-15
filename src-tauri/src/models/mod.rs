@@ -12,6 +12,7 @@ pub mod quick_message;
 pub mod remote_workspace_connection;
 pub mod system;
 pub mod token_usage;
+pub mod translation;
 pub mod work_task;
 
 pub use agent::AgentType;

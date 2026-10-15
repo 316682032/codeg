@@ -6294,3 +6294,117 @@ export async function forgeAutoScanNow(
 ): Promise<ForgeAutoScanReport> {
   return getTransport().call("forge_auto_scan_now", { folderId })
 }
+
+// ─── Translation ───────────────────────────────────────────────────────
+
+/** Mirror of Rust `TranslationProvider`. */
+export type TranslationProvider = "dashscope" | "tokenhub"
+
+/** Mirror of Rust `GlossaryEntry`. */
+export interface TranslationGlossaryEntry {
+  source: string
+  target: string
+}
+
+/** Mirror of Rust `TranslationSettings`. Language fields hold codes from
+ *  `TRANSLATION_LANGUAGES` (`zh-CN`, `en`, …). */
+export interface TranslationSettings {
+  provider: TranslationProvider
+  dashscope_model: string
+  dashscope_base_url: string
+  tokenhub_model: string
+  tokenhub_base_url: string
+  fallback_enabled: boolean
+  output_auto: boolean
+  /** `null` follows the UI language. */
+  output_target: string | null
+  input_target: string
+  input_translate_on_send: boolean
+  glossary: TranslationGlossaryEntry[]
+}
+
+/** Mirror of Rust `TranslationSettingsView`: the settings plus whether each
+ *  API key is stored. Keys themselves never reach the frontend. */
+export interface TranslationSettingsView extends TranslationSettings {
+  has_dashscope_key: boolean
+  has_tokenhub_key: boolean
+}
+
+/** Mirror of Rust `TranslationSettingsInput`. For each key: `undefined` keeps
+ *  the stored one, `""` removes it, anything else replaces it. */
+export interface TranslationSettingsInput extends TranslationSettings {
+  dashscope_api_key?: string
+  tokenhub_api_key?: string
+}
+
+/** Mirror of Rust `TranslateResult`. `null` marks a text that came back
+ *  damaged; show the original for it. */
+export interface TranslateResult {
+  translations: (string | null)[]
+  model: string | null
+}
+
+/** Mirror of Rust `TranslationTestResult`. */
+export interface TranslationTestResult {
+  model: string
+  elapsed_ms: number
+  sample: string
+  translation: string
+}
+
+export async function getTranslationSettings(): Promise<TranslationSettingsView> {
+  return getTransport().call("get_translation_settings")
+}
+
+export async function saveTranslationSettings(
+  settings: TranslationSettingsInput
+): Promise<TranslationSettingsView> {
+  return getTransport().call("save_translation_settings", { settings })
+}
+
+/**
+ * Translate paragraphs into `target`. `groups[i]` says which reply paragraph
+ * `i` belongs to: a reply's paragraphs reach the engine in one call, so each
+ * is translated in the context of the others. Without `groups` the whole call
+ * is one group (a composer message).
+ */
+export async function translateTexts(
+  texts: string[],
+  target: string,
+  options: { source?: string | null; groups?: number[] } = {}
+): Promise<TranslateResult> {
+  return getTransport().call("translate_texts", {
+    request: {
+      texts,
+      target,
+      source: options.source ?? null,
+      groups: options.groups ?? null,
+    },
+  })
+}
+
+export async function testTranslationProvider(
+  provider: TranslationProvider
+): Promise<TranslationTestResult> {
+  return getTransport().call("test_translation_provider", { provider })
+}
+
+export async function clearTranslationCache(): Promise<number> {
+  return getTransport().call("clear_translation_cache")
+}
+
+/** Remember what the user wrote before the composer translated it, under each
+ *  form the sent message may come back in. */
+export async function saveSentOriginal(
+  sent: string[],
+  original: string
+): Promise<void> {
+  return getTransport().call("save_sent_original", { sent, original })
+}
+
+/** The original of each sent message, `null` where none was remembered. */
+export async function getSentOriginals(
+  texts: string[]
+): Promise<(string | null)[]> {
+  return getTransport().call("get_sent_originals", { texts })
+}

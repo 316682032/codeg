@@ -289,3 +289,26 @@ describe("TurnStats zeroed counters", () => {
     expect(screen.getByLabelText(tokenStatsLabel)).toBeInTheDocument()
   })
 })
+
+describe("TurnStats copy", () => {
+  it("copies the reply as it reads, translated while that shows", async () => {
+    const writeText = vi.fn(async () => {})
+    Object.assign(navigator, { clipboard: { writeText } })
+    const translation = await import("./translation-context")
+    const spy = vi.spyOn(translation, "useTurnTranslation").mockReturnValue({
+      visible: true,
+      translated: true,
+      pending: false,
+      toggle: () => {},
+      shownReplyText: () => "译文",
+    })
+    renderStats(<TurnStats copyText="original" replyTexts={["original"]} />)
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: enMessages.Folder.chat.messageList.copyMessage,
+      })
+    )
+    spy.mockRestore()
+    expect(writeText).toHaveBeenCalledWith("译文")
+  })
+})

@@ -56,7 +56,8 @@
       "browser": "瀏覽器操作",
       "computer_use": "電腦操作",
       "quick_messages": "快捷訊息",
-      "logs": "執行日誌"
+      "logs": "執行日誌",
+      "translation": "翻譯"
     }
   },
   "AppearanceSettings": {
@@ -534,6 +535,10 @@
       "zoom_reset": {
         "title": "重設縮放",
         "description": "把視窗縮放恢復為 100%"
+      },
+      "translate_input": {
+        "title": "翻譯訊息",
+        "description": "把輸入框裡的內容翻譯成訊息翻譯的目標語言"
       }
     }
   },
@@ -3534,7 +3539,11 @@
         "jumpToPreviousUserMessage": "跳轉到上一條使用者訊息",
         "showMore": "展開",
         "showLess": "收合",
-        "resizeWidth": "拖曳調整聊天區域寬度 · 雙擊恢復預設"
+        "resizeWidth": "拖曳調整聊天區域寬度 · 雙擊恢復預設",
+        "translateReply": "翻譯回覆",
+        "showOriginal": "顯示原文",
+        "showSentOriginal": "顯示翻譯前的原文",
+        "showSent": "顯示送出的內容"
       },
       "liveTurnStats": {
         "thinking": "思考中...",
@@ -7158,6 +7167,118 @@
         "bypassed": "這台電腦的瀏覽器引擎會讓部分位址繞過通道，為避免從這台電腦載入，遠端主機的頁面不會開啟。",
         "probeFailed": "內建瀏覽器無法確認它能透過通道連到遠端主機。請稍後再試。"
       }
+    }
+  },
+  "Translation": {
+    "replyFailed": "回覆翻譯失敗：{message}",
+    "translateInput": "翻譯訊息",
+    "inputChanged": "翻譯期間訊息被改動了，請再翻譯一次。",
+    "inputDamaged": "譯文遺失了提及、指令或程式碼，已保留原文。",
+    "inputFailed": "訊息翻譯失敗：{message}",
+    "errors": {
+      "missingKey": "{provider} 還沒有設定 API Key，請到 設定 → 翻譯 裡新增。",
+      "unsupportedLanguage": "不支援翻譯成 {language}。",
+      "auth": "{model} 拒絕了這個 API Key，請到 設定 → 翻譯 裡檢查。",
+      "rateLimited": "{model} 觸發了速率限制，請稍後再試。",
+      "rejected": "{model} 拒絕了請求：{message}",
+      "network": "無法連線到 {model}。",
+      "badResponse": "{model} 沒有回傳譯文。",
+      "unknown": "翻譯失敗。"
+    }
+  },
+  "TranslationSettings": {
+    "title": "翻譯",
+    "description": "送出前把你寫的訊息翻譯成目標語言，把智慧體的回覆翻譯成你的語言。翻譯是獨立的一層，不會改變智慧體自己的寫法。",
+    "loading": "載入中…",
+    "loadFailed": "無法載入翻譯設定：{message}",
+    "saveFailed": "儲存失敗：{message}",
+    "keySaved": "API Key 已儲存",
+    "keyRemoved": "API Key 已刪除",
+    "cacheCleared": "{count, plural, =0 {快取本來就是空的} other {已清空 # 筆譯文}}",
+    "providers": {
+      "dashscope": "阿里雲百煉",
+      "tokenhub": "騰訊雲 TokenHub"
+    },
+    "engine": {
+      "title": "翻譯引擎",
+      "description": "選中的引擎負責所有翻譯。展開一個引擎，可以填寫 API Key、更換模型和測試。",
+      "primary": "主引擎",
+      "backup": "備用",
+      "idle": "未使用",
+      "setPrimary": "把{provider}設為主引擎",
+      "needsKeyFirst": "請先填寫 API Key",
+      "configured": "已設定",
+      "needsSetup": "需要 API Key",
+      "notSetUp": "未設定",
+      "model": "模型",
+      "modelHint": {
+        "balanced": "推薦，速度與品質兼顧",
+        "quality": "品質更高，速度較慢",
+        "speed": "速度最快，品質稍弱"
+      },
+      "advanced": "進階",
+      "baseUrl": "介面位址",
+      "baseUrlHint": "一般不用修改；留空即為預設位址。",
+      "resetBaseUrl": "恢復預設",
+      "fallback": "受限時自動切換",
+      "fallbackPath": "主引擎受限或故障時，依序改用：{path}",
+      "fallbackNone": "目前沒有可切換的引擎。為另一個引擎填上 API Key 後，受限時會自動改用。"
+    },
+    "key": {
+      "title": "API Key",
+      "getKey": "取得 Key",
+      "placeholder": "貼上 API Key",
+      "label": "{provider} 的 API Key",
+      "save": "儲存",
+      "cancel": "取消",
+      "saved": "已儲存",
+      "replace": "更換",
+      "remove": "刪除 API Key",
+      "show": "顯示 API Key",
+      "hide": "隱藏 API Key"
+    },
+    "test": {
+      "description": "用一句範例試翻譯，確認 Key、模型和網路都可用（不經快取，也不切換引擎）。",
+      "run": "測試",
+      "running": "測試中…",
+      "ok": "{model} 可用 · {ms} 毫秒",
+      "slow": "{model} 可用，但較慢 · {ms} 毫秒"
+    },
+    "output": {
+      "title": "回覆翻譯",
+      "description": "開啟後，智慧體寫完一則回覆，整則翻譯一次，只顯示譯文；寫的過程中先顯示原文。思考過程展開時也會翻譯，智慧體取的會話名稱也一併翻譯。關閉時，用每則回覆下方的按鈕手動翻譯。",
+      "target": "翻譯成",
+      "followUi": "跟隨介面語言（{language}）"
+    },
+    "input": {
+      "title": "訊息翻譯",
+      "description": "點輸入框的翻譯按鈕、按快速鍵或用右鍵選單，把訊息就地翻譯。提及、指令、路徑和程式碼保持原樣，復原可以找回原文；送出後，訊息旁的按鈕可以切回翻譯前的原文。",
+      "target": "翻譯成",
+      "onSend": "送出時自動翻譯成{language}",
+      "onSendDescription": "翻譯失敗時不會送出。",
+      "shortcut": "快速鍵",
+      "shortcutNone": "未設定",
+      "shortcutEdit": "修改"
+    },
+    "glossary": {
+      "title": "術語表",
+      "description": "固定某些詞的譯法，兩個翻譯方向都適用；譯文留空表示保持原文。中英之間已內建 agent → 智能体、prompt → 提示词、session → 会话，同一個詞的條目會覆蓋內建的。",
+      "term": "原詞",
+      "translation": "譯文",
+      "termPlaceholder": "例如 worktree",
+      "translationPlaceholder": "留空則保持原文",
+      "add": "新增術語",
+      "remove": "刪除「{term}」",
+      "removeEmpty": "刪除這一行",
+      "bulkEdit": "批次編輯",
+      "tableEdit": "逐條編輯",
+      "bulkPlaceholder": "worktree = 工作樹\nCodeg",
+      "bulkHint": "每行一條「原詞 = 譯文」；只寫原詞表示保持原文。"
+    },
+    "cache": {
+      "title": "翻譯快取",
+      "description": "翻譯結果保留 30 天，重新開啟對話時直接顯示。清空後會全部重新翻譯，例如換了模型之後。",
+      "clear": "清空快取"
     }
   }
 }

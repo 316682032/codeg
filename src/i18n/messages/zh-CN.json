@@ -56,7 +56,8 @@
       "browser": "浏览器操作",
       "computer_use": "电脑操作",
       "quick_messages": "快捷消息",
-      "logs": "运行日志"
+      "logs": "运行日志",
+      "translation": "翻译"
     }
   },
   "AppearanceSettings": {
@@ -534,6 +535,10 @@
       "zoom_reset": {
         "title": "重置缩放",
         "description": "把窗口缩放恢复为 100%"
+      },
+      "translate_input": {
+        "title": "翻译消息",
+        "description": "把输入框里的内容翻译成消息翻译的目标语言"
       }
     }
   },
@@ -3534,7 +3539,11 @@
         "jumpToPreviousUserMessage": "跳转到上一条用户消息",
         "showMore": "展开",
         "showLess": "收起",
-        "resizeWidth": "拖动调整聊天区域宽度 · 双击恢复默认"
+        "resizeWidth": "拖动调整聊天区域宽度 · 双击恢复默认",
+        "translateReply": "翻译回复",
+        "showOriginal": "显示原文",
+        "showSentOriginal": "显示翻译前的原文",
+        "showSent": "显示发出的内容"
       },
       "liveTurnStats": {
         "thinking": "思考中...",
@@ -7158,6 +7167,118 @@
         "bypassed": "这台电脑的浏览器引擎会让部分地址绕过隧道，为避免从这台电脑加载，远端主机的页面不会打开。",
         "probeFailed": "内置浏览器无法确认它能通过隧道访问远端主机。请稍后重试。"
       }
+    }
+  },
+  "Translation": {
+    "replyFailed": "回复翻译失败：{message}",
+    "translateInput": "翻译消息",
+    "inputChanged": "翻译期间消息被改动了，请再翻译一次。",
+    "inputDamaged": "译文丢失了提及、命令或代码，已保留原文。",
+    "inputFailed": "消息翻译失败：{message}",
+    "errors": {
+      "missingKey": "{provider} 还没有设置 API Key，请到 设置 → 翻译 里添加。",
+      "unsupportedLanguage": "不支持翻译成 {language}。",
+      "auth": "{model} 拒绝了这个 API Key，请到 设置 → 翻译 里检查。",
+      "rateLimited": "{model} 触发了限流，请稍后再试。",
+      "rejected": "{model} 拒绝了请求：{message}",
+      "network": "无法连接 {model}。",
+      "badResponse": "{model} 没有返回译文。",
+      "unknown": "翻译失败。"
+    }
+  },
+  "TranslationSettings": {
+    "title": "翻译",
+    "description": "发送前把你写的消息翻译成目标语言，把智能体的回复翻译成你的语言。翻译是独立的一层，不会改变智能体自己的写法。",
+    "loading": "加载中…",
+    "loadFailed": "无法加载翻译设置：{message}",
+    "saveFailed": "保存失败：{message}",
+    "keySaved": "API Key 已保存",
+    "keyRemoved": "API Key 已删除",
+    "cacheCleared": "{count, plural, =0 {缓存本来就是空的} other {已清空 # 条译文}}",
+    "providers": {
+      "dashscope": "阿里云百炼",
+      "tokenhub": "腾讯云 TokenHub"
+    },
+    "engine": {
+      "title": "翻译引擎",
+      "description": "选中的引擎负责所有翻译。展开一个引擎，可以填写 API Key、换模型和测试。",
+      "primary": "主引擎",
+      "backup": "备用",
+      "idle": "未使用",
+      "setPrimary": "把{provider}设为主引擎",
+      "needsKeyFirst": "先填写 API Key",
+      "configured": "已配置",
+      "needsSetup": "需要 API Key",
+      "notSetUp": "未配置",
+      "model": "模型",
+      "modelHint": {
+        "balanced": "推荐，速度和质量兼顾",
+        "quality": "质量更高，速度较慢",
+        "speed": "速度最快，质量稍弱"
+      },
+      "advanced": "高级",
+      "baseUrl": "接口地址",
+      "baseUrlHint": "一般不用改；留空即为默认地址。",
+      "resetBaseUrl": "恢复默认",
+      "fallback": "限流时自动切换",
+      "fallbackPath": "主引擎限流或出故障时，依次换用：{path}",
+      "fallbackNone": "暂时没有可切换的引擎。给另一个引擎填上 API Key 后，限流时会自动换用。"
+    },
+    "key": {
+      "title": "API Key",
+      "getKey": "获取 Key",
+      "placeholder": "粘贴 API Key",
+      "label": "{provider} 的 API Key",
+      "save": "保存",
+      "cancel": "取消",
+      "saved": "已保存",
+      "replace": "更换",
+      "remove": "删除 API Key",
+      "show": "显示 API Key",
+      "hide": "隐藏 API Key"
+    },
+    "test": {
+      "description": "用一句示例试翻译，确认 Key、模型和网络都可用（不走缓存，也不切换引擎）。",
+      "run": "测试",
+      "running": "测试中…",
+      "ok": "{model} 可用 · {ms} 毫秒",
+      "slow": "{model} 可用，但较慢 · {ms} 毫秒"
+    },
+    "output": {
+      "title": "回复翻译",
+      "description": "开启后，智能体写完一条回复，整条翻译一次，只显示译文；写的过程中先显示原文。思考过程展开时也会翻译，智能体起的会话名也一起翻译。关闭时，用每条回复下方的按钮手动翻译。",
+      "target": "翻译成",
+      "followUi": "跟随界面语言（{language}）"
+    },
+    "input": {
+      "title": "消息翻译",
+      "description": "点输入框的翻译按钮、按快捷键或用右键菜单，把消息原地翻译。提及、命令、路径和代码保持原样，撤销可恢复原文；发出后，消息旁的按钮可以切回翻译前的原文。",
+      "target": "翻译成",
+      "onSend": "发送时自动翻译成{language}",
+      "onSendDescription": "翻译失败时不会发送。",
+      "shortcut": "快捷键",
+      "shortcutNone": "未设置",
+      "shortcutEdit": "修改"
+    },
+    "glossary": {
+      "title": "术语表",
+      "description": "固定某些词的译法，两个翻译方向都适用；译文留空表示保持原文。中英之间已内置 agent → 智能体、prompt → 提示词、session → 会话，同一个词的条目会覆盖内置的。",
+      "term": "原词",
+      "translation": "译文",
+      "termPlaceholder": "例如 worktree",
+      "translationPlaceholder": "留空则保持原文",
+      "add": "添加术语",
+      "remove": "删除「{term}」",
+      "removeEmpty": "删除这一行",
+      "bulkEdit": "批量编辑",
+      "tableEdit": "逐条编辑",
+      "bulkPlaceholder": "worktree = 工作树\nCodeg",
+      "bulkHint": "每行一条「原词 = 译文」；只写原词表示保持原文。"
+    },
+    "cache": {
+      "title": "翻译缓存",
+      "description": "翻译结果保留 30 天，重新打开会话时直接显示。清空后会全部重新翻译，比如换了模型以后。",
+      "clear": "清空缓存"
     }
   }
 }

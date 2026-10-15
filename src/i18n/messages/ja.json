@@ -56,7 +56,8 @@
       "browser": "ブラウザ操作",
       "computer_use": "コンピューター操作",
       "quick_messages": "クイックメッセージ",
-      "logs": "実行ログ"
+      "logs": "実行ログ",
+      "translation": "翻訳"
     }
   },
   "AppearanceSettings": {
@@ -534,6 +535,10 @@
       "zoom_reset": {
         "title": "ズームをリセット",
         "description": "ウィンドウのズームを 100% に戻します"
+      },
+      "translate_input": {
+        "title": "メッセージを翻訳",
+        "description": "入力欄の内容をメッセージ翻訳の言語に翻訳します"
       }
     }
   },
@@ -3534,7 +3539,11 @@
         "jumpToPreviousUserMessage": "前のユーザーメッセージへ",
         "showMore": "もっと見る",
         "showLess": "折りたたむ",
-        "resizeWidth": "ドラッグでチャット幅を調整 · ダブルクリックで元に戻す"
+        "resizeWidth": "ドラッグでチャット幅を調整 · ダブルクリックで元に戻す",
+        "translateReply": "返信を翻訳",
+        "showOriginal": "原文を表示",
+        "showSentOriginal": "翻訳前の原文を表示",
+        "showSent": "送信した内容を表示"
       },
       "liveTurnStats": {
         "thinking": "考え中...",
@@ -7158,6 +7167,118 @@
         "bypassed": "このコンピューターのブラウザーエンジンは一部のアドレスをトンネルを通さずに送るため、このコンピューターから読み込まないよう、リモートホストのページは開きません。",
         "probeFailed": "内蔵ブラウザーがトンネル経由でリモートホストに届くことを確認できませんでした。しばらくしてからもう一度お試しください。"
       }
+    }
+  },
+  "Translation": {
+    "replyFailed": "返信を翻訳できませんでした: {message}",
+    "translateInput": "メッセージを翻訳",
+    "inputChanged": "翻訳中にメッセージが変更されました。もう一度翻訳してください。",
+    "inputDamaged": "翻訳でメンション、コマンド、またはコードが失われたため、原文のままにしました。",
+    "inputFailed": "メッセージを翻訳できませんでした: {message}",
+    "errors": {
+      "missingKey": "{provider} の API キーが設定されていません。設定 → 翻訳 で追加してください。",
+      "unsupportedLanguage": "{language} への翻訳には対応していません。",
+      "auth": "{model} が API キーを拒否しました。設定 → 翻訳 で確認してください。",
+      "rateLimited": "{model} がレート制限中です。しばらくしてからもう一度お試しください。",
+      "rejected": "{model} がリクエストを拒否しました: {message}",
+      "network": "{model} に接続できませんでした。",
+      "badResponse": "{model} から翻訳が返ってきませんでした。",
+      "unknown": "翻訳に失敗しました。"
+    }
+  },
+  "TranslationSettings": {
+    "title": "翻訳",
+    "description": "送信前に自分のメッセージを翻訳し、エージェントの返信を自分の言語に翻訳します。翻訳は独立したレイヤーで、エージェント自身の書き方は変わりません。",
+    "loading": "読み込み中…",
+    "loadFailed": "翻訳設定を読み込めませんでした: {message}",
+    "saveFailed": "保存できませんでした: {message}",
+    "keySaved": "API キーを保存しました",
+    "keyRemoved": "API キーを削除しました",
+    "cacheCleared": "{count, plural, =0 {キャッシュはすでに空でした} other {# 件の翻訳を削除しました}}",
+    "providers": {
+      "dashscope": "Alibaba Cloud Bailian",
+      "tokenhub": "Tencent Cloud TokenHub"
+    },
+    "engine": {
+      "title": "翻訳エンジン",
+      "description": "選択したエンジンがすべての翻訳を行います。エンジンを展開すると、API キーの入力、モデルの変更、テストができます。",
+      "primary": "メイン",
+      "backup": "予備",
+      "idle": "未使用",
+      "setPrimary": "{provider} をメインエンジンにする",
+      "needsKeyFirst": "先に API キーを入力してください",
+      "configured": "設定済み",
+      "needsSetup": "API キーが必要",
+      "notSetUp": "未設定",
+      "model": "モデル",
+      "modelHint": {
+        "balanced": "おすすめ：速さと品質のバランス",
+        "quality": "より高品質、やや遅い",
+        "speed": "最速、品質はやや劣る"
+      },
+      "advanced": "詳細設定",
+      "baseUrl": "API アドレス",
+      "baseUrlHint": "通常は変更不要です。空欄にすると既定のアドレスを使います。",
+      "resetBaseUrl": "既定に戻す",
+      "fallback": "レート制限時に自動で切り替え",
+      "fallbackPath": "メインエンジンがレート制限や障害のときは、次の順に切り替えます：{path}",
+      "fallbackNone": "切り替え先のエンジンがありません。もう一方のエンジンに API キーを設定すると、レート制限時に自動で切り替わります。"
+    },
+    "key": {
+      "title": "API キー",
+      "getKey": "キーを取得",
+      "placeholder": "API キーを貼り付け",
+      "label": "{provider} の API キー",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "saved": "保存済み",
+      "replace": "変更",
+      "remove": "API キーを削除",
+      "show": "API キーを表示",
+      "hide": "API キーを隠す"
+    },
+    "test": {
+      "description": "例文を翻訳して、キー・モデル・ネットワークを確認します（キャッシュも予備エンジンも使いません）。",
+      "run": "テスト",
+      "running": "テスト中…",
+      "ok": "{model} 利用可能 · {ms} ミリ秒",
+      "slow": "{model} 利用可能（遅め） · {ms} ミリ秒"
+    },
+    "output": {
+      "title": "返信の翻訳",
+      "description": "オンにすると、エージェントが返信を書き終えてから返信全体をまとめて翻訳し、訳文だけを表示します。書いている間は原文を表示します。思考は展開したときに翻訳し、エージェントが付けたセッション名も翻訳します。オフの場合は各返信の下のボタンで翻訳します。",
+      "target": "翻訳先",
+      "followUi": "表示言語に合わせる（{language}）"
+    },
+    "input": {
+      "title": "メッセージの翻訳",
+      "description": "入力欄の翻訳ボタン、ショートカット、右クリックメニューでメッセージをその場で翻訳します。メンション、コマンド、パス、コードはそのまま残り、元に戻すで原文に戻せます。送信後は、メッセージ横のボタンで翻訳前の原文に切り替えられます。",
+      "target": "翻訳先",
+      "onSend": "送信時に{language}へ自動翻訳",
+      "onSendDescription": "翻訳に失敗した場合は送信しません。",
+      "shortcut": "ショートカット",
+      "shortcutNone": "未設定",
+      "shortcutEdit": "変更"
+    },
+    "glossary": {
+      "title": "用語集",
+      "description": "特定の用語の訳し方を固定します（双方向に適用）。訳語を空欄にすると原文のまま残します。英語と中国語の間には agent → 智能体、prompt → 提示词、session → 会话 が組み込まれており、同じ用語の項目で上書きできます。",
+      "term": "用語",
+      "translation": "訳語",
+      "termPlaceholder": "例：worktree",
+      "translationPlaceholder": "空欄なら原文のまま",
+      "add": "用語を追加",
+      "remove": "「{term}」を削除",
+      "removeEmpty": "この行を削除",
+      "bulkEdit": "一括編集",
+      "tableEdit": "リストで編集",
+      "bulkPlaceholder": "worktree = ワークツリー\nCodeg",
+      "bulkHint": "1 行に 1 つ「用語 = 訳語」の形式で書きます。用語だけの行は原文のまま残します。"
+    },
+    "cache": {
+      "title": "翻訳キャッシュ",
+      "description": "翻訳結果は 30 日間保存され、会話を開き直すとすぐに表示されます。モデルを変えたときなど、すべて翻訳し直すにはキャッシュを削除してください。",
+      "clear": "キャッシュを削除"
     }
   }
 }
