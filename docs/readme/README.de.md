@@ -31,7 +31,7 @@
 <table>
   <tr>
     <td width="50%" valign="top">🤖 <strong>Kiro CLI eingebaut</strong><br/>Nutzt dein installiertes <code>kiro-cli</code>: Modell und Modus wählen, MCP-Server und Skills hinzufügen, frühere Sitzungen fortsetzen.</td>
-    <td width="50%" valign="top">🪟 <strong>Tabs pro Fenster</strong><br/>Browserfenster auf demselben Server folgen nicht mehr den Tabs der anderen; Unterhaltungen und Nachrichten werden weiter synchronisiert.</td>
+    <td width="50%" valign="top">🪟 <strong>Tabs pro Fenster</strong><br/>Mit mehreren Fenstern auf einem Server lässt sich die Tab-Synchronisierung abschalten, dann behält jedes Fenster seine eigenen Tabs; Unterhaltungen und Nachrichten werden weiter synchronisiert.</td>
   </tr>
   <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code zeigt sein Thinking</strong><br/>Fordert bei der API Thinking-Zusammenfassungen an, der Thinking-Bereich bleibt also nicht mehr leer.</td>
@@ -60,10 +60,10 @@
 <summary><strong>Tabs pro Fenster</strong> – Details</summary>
 <br/>
 
-- Wer in einem Fenster einen Konversationstab öffnet, fokussiert oder schließt, lässt die anderen unverändert.
-- Nach dem Neuladen kommen die Tabs genau dieses Fensters zurück.
-- Konversationen, Nachrichten und Löschungen erreichen weiterhin alle Fenster.
-- Gesteuert über „Konversationstabs fensterübergreifend synchronisieren“ unter Einstellungen → Allgemein – im Browser standardmäßig aus, in der Desktop-App an. Eingeschaltet teilen sich alle Fenster wie im offiziellen Build einen Satz Tabs.
+- Gesteuert über „Konversationstabs fensterübergreifend synchronisieren“ unter Einstellungen → Allgemein, standardmäßig an: Alle Fenster und Geräte am Server (Computer, Tablet, Handy) teilen sich wie im offiziellen Build einen Satz geöffneter Tabs.
+- Ausgeschaltet lässt das Öffnen, Fokussieren oder Schließen eines Konversationstabs in einem Fenster die anderen unverändert, und nach dem Neuladen kommen die Tabs genau dieses Fensters zurück.
+- Unterhaltungen, Nachrichten und Löschungen erreichen unabhängig von der Einstellung immer alle Fenster.
+- Die Einstellung liegt auf dem Server: Wer sie in einem beliebigen Fenster oder auf einem beliebigen Gerät umschaltet, schaltet alle mit diesem Server verbundenen Fenster und Geräte mit um. (Bis 0.35.2-1 wurde sie pro Browser gespeichert und war im Browser standardmäßig aus.)
 - Upstream angefragt in [spacering-net/codeg#547](https://github.com/spacering-net/codeg/issues/547).
 
 </details>

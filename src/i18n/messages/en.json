@@ -1753,7 +1753,8 @@
   "TabSyncSettings": {
     "title": "Sync open conversation tabs across windows",
     "description": "When on, every window and device connected to the same server shares one set of open conversation tabs — order, pins and the focused tab included. When off, each window keeps its own tabs, restored after a reload or reconnect.",
-    "note": "Only open tabs and focus are affected; the conversation list, messages, run status and deletions always sync. This setting applies to this browser (or the desktop app) only."
+    "note": "Only open tabs and focus are affected; the conversation list, messages, run status and deletions always sync. Saved on the server: it applies to every window and device connected to it at once.",
+    "saveFailed": "Failed to save tab sync: {message}"
   },
   "CloseRequestDialog": {
     "askTitle": "Close codeg?",

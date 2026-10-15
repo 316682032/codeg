@@ -1753,7 +1753,8 @@
   "TabSyncSettings": {
     "title": "Sincronizar pestañas de conversación entre ventanas",
     "description": "Si está activado, todas las ventanas y dispositivos conectados al mismo servidor comparten un único conjunto de pestañas de conversación abiertas, incluidos el orden, las fijadas y la pestaña enfocada. Si está desactivado, cada ventana conserva sus propias pestañas, que se restauran tras recargar o reconectar.",
-    "note": "Solo afecta a las pestañas abiertas y al foco; la lista de conversaciones, los mensajes, el estado de ejecución y las eliminaciones se sincronizan siempre. Este ajuste se aplica solo a este navegador (o a la aplicación de escritorio)."
+    "note": "Solo afecta a las pestañas abiertas y al foco; la lista de conversaciones, los mensajes, el estado de ejecución y las eliminaciones se sincronizan siempre. Se guarda en el servidor y se aplica a la vez a todas las ventanas y dispositivos conectados a él.",
+    "saveFailed": "No se pudo guardar la sincronización de pestañas: {message}"
   },
   "CloseRequestDialog": {
     "askTitle": "¿Cerrar codeg?",

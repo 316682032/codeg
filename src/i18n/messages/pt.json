@@ -1753,7 +1753,8 @@
   "TabSyncSettings": {
     "title": "Sincronizar abas de conversa entre janelas",
     "description": "Quando ativado, todas as janelas e dispositivos conectados ao mesmo servidor compartilham um único conjunto de abas de conversa abertas, incluindo a ordem, as fixadas e a aba em foco. Quando desativado, cada janela mantém suas próprias abas, restauradas após recarregar ou reconectar.",
-    "note": "Afeta apenas as abas abertas e o foco; a lista de conversas, as mensagens, o status de execução e as exclusões são sempre sincronizados. Esta configuração vale apenas para este navegador (ou para o aplicativo desktop)."
+    "note": "Afeta apenas as abas abertas e o foco; a lista de conversas, as mensagens, o status de execução e as exclusões são sempre sincronizados. A configuração fica salva no servidor e vale ao mesmo tempo para todas as janelas e dispositivos conectados a ele.",
+    "saveFailed": "Não foi possível salvar a sincronização de abas: {message}"
   },
   "CloseRequestDialog": {
     "askTitle": "Fechar o codeg?",

@@ -31,7 +31,7 @@
 <table>
   <tr>
     <td width="50%" valign="top">🤖 <strong>Kiro CLI integrado</strong><br/>Usa o <code>kiro-cli</code> que você instalou: escolha modelo e modo, configure servidores MCP e skills, retome sessões anteriores.</td>
-    <td width="50%" valign="top">🪟 <strong>Abas por janela</strong><br/>Janelas do navegador no mesmo servidor não seguem mais as abas umas das outras; conversas e mensagens continuam sincronizadas.</td>
+    <td width="50%" valign="top">🪟 <strong>Abas por janela</strong><br/>Com várias janelas no mesmo servidor, desative a sincronização de abas e cada janela mantém as suas; conversas e mensagens continuam sincronizadas.</td>
   </tr>
   <tr>
     <td width="50%" valign="top">💭 <strong>O Claude Code mostra o pensamento</strong><br/>Pede à API resumos do pensamento, então essa área não fica mais vazia.</td>
@@ -60,10 +60,10 @@
 <summary><strong>Abas por janela</strong>: detalhes</summary>
 <br/>
 
-- Abrir, focar ou fechar uma aba de conversa em uma janela deixa as outras como estavam.
-- Ao recarregar, voltam as abas daquela janela.
-- Conversas, mensagens e exclusões continuam chegando a todas as janelas.
-- É a opção "Sincronizar abas de conversa entre janelas" em Configurações → Geral: desativada por padrão no navegador e ativada no aplicativo desktop. Ativada, todas as janelas compartilham um único conjunto de abas, como na versão oficial.
+- É a opção "Sincronizar abas de conversa entre janelas" em Configurações → Geral, ativada por padrão: todas as janelas e dispositivos do servidor (computador, tablet, celular) compartilham um único conjunto de abas abertas, como na versão oficial.
+- Desativada, abrir, focar ou fechar uma aba de conversa em uma janela deixa as outras como estavam, e ao recarregar voltam as abas daquela janela.
+- Conversas, mensagens e exclusões sempre chegam a todas as janelas, seja qual for a configuração.
+- A opção fica salva no servidor: ao mudá-la em qualquer janela ou dispositivo, todas as janelas e dispositivos conectados a esse servidor mudam junto. (Até a 0.35.2-1 ela era salva por navegador e vinha desativada nos navegadores.)
 - Solicitado ao projeto original em [spacering-net/codeg#547](https://github.com/spacering-net/codeg/issues/547).
 
 </details>

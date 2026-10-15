@@ -1753,7 +1753,8 @@
   "TabSyncSettings": {
     "title": "Konversationstabs fensterübergreifend synchronisieren",
     "description": "Wenn aktiviert, teilen sich alle mit demselben Server verbundenen Fenster und Geräte einen gemeinsamen Satz geöffneter Konversationstabs – einschließlich Reihenfolge, angehefteter Tabs und des fokussierten Tabs. Wenn deaktiviert, behält jedes Fenster seine eigenen Tabs, die nach einem Neuladen oder erneuten Verbinden wiederhergestellt werden.",
-    "note": "Betrifft nur geöffnete Tabs und den Fokus; Konversationsliste, Nachrichten, Ausführungsstatus und Löschungen werden immer synchronisiert. Diese Einstellung gilt nur für diesen Browser (bzw. die Desktop-App)."
+    "note": "Betrifft nur geöffnete Tabs und den Fokus; Konversationsliste, Nachrichten, Ausführungsstatus und Löschungen werden immer synchronisiert. Die Einstellung wird auf dem Server gespeichert und gilt sofort für alle damit verbundenen Fenster und Geräte.",
+    "saveFailed": "Tab-Synchronisierung konnte nicht gespeichert werden: {message}"
   },
   "CloseRequestDialog": {
     "askTitle": "codeg schließen?",
