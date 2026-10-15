@@ -1046,7 +1046,60 @@ fn read_loop(
     // thread, and refusing the removal would leak the entry and its temp files
     // for the rest of the process.
     finish_terminal_reader(&terminal_id, terminals, completed, scrollback);
+    reap_after_eof(&terminal_id, completed, scrollback);
     emit_terminal_exit_event(emitter, &terminal_id, &generation);
+}
+
+/// How long a reader keeps checking for its process's exit after EOF.
+const REAP_AFTER_EOF: Duration = Duration::from_secs(1);
+const REAP_AFTER_EOF_STEP: Duration = Duration::from_millis(10);
+
+/// EOF usually arrives a moment BEFORE the exit it comes from: a process's
+/// files are closed before it becomes a zombie, so the `try_wait` in
+/// [`finish_terminal_reader`] often finds it still running — nearly always for
+/// a shell with a real login profile, whose teardown takes longer — and the
+/// zombie then lasts until the record is viewed or removed. The reader thread
+/// is ending anyway, so it keeps checking for a short while before the exit
+/// event goes out. Like every reap here it never kills: a process that closed
+/// its terminal and keeps running is left alone once the time is up.
+fn reap_after_eof(
+    terminal_id: &str,
+    completed: &Mutex<CompletedTerminals>,
+    scrollback: &Arc<Mutex<Scrollback>>,
+) {
+    let deadline = Instant::now() + REAP_AFTER_EOF;
+    loop {
+        {
+            let mut completed = lock_completed(completed);
+            // Only this reader's own record: a same-id restart or a close may
+            // have replaced or taken it meanwhile.
+            let Some(entry) = completed
+                .entries
+                .get_mut(terminal_id)
+                .filter(|entry| Arc::ptr_eq(&entry.scrollback, scrollback))
+            else {
+                return;
+            };
+            if entry.exit_code.is_some() {
+                return;
+            }
+            let Some(child) = entry.child.as_mut() else {
+                return;
+            };
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    entry.exit_code = Some(status.exit_code());
+                    return;
+                }
+                Ok(None) => {}
+                Err(_) => return,
+            }
+        }
+        if Instant::now() >= deadline {
+            return;
+        }
+        std::thread::sleep(REAP_AFTER_EOF_STEP);
+    }
 }
 
 /// A previous reader can finish after a same-ID canvas terminal has restarted.
