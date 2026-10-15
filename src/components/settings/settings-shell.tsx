@@ -17,6 +17,7 @@ import {
   GitBranch,
   Globe,
   Keyboard,
+  Languages,
   Menu,
   MessageSquareText,
   MonitorCog,
@@ -49,6 +50,7 @@ interface SettingsNavItem {
     | "appearance"
     | "agents"
     | "model_providers"
+    | "translation"
     | "mcp"
     | "skills"
     | "skill_packs"
@@ -105,6 +107,11 @@ const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
     href: "/settings/model-providers",
     labelKey: "model_providers",
     icon: Server,
+  },
+  {
+    href: "/settings/translation",
+    labelKey: "translation",
+    icon: Languages,
   },
   {
     href: "/settings/quick-messages",

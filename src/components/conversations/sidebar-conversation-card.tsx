@@ -30,6 +30,7 @@ import type { DbConversationSummary, ConversationStatus } from "@/lib/types"
 import { STATUS_ORDER } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { formatConversationTitle } from "@/lib/conversation-title"
+import { useTranslatedTitle } from "@/hooks/use-translated-title"
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -222,6 +223,11 @@ export const SidebarConversationCard = memo(function SidebarConversationCard({
   onToggleExpand,
 }: SidebarConversationCardProps) {
   const t = useTranslations("Folder.conversationCard")
+  // In the reply language when replies are auto-translated; display only.
+  const shownTitle = useTranslatedTitle(
+    formatConversationTitle(conversation.title),
+    conversation.title_locked
+  )
   const ime = useImeGuard()
   const tSidebar = useTranslations("Folder.sidebar")
   const tStatus = useTranslations("Folder.statusLabels")
@@ -450,8 +456,7 @@ export const SidebarConversationCard = memo(function SidebarConversationCard({
                         isOpenInTab && "text-primary"
                       )}
                     >
-                      {formatConversationTitle(conversation.title) ||
-                        t("untitledConversation")}
+                      {shownTitle || t("untitledConversation")}
                     </span>
                     {/* Inline, inside the row's fixed 2rem height: the list's
                     virtualizer and rail geometry assume one line per row. The
@@ -798,9 +803,7 @@ export const SidebarConversationCard = memo(function SidebarConversationCard({
             <AlertDialogTitle>{t("deleteConversationTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {t("deleteConversationDescription", {
-                title:
-                  formatConversationTitle(conversation.title) ||
-                  t("untitledConversation"),
+                title: shownTitle || t("untitledConversation"),
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>

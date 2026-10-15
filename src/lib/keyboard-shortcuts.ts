@@ -24,6 +24,7 @@ export type ShortcutActionId =
   | "switch_tab_9"
   | "send_message"
   | "newline_in_message"
+  | "translate_input"
   | "toggle_custom_style"
   | "zoom_in"
   | "zoom_out"
@@ -92,6 +93,9 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     id: "newline_in_message",
   },
   {
+    id: "translate_input",
+  },
+  {
     id: "toggle_custom_style",
   },
   {
@@ -158,6 +162,9 @@ export const DEFAULT_SHORTCUTS: ShortcutSettings = {
   switch_tab_9: "mod+9",
   send_message: "enter",
   newline_in_message: "shift+enter",
+  // L for language. Not mod+shift+t (reopen tab) nor ctrl+alt+t, which Ubuntu
+  // takes system-wide for a terminal.
+  translate_input: "mod+shift+l",
   // 自定义样式的逃生舱：用户把界面改到不可用时，这一路必须仍然按得动，所以选一个
   // 三修饰键组合（不会与任何常用操作撞车），并在捕获阶段监听。
   toggle_custom_style: "mod+alt+shift+s",

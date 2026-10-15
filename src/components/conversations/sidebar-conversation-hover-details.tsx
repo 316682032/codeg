@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import { useTranslations } from "next-intl"
 import type { DbConversationSummary } from "@/lib/types"
 import { formatConversationTitle } from "@/lib/conversation-title"
+import { useTranslatedTitle } from "@/hooks/use-translated-title"
 import { cn } from "@/lib/utils"
 import { useAppWorkspaceStore } from "@/stores/app-workspace-store"
 import { Badge } from "@/components/ui/badge"
@@ -65,6 +66,8 @@ export function SidebarConversationHoverDetails({
 }: SidebarConversationHoverDetailsProps) {
   const t = useTranslations("Folder.sessionDetails")
   const tSidebar = useTranslations("Folder.sidebar")
+  const title = formatConversationTitle(conversation.title)
+  const shownTitle = useTranslatedTitle(title, conversation.title_locked)
   const tTags = useTranslations("ConversationTags")
   const tags = useResolvedTags(conversation.tag_ids)
 
@@ -109,8 +112,14 @@ export function SidebarConversationHoverDetails({
             ellipsis, so the whole point of the bubble is to reveal more of the
             title — just not an unbounded amount of it. */}
         <p className="wrap-anywhere line-clamp-3 text-sm font-medium leading-snug">
-          {formatConversationTitle(conversation.title) || t("untitled")}
+          {shownTitle || t("untitled")}
         </p>
+        {/* A translated title: the agent's own name for it, as stored. */}
+        {shownTitle !== title ? (
+          <p className="wrap-anywhere line-clamp-2 text-xs text-muted-foreground">
+            {title}
+          </p>
+        ) : null}
         {/* No status chip: the row the pointer is resting on already badges the
             two states worth flagging — a spinner while running, a cross when
             cancelled — and the rest read as ordinary either way. `model` is

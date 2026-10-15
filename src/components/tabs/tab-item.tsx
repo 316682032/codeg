@@ -23,6 +23,10 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { useLongPressDrag } from "@/hooks/use-long-press-drag"
+import {
+  useConversationTitleLocked,
+  useTranslatedTitle,
+} from "@/hooks/use-translated-title"
 import type { TabItem as TabItemData } from "@/contexts/tab-context"
 import type { SplitDirection } from "@/lib/tab-group-layout"
 
@@ -122,10 +126,15 @@ export const TabItem = memo(function TabItem({
   const t = useTranslations("Folder.tabs")
   const itemRef = useRef<HTMLDivElement>(null)
 
+  // In the reply language when replies are auto-translated; display only.
+  const title = useTranslatedTitle(
+    tab.title,
+    useConversationTitleLocked(tab.conversationId)
+  )
   const resolvedFolderName = folderName ?? String(tab.folderId)
   const tooltip = folderBranch
-    ? `${resolvedFolderName} · ${folderBranch}  —  ${tab.title}`
-    : `${resolvedFolderName}  —  ${tab.title}`
+    ? `${resolvedFolderName} · ${folderBranch}  —  ${title}`
+    : `${resolvedFolderName}  —  ${title}`
 
   const clearResidualStyles = useCallback(() => {
     const el = itemRef.current
@@ -342,7 +351,7 @@ export const TabItem = memo(function TabItem({
               )}
               title={tooltip}
             >
-              {tab.title}
+              {title}
             </span>
             <button
               type="button"

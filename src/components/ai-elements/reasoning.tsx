@@ -204,6 +204,12 @@ export type ReasoningContentProps = ComponentProps<
   typeof CollapsibleContent
 > & {
   children: string
+  /**
+   * Remounts the rendered Markdown when it changes. Streamdown memoizes blocks
+   * by their source position alone, so a translation swapped in at the same
+   * lines and columns would otherwise keep showing the text it replaced.
+   */
+  revision?: string
 }
 
 const remarkPlugins = [
@@ -226,7 +232,7 @@ const rehypePlugins = rehypePluginsAllowingCodeg(
 const reasoningComponents = { ...markdownLinkComponents, ...mermaidComponents }
 
 export const ReasoningContent = memo(
-  ({ className, children, ...props }: ReasoningContentProps) => {
+  ({ className, children, revision, ...props }: ReasoningContentProps) => {
     // Reasoning is a LIVE surface — a reader who opens this panel mid-turn
     // keeps it mounted across every delta of a block that routinely runs into
     // the thousands of tokens. `mode="static"` re-parses the whole text each
@@ -252,6 +258,7 @@ export const ReasoningContent = memo(
         {...props}
       >
         <Streamdown
+          key={revision}
           plugins={plugins}
           remarkPlugins={remarkPlugins}
           rehypePlugins={rehypePlugins}

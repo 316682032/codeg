@@ -375,6 +375,34 @@ pub fn build_router(
             post(handlers::conversation_tags::update_conversation_branch_tag),
         )
         .route(
+            "/get_translation_settings",
+            post(handlers::translation::get_translation_settings),
+        )
+        .route(
+            "/save_translation_settings",
+            post(handlers::translation::save_translation_settings),
+        )
+        .route(
+            "/translate_texts",
+            post(handlers::translation::translate_texts),
+        )
+        .route(
+            "/test_translation_provider",
+            post(handlers::translation::test_translation_provider),
+        )
+        .route(
+            "/clear_translation_cache",
+            post(handlers::translation::clear_translation_cache),
+        )
+        .route(
+            "/save_sent_original",
+            post(handlers::translation::save_sent_original),
+        )
+        .route(
+            "/get_sent_originals",
+            post(handlers::translation::get_sent_originals),
+        )
+        .route(
             "/update_folder_color",
             post(handlers::folders::update_folder_color),
         )

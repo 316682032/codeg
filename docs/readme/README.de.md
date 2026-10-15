@@ -35,7 +35,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code zeigt sein Thinking</strong><br/>Fordert bei der API Thinking-Zusammenfassungen an, der Thinking-Bereich bleibt also nicht mehr leer.</td>
-    <td width="50%" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version.</td>
+    <td width="50%" valign="top">🌐 <strong>Übersetzte Antworten und Nachrichten</strong><br/>Agentenantworten werden nach dem Fertigschreiben in deine Sprache übersetzt, und eine Nachricht wird per Tastendruck ins Englische übersetzt, mit Übersetzungsmodellen von Alibaba Cloud oder Tencent Cloud in etwa einer Sekunde pro 1.000 Zeichen.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version.</td>
   </tr>
 </table>
 
@@ -78,6 +81,20 @@
   ```
 
 - Für frühere Unterhaltungen wurde nie Thinking-Text geliefert, er lässt sich daher nicht nachholen.
+
+</details>
+
+<details>
+<summary><strong>Übersetzte Antworten und Nachrichten</strong>: Details</summary>
+<br/>
+
+- Wird unter Einstellungen → Übersetzung mit einem API-Schlüssel von [Alibaba Cloud Bailian](https://bailian.console.aliyun.com/) oder [Tencent Cloud TokenHub](https://console.cloud.tencent.com/tokenhub/apikey) aktiviert; abgerechnet wird nach den Regeln der jeweiligen Plattform. Standard ist `qwen-mt-flash` von Bailian, das im Test etwa 0,5 s pro Absatz brauchte.
+- Antworten: Ist der Schalter „Antworten übersetzen“ an, wird eine Antwort übersetzt, sobald der Agent sie fertig hat – als Ganzes in einer Anfrage, damit das Modell die ganze Antwort als Kontext sieht – und anstelle des Originals angezeigt; solange der Agent schreibt, siehst du das Original. Die Übersetzen-Schaltfläche unter jeder Antwort wechselt zurück zum Original oder übersetzt bei ausgeschalteter Automatik nur diese Antwort. Denkprozesse werden beim Aufklappen übersetzt und folgen derselben Schaltfläche; Codeblöcke und Tool-Aufrufe werden nicht übersetzt. Die Kopieren-Schaltfläche kopiert, was gerade angezeigt wird.
+- Sitzungsnamen: Bei aktiver automatischer Antwortübersetzung erscheinen auch die Namen, die der Agent Sitzungen gibt, in deiner Sprache – in der Seitenleiste, den Tabs und der Gesprächskopfzeile. Einen selbst vergebenen Namen lässt sie, wie er ist; fährst du in der Seitenleiste über eine Sitzung, siehst du das Original.
+- Nachrichten: Die Übersetzen-Schaltfläche des Eingabefelds, `⌘⇧L` (`Strg+Umschalt+L` unter Windows und Linux) oder das Kontextmenü übersetzen das Eingabefeld direkt in die Zielsprache (standardmäßig Englisch). Erwähnungen, Slash-Befehle, Pfade und Code bleiben unverändert, und `⌘Z` holt das Original in einem Schritt zurück. Übersetzt wird erst, wenn du es auslöst – ein halb geschriebener Entwurf verlässt den Rechner nie. „Beim Senden übersetzen“ erledigt das bei jedem Senden. Nach dem Senden wechselt die Übersetzen-Schaltfläche neben der Nachricht zurück zu dem, was du vor dem Übersetzen geschrieben hast, und Kopieren folgt der Anzeige.
+- Bei einem Anfragelimit wird auf `qwen-mt-lite` oder die andere Engine ausgewichen; ein Glossar legt fest, wie bestimmte Begriffe übersetzt werden, und ein Eintrag ohne Übersetzung lässt seinen Begriff unverändert.
+- API-Schlüssel liegen im Schlüsselbund des Systems (auf einem Server in `tokens.json` im Datenverzeichnis), nie in der Datenbank. Übersetzungsanfragen verbinden sich direkt, ohne Proxy, und nehmen den Proxy nur, wenn das Netz keinen anderen Weg nach draußen lässt.
+- Übersetzte Antworten dienen nur der Anzeige: Der Verlauf der Unterhaltung behält den Originaltext des Agenten. Was du vor dem Übersetzen einer Nachricht geschrieben hast, wird in der lokalen Datenbank gespeichert; das Leeren des Übersetzungs-Caches löscht es nicht.
 
 </details>
 

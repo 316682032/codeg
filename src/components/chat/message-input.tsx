@@ -13,6 +13,8 @@ import {
   Clock,
   Cog,
   Copy,
+  Languages,
+  Loader2,
   MessageSquareText,
   Scissors,
   Send,
@@ -156,6 +158,8 @@ import { useComposerMentionLabels } from "@/components/chat/composer/use-compose
 import { ComposerAddMenu } from "@/components/chat/composer/composer-add-menu"
 import { ComposerImageThumbnails } from "@/components/chat/composer/composer-image-thumbnails"
 import { useComposerAttachments } from "@/components/chat/composer/use-composer-attachments"
+import { useComposerTranslation } from "@/components/chat/composer/use-composer-translation"
+import { rememberSentOriginal } from "@/lib/translation/sent-originals"
 import { useComposerShortcuts } from "@/components/chat/composer/use-composer-shortcuts"
 
 /**
@@ -446,6 +450,19 @@ export function MessageInput({
   const effectiveDraftStorageKey = draftStorageKey ?? null
   const resolvedPlaceholder = placeholder ?? t("askAnything")
   const editorRef = useRef<RichComposerHandle>(null)
+  const getComposerEditor = useCallback(
+    () => editorRef.current?.getEditor() ?? null,
+    []
+  )
+  // Translate-the-composer: the toolbar button, the shortcut, the context menu
+  // item, and (when the setting is on) every send.
+  const composerTranslation = useComposerTranslation(getComposerEditor)
+  const {
+    translateNow,
+    takeOriginal,
+    onSend: translateOnSend,
+  } = composerTranslation
+  const tTranslation = useTranslations("Translation")
   // Prompt-history navigation. `historyRef` is seeded from `getSentHistory`
   // lazily, the first time the user steps into history, so a session that never
   // uses it pays nothing.
@@ -1580,6 +1597,17 @@ export function MessageInput({
       return
     }
 
+    // A draft the composer translated: what the user wrote before that, kept
+    // under the text that goes out so the sent bubble can switch back to it.
+    const doc = editorRef.current?.getEditor()?.state.doc
+    const original = doc ? takeOriginal(doc) : null
+    if (original) {
+      const sent = draft.blocks.flatMap((block) =>
+        block.type === "text" ? [block.text] : []
+      )
+      rememberSentOriginal([...sent, draft.displayText], original)
+    }
+
     // Prompting mode: enqueue instead of sending
     if (isPrompting && onEnqueue) {
       onEnqueue(draft, showModeSelector ? effectiveModeId : null)
@@ -1598,6 +1626,7 @@ export function MessageInput({
     tAttach,
     buildDraft,
     isEditingQueueItem,
+    takeOriginal,
     isPrompting,
     onSaveQueueEdit,
     onEnqueue,
@@ -1607,6 +1636,26 @@ export function MessageInput({
     effectiveDraftStorageKey,
     resetComposer,
   ])
+
+  // Send, enqueue: with translate-on-send on, the composer is translated first
+  // and sent only if that worked — the user then sees exactly what went out,
+  // and Cmd+Z still has the original.
+  // Saving a queue edit is not a send and goes through untouched.
+  const handleSubmit = useCallback(() => {
+    if (!translateOnSend || isEditingQueueItem) {
+      handleSend()
+      return
+    }
+    void translateNow().then((ready) => {
+      if (ready) handleSend()
+    })
+  }, [translateOnSend, isEditingQueueItem, handleSend, translateNow])
+
+  const handleTranslateShortcut = useCallback(() => {
+    if (!composerTranslation.available) return false
+    void translateNow()
+    return true
+  }, [composerTranslation.available, translateNow])
 
   // Mid-turn send over the session's live-feedback channel: a native push
   // inserts into the running turn; a pull-tool session records a waiting note
@@ -2015,8 +2064,8 @@ export function MessageInput({
         </Button>
         <div className="flex items-center">
           <Button
-            onClick={handleSend}
-            disabled={steering}
+            onClick={handleSubmit}
+            disabled={steering || composerTranslation.translating}
             size="icon"
             className="h-8 w-8 rounded-r-none"
             title={t("queueMessage")}
@@ -2068,8 +2117,10 @@ export function MessageInput({
     )
   ) : (
     <Button
-      onClick={handleSend}
-      disabled={disabled || !hasSendableContent}
+      onClick={handleSubmit}
+      disabled={
+        disabled || !hasSendableContent || composerTranslation.translating
+      }
       size="icon"
       className="h-8 w-8"
       title={t("send")}
@@ -2252,13 +2303,15 @@ export function MessageInput({
                 knownInvocations={knownInvocations}
                 onChange={handleComposerChange}
                 onReady={handleComposerReady}
-                onSubmit={handleSend}
+                onSubmit={handleSubmit}
                 onFocus={onFocus}
                 onPasteFiles={attach.handlePasteFiles}
                 onDropFiles={attach.handleEditorDrop}
                 onPlainPaste={handlePlainPasteShortcut}
                 submitShortcut={shortcuts.send_message}
                 newlineShortcut={shortcuts.newline_in_message}
+                translateShortcut={shortcuts.translate_input}
+                onTranslate={handleTranslateShortcut}
                 isExternalMenuOpen={slashMenuVisible}
                 onExternalMenuKeyDown={handleExternalMenuKeyDown}
                 onHistoryKeyDown={handleHistoryKeyDown}
@@ -2355,7 +2408,28 @@ export function MessageInput({
                     </div>
                   )}
                 </div>
-                <div className="shrink-0">{actionButtons}</div>
+                <div className="flex shrink-0 items-end gap-1">
+                  {composerTranslation.available && (
+                    <Button
+                      onClick={() => void translateNow()}
+                      disabled={
+                        composerEmpty || composerTranslation.translating
+                      }
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground"
+                      title={tTranslation("translateInput")}
+                      aria-label={tTranslation("translateInput")}
+                    >
+                      {composerTranslation.translating ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Languages className="size-4" />
+                      )}
+                    </Button>
+                  )}
+                  {actionButtons}
+                </div>
               </div>
               {showDragActive && (
                 <div className="pointer-events-none absolute inset-1 z-20 flex items-center justify-center rounded-md border border-dashed border-primary/50 bg-background/80 text-xs text-muted-foreground">
@@ -2401,6 +2475,15 @@ export function MessageInput({
               <TextSelect className="size-4" />
               {t("selectAll")}
             </ContextMenuItem>
+            {composerTranslation.available && (
+              <ContextMenuItem
+                disabled={composerEmpty || composerTranslation.translating}
+                onSelect={() => void translateNow()}
+              >
+                <Languages className="size-4" />
+                {tTranslation("translateInput")}
+              </ContextMenuItem>
+            )}
             <ContextMenuSeparator />
             <ContextMenuSub>
               <ContextMenuSubTrigger disabled={disabled}>

@@ -34,6 +34,7 @@ import {
 import { TurnStats } from "./turn-stats"
 import { LiveTurnStats } from "./live-turn-stats"
 import { ModelLabelProvider } from "./model-label-context"
+import { TranslationProvider, useSentOriginal } from "./translation-context"
 import { KnownInvocationsProvider } from "./known-invocations-context"
 import { useTranscriptKnownInvocations } from "./use-transcript-known-invocations"
 import { ReplyArtifacts } from "./reply-artifacts"
@@ -62,6 +63,7 @@ import {
   AlertCircle,
   CheckIcon,
   CopyIcon,
+  Languages,
   Loader2,
   Plus,
   RefreshCw,
@@ -80,7 +82,7 @@ import type {
   ConnectionStatus,
   MessageTurn,
 } from "@/lib/types"
-import { copyTextToClipboard } from "@/lib/utils"
+import { cn, copyTextToClipboard } from "@/lib/utils"
 import { VirtualizedMessageThread } from "@/components/message/virtualized-message-thread"
 import { SelectionActionBubble } from "@/components/message/selection-action-bubble"
 import {
@@ -509,6 +511,27 @@ export function extractDelegationSources(
   return out
 }
 
+/** The reply's text parts as rendered, one entry each — what reply translation
+ *  splits into blocks. Unlike `extractTextFromParts`, not joined: a join could
+ *  merge the last paragraph of one part with the first of the next. */
+function collectReplyTexts(parts: AdaptedContentPart[]): string[] {
+  return parts.flatMap((p): string[] => {
+    if (p.type === "text") return p.text.length > 0 ? [p.text] : []
+    if (p.type === "goal-run") return collectReplyTexts(p.items)
+    return []
+  })
+}
+
+/** The reply's thinking blocks, for the same button: it shows the whole reply
+ *  translated or as written, thinking included. */
+function collectThinkingTexts(parts: AdaptedContentPart[]): string[] {
+  return parts.flatMap((p): string[] => {
+    if (p.type === "reasoning") return p.content.trim() ? [p.content] : []
+    if (p.type === "goal-run") return collectThinkingTexts(p.items)
+    return []
+  })
+}
+
 function extractTextFromParts(parts: AdaptedContentPart[]): string {
   return parts
     .flatMap((p): string[] => {
@@ -838,8 +861,12 @@ export function mergeConsecutiveAssistantTurns(
 
 const UserMessageCopyButton = memo(function UserMessageCopyButton({
   parts,
+  shownOriginal = null,
 }: {
   parts: AdaptedContentPart[]
+  /** The words the user typed, when the bubble shows them instead of what was
+   *  sent: copied as they read. */
+  shownOriginal?: string | null
 }) {
   const t = useTranslations("Folder.chat.messageList")
   const [isCopied, setIsCopied] = useState(false)
@@ -851,13 +878,15 @@ const UserMessageCopyButton = memo(function UserMessageCopyButton({
     // path `C:\…` became `C:\\…`); the transcript renders it back through a
     // Markdown renderer, so the copy must reverse that escaping to match what
     // the user sees. Assistant copies (TurnStats below) keep the raw Markdown.
-    const text = unescapeComposerText(extractTextFromParts(parts))
+    // An original was kept as typed, never escaped.
+    const text =
+      shownOriginal ?? unescapeComposerText(extractTextFromParts(parts))
     if (!text) return
     const ok = await copyTextToClipboard(text)
     if (!ok) return
     setIsCopied(true)
     timeoutRef.current = window.setTimeout(() => setIsCopied(false), 2000)
-  }, [parts, isCopied])
+  }, [parts, shownOriginal, isCopied])
 
   useEffect(
     () => () => {
@@ -875,6 +904,84 @@ const UserMessageCopyButton = memo(function UserMessageCopyButton({
     >
       {isCopied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
     </MessageAction>
+  )
+})
+
+/**
+ * A message the composer translated before sending: switch the bubble between
+ * what went to the agent and what the user typed. Stays in view while the
+ * original shows, since the bubble then no longer reads as what the agent got.
+ */
+function UserMessageOriginalButton({
+  showing,
+  onToggle,
+}: {
+  showing: boolean
+  onToggle: () => void
+}) {
+  const t = useTranslations("Folder.chat.messageList")
+  const label = showing ? t("showSent") : t("showSentOriginal")
+  return (
+    <MessageAction
+      tooltip={label}
+      className={cn(
+        "transition-opacity self-end",
+        showing
+          ? "text-foreground"
+          : "opacity-0 group-hover/user-msg:opacity-100"
+      )}
+      onClick={onToggle}
+      size="icon-xs"
+      aria-pressed={showing}
+    >
+      <Languages size={12} />
+    </MessageAction>
+  )
+}
+
+/** `parts` with its text replaced by `text`, everything else kept. */
+function withText(
+  parts: AdaptedContentPart[],
+  text: string
+): AdaptedContentPart[] {
+  let placed = false
+  return parts.flatMap((part): AdaptedContentPart[] => {
+    if (part.type !== "text") return [part]
+    if (placed) return []
+    placed = true
+    return [{ ...part, text }]
+  })
+}
+
+/** A sent message: its actions on the left, the bubble on the right.
+ *  Exported for tests. */
+export const UserMessageRow = memo(function UserMessageRow({
+  parts,
+}: {
+  parts: AdaptedContentPart[]
+}) {
+  const sent = useMemo(() => extractTextFromParts(parts), [parts])
+  const { original, showing, toggle } = useSentOriginal(sent)
+  const shownParts = useMemo(
+    () => (showing && original !== null ? withText(parts, original) : parts),
+    [parts, showing, original]
+  )
+  return (
+    <div className="group/user-msg flex w-fit ml-auto max-w-full items-start gap-1">
+      <UserMessageTaskButton parts={parts} />
+      <UserMessageCopyButton
+        parts={parts}
+        shownOriginal={showing ? original : null}
+      />
+      {/* Next to the bubble: it stays in view while the original shows,
+          when the hover-only buttons beside it do not. */}
+      {original !== null && (
+        <UserMessageOriginalButton showing={showing} onToggle={toggle} />
+      )}
+      <MessageContent>
+        <CollapsibleUserMessage parts={shownParts} />
+      </MessageContent>
+    </div>
   )
 })
 
@@ -1005,13 +1112,7 @@ const HistoricalMessageGroup = memo(function HistoricalMessageGroup({
           <UserImageAttachments images={group.images} className="self-end" />
         ) : null}
         {group.role === "user" ? (
-          <div className="group/user-msg flex w-fit ml-auto max-w-full items-start gap-1">
-            <UserMessageTaskButton parts={group.parts} />
-            <UserMessageCopyButton parts={group.parts} />
-            <MessageContent>
-              <CollapsibleUserMessage parts={group.parts} />
-            </MessageContent>
-          </div>
+          <UserMessageRow parts={group.parts} />
         ) : (
           <MessageContent>
             <CompletedTurnContent
@@ -1044,6 +1145,8 @@ const HistoricalMessageGroup = memo(function HistoricalMessageGroup({
           previousUserIndex={previousUserIndex}
           isResponseComplete={isResponseComplete}
           copyText={extractTextFromParts(group.parts)}
+          replyTexts={collectReplyTexts(group.parts)}
+          thinkingTexts={collectThinkingTexts(group.parts)}
           completedAt={group.completed_at}
           forkDisabled={forkDisabled || forkPointUnnamed}
           forkDisabledReason={forkPointUnnamed ? "unnamed" : "busy"}
@@ -1829,12 +1932,14 @@ export function MessageListView({
   )
 
   return (
-    <MarkdownImageProvider rootPath={resolvedImageRoot}>
-      <ModelLabelProvider value={modelLabel}>
-        <KnownInvocationsProvider value={knownInvocations}>
-          {thread}
-        </KnownInvocationsProvider>
-      </ModelLabelProvider>
-    </MarkdownImageProvider>
+    <TranslationProvider>
+      <MarkdownImageProvider rootPath={resolvedImageRoot}>
+        <ModelLabelProvider value={modelLabel}>
+          <KnownInvocationsProvider value={knownInvocations}>
+            {thread}
+          </KnownInvocationsProvider>
+        </ModelLabelProvider>
+      </MarkdownImageProvider>
+    </TranslationProvider>
   )
 }

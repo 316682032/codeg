@@ -56,7 +56,8 @@
       "browser": "Uso do navegador",
       "computer_use": "Uso do computador",
       "quick_messages": "Mensagens rápidas",
-      "logs": "Registros de execução"
+      "logs": "Registros de execução",
+      "translation": "Tradução"
     }
   },
   "AppearanceSettings": {
@@ -534,6 +535,10 @@
       "zoom_reset": {
         "title": "Redefinir zoom",
         "description": "Restaura o zoom da janela para 100%"
+      },
+      "translate_input": {
+        "title": "Traduzir mensagem",
+        "description": "Traduz a caixa de mensagem para o idioma de tradução de mensagens"
       }
     }
   },
@@ -3534,7 +3539,11 @@
         "jumpToPreviousUserMessage": "Ir para a mensagem do usuário",
         "showMore": "Mostrar mais",
         "showLess": "Mostrar menos",
-        "resizeWidth": "Arraste para ajustar a largura do chat · clique duas vezes para redefinir"
+        "resizeWidth": "Arraste para ajustar a largura do chat · clique duas vezes para redefinir",
+        "translateReply": "Traduzir resposta",
+        "showOriginal": "Mostrar original",
+        "showSentOriginal": "Mostrar o que você escreveu",
+        "showSent": "Mostrar o que foi enviado"
       },
       "liveTurnStats": {
         "thinking": "Pensando...",
@@ -7158,6 +7167,118 @@
         "bypassed": "O mecanismo do navegador deste computador envia alguns endereços por fora do túnel, então as páginas do host remoto não abrem para não serem carregadas deste computador.",
         "probeFailed": "O navegador integrado não conseguiu confirmar que alcança o host remoto pelo túnel. Tente novamente em instantes."
       }
+    }
+  },
+  "Translation": {
+    "replyFailed": "Não foi possível traduzir a resposta: {message}",
+    "translateInput": "Traduzir mensagem",
+    "inputChanged": "A mensagem mudou durante a tradução. Traduza novamente.",
+    "inputDamaged": "A tradução perdeu uma menção, um comando ou um trecho de código, então a mensagem ficou como estava.",
+    "inputFailed": "Não foi possível traduzir a mensagem: {message}",
+    "errors": {
+      "missingKey": "Não há chave de API para {provider}. Adicione uma em Configurações → Tradução.",
+      "unsupportedLanguage": "O idioma {language} não é suportado.",
+      "auth": "{model} recusou a chave de API. Verifique-a em Configurações → Tradução.",
+      "rateLimited": "{model} atingiu o limite de solicitações. Tente novamente em instantes.",
+      "rejected": "{model} recusou a solicitação: {message}",
+      "network": "Não foi possível conectar a {model}.",
+      "badResponse": "{model} não retornou uma tradução.",
+      "unknown": "A tradução falhou."
+    }
+  },
+  "TranslationSettings": {
+    "title": "Tradução",
+    "description": "Traduz suas mensagens antes do envio e as respostas dos agentes para o seu idioma. A tradução é uma camada separada: o agente não muda o jeito de escrever.",
+    "loading": "Carregando…",
+    "loadFailed": "Não foi possível carregar as configurações de tradução: {message}",
+    "saveFailed": "Não foi possível salvar: {message}",
+    "keySaved": "Chave de API salva",
+    "keyRemoved": "Chave de API removida",
+    "cacheCleared": "{count, plural, =0 {O cache já estava vazio} one {# tradução apagada} other {# traduções apagadas}}",
+    "providers": {
+      "dashscope": "Alibaba Cloud Bailian",
+      "tokenhub": "Tencent Cloud TokenHub"
+    },
+    "engine": {
+      "title": "Mecanismo de tradução",
+      "description": "O mecanismo selecionado faz todas as traduções. Expanda um mecanismo para informar a chave de API, escolher o modelo e testá-lo.",
+      "primary": "Principal",
+      "backup": "Reserva",
+      "idle": "Não usado",
+      "setPrimary": "Usar {provider} como mecanismo principal",
+      "needsKeyFirst": "Informe uma chave de API primeiro",
+      "configured": "Configurado",
+      "needsSetup": "Falta a chave de API",
+      "notSetUp": "Não configurado",
+      "model": "Modelo",
+      "modelHint": {
+        "balanced": "Recomendado: rápido e preciso",
+        "quality": "Mais qualidade, mais lento",
+        "speed": "O mais rápido, um pouco menos preciso"
+      },
+      "advanced": "Avançado",
+      "baseUrl": "Endereço da API",
+      "baseUrlHint": "Raramente precisa mudar. Deixe vazio para usar o padrão.",
+      "resetBaseUrl": "Restaurar padrão",
+      "fallback": "Trocar automaticamente no limite",
+      "fallbackPath": "Se o mecanismo principal atingir o limite ou falhar, tenta em ordem: {path}",
+      "fallbackNone": "Ainda não há para onde trocar. Dê uma chave de API ao outro mecanismo e ele assume quando o principal atingir o limite."
+    },
+    "key": {
+      "title": "Chave de API",
+      "getKey": "Obter chave",
+      "placeholder": "Cole a chave de API",
+      "label": "Chave de API do {provider}",
+      "save": "Salvar",
+      "cancel": "Cancelar",
+      "saved": "Salva",
+      "replace": "Trocar",
+      "remove": "Remover chave de API",
+      "show": "Mostrar a chave de API",
+      "hide": "Ocultar a chave de API"
+    },
+    "test": {
+      "description": "Traduz uma frase de exemplo para verificar a chave, o modelo e a rede (sem cache nem reserva).",
+      "run": "Testar",
+      "running": "Testando…",
+      "ok": "{model} funciona · {ms} ms",
+      "slow": "{model} funciona, mas devagar · {ms} ms"
+    },
+    "output": {
+      "title": "Tradução das respostas",
+      "description": "Ativado, cada resposta do agente é traduzida inteira quando termina, e só a tradução aparece; enquanto ele escreve, você vê o original. O raciocínio é traduzido quando você o expande, assim como os nomes de sessão dados pelo agente. Desativado, traduza uma resposta pelo botão abaixo dela.",
+      "target": "Traduzir para",
+      "followUi": "Idioma da interface ({language})"
+    },
+    "input": {
+      "title": "Tradução das mensagens",
+      "description": "Traduza a caixa de mensagem no lugar pelo botão de traduzir, pelo atalho ou pelo menu de contexto. Menções, comandos, caminhos e código ficam como estão, e Desfazer traz o original de volta; depois de enviada, o botão ao lado da mensagem volta ao que você escreveu.",
+      "target": "Traduzir para",
+      "onSend": "Traduzir ao enviar ({language})",
+      "onSendDescription": "Se a tradução falhar, nada é enviado.",
+      "shortcut": "Atalho",
+      "shortcutNone": "Não definido",
+      "shortcutEdit": "Alterar"
+    },
+    "glossary": {
+      "title": "Glossário",
+      "description": "Fixa como certos termos são traduzidos, nos dois sentidos; deixe a tradução vazia para manter o termo como está. Incluídos entre inglês e chinês: agent → 智能体, prompt → 提示词, session → 会话; uma entrada para o mesmo termo os substitui.",
+      "term": "Termo",
+      "translation": "Tradução",
+      "termPlaceholder": "ex.: worktree",
+      "translationPlaceholder": "Vazio: mantém o termo",
+      "add": "Adicionar termo",
+      "remove": "Remover \"{term}\"",
+      "removeEmpty": "Remover esta linha",
+      "bulkEdit": "Editar como texto",
+      "tableEdit": "Editar como lista",
+      "bulkPlaceholder": "worktree = árvore de trabalho\nCodeg",
+      "bulkHint": "Um \"termo = tradução\" por linha; um termo sozinho é mantido como está."
+    },
+    "cache": {
+      "title": "Cache de traduções",
+      "description": "As traduções ficam guardadas por 30 dias, então uma conversa reaberta as mostra na hora. Limpe o cache para traduzir tudo de novo, por exemplo depois de trocar de modelo.",
+      "clear": "Limpar cache"
     }
   }
 }

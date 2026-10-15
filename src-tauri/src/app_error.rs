@@ -115,6 +115,27 @@ pub const CONFIG_SYNC_I18N_KEY_CREDENTIALS_UNREADABLE: &str =
 /// would let anyone who can write to the share undo the setting.
 pub const CONFIG_SYNC_I18N_KEY_NOT_ENCRYPTED: &str = "configSync.error.notEncrypted";
 
+// ─── Translation i18n keys ───────────────────────────────────────────
+//
+// Emitted by `crate::translation` and resolved under the frontend's
+// `Translation` namespace. MUST stay in lockstep with `src/lib/translation/errors.ts`.
+
+/// No API key is stored for the selected engine. Params: `provider`.
+pub const TRANSLATION_I18N_KEY_MISSING_KEY: &str = "errors.missingKey";
+/// The language code is not one the feature offers. Params: `language`.
+pub const TRANSLATION_I18N_KEY_UNSUPPORTED_LANGUAGE: &str = "errors.unsupportedLanguage";
+/// The engine refused the key (401/403). Params: `model`.
+pub const TRANSLATION_I18N_KEY_AUTH: &str = "errors.auth";
+/// Every engine tried was rate limited. Params: `model`.
+pub const TRANSLATION_I18N_KEY_RATE_LIMITED: &str = "errors.rateLimited";
+/// The engine refused the request itself, e.g. a model name the account cannot
+/// use. Params: `model`, `message`.
+pub const TRANSLATION_I18N_KEY_REJECTED: &str = "errors.rejected";
+/// The engine could not be reached or failed (5xx). Params: `model`.
+pub const TRANSLATION_I18N_KEY_NETWORK: &str = "errors.network";
+/// The engine answered with something that is not a translation. Params: `model`.
+pub const TRANSLATION_I18N_KEY_BAD_RESPONSE: &str = "errors.badResponse";
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AppErrorCode {

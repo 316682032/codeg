@@ -7,7 +7,9 @@ import {
   CheckIcon,
   Coins,
   CopyIcon,
+  Languages,
   ListTodo,
+  Loader2,
   Split,
 } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
@@ -20,6 +22,7 @@ import {
 import { useMessageScroll } from "@/components/message/message-scroll-context"
 import { useChatAnimationsEnabled } from "@/hooks/use-appearance"
 import { useModelLabel } from "@/components/message/model-label-context"
+import { useTurnTranslation } from "@/components/message/translation-context"
 import { useCreateTaskFromMessage } from "./use-create-task-from-message"
 import { formatTokenCount } from "@/lib/token-format"
 import { cn, copyTextToClipboard } from "@/lib/utils"
@@ -33,6 +36,10 @@ interface TurnStatsProps {
   previousUserIndex?: number | null
   isResponseComplete?: boolean
   copyText?: string
+  /** The reply's text parts, one entry each, for the translate button. */
+  replyTexts?: string[]
+  /** The reply's thinking blocks, which the translate button also covers. */
+  thinkingTexts?: string[]
   /** ISO timestamp marking when the assistant reply finished. */
   completedAt?: string | null
   /** Fork the session at THIS reply. Undefined hides the affordance — the
@@ -49,6 +56,8 @@ interface TurnStatsProps {
   forkDisabledReason?: "busy" | "unnamed"
 }
 
+const EMPTY_TEXTS: string[] = []
+
 const iconButtonClass =
   "inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 
@@ -60,6 +69,8 @@ export function TurnStats({
   previousUserIndex,
   isResponseComplete = true,
   copyText = "",
+  replyTexts = EMPTY_TEXTS,
+  thinkingTexts = EMPTY_TEXTS,
   completedAt,
   onForkFromHere,
   forkDisabled = false,
@@ -73,6 +84,7 @@ export function TurnStats({
   const modelLabel = useModelLabel()
   const [isCopied, setIsCopied] = useState(false)
   const timeoutRef = useRef<number>(0)
+  const translation = useTurnTranslation(replyTexts, thinkingTexts)
   const shortTimeFormatter = useMemo(
     () =>
       new Intl.DateTimeFormat(locale, {
@@ -154,14 +166,16 @@ export function TurnStats({
   const getTaskText = useCallback(() => copyText ?? "", [copyText])
   const handleCreateTask = useCreateTaskFromMessage(getTaskText)
 
+  const { shownReplyText } = translation
   const handleCopy = useCallback(async () => {
     if (isCopied || !hasCopy) return
     window.clearTimeout(timeoutRef.current)
-    const ok = await copyTextToClipboard(copyText)
+    // What the reply reads as on screen: its translation while that shows.
+    const ok = await copyTextToClipboard(shownReplyText() ?? copyText)
     if (!ok) return
     setIsCopied(true)
     timeoutRef.current = window.setTimeout(() => setIsCopied(false), 2000)
-  }, [copyText, hasCopy, isCopied])
+  }, [copyText, hasCopy, isCopied, shownReplyText])
 
   useEffect(
     () => () => {
@@ -173,7 +187,14 @@ export function TurnStats({
   if (!isResponseComplete) return null
   // Deliberately not gated on `hasDuration`: nothing in this row renders a
   // duration any more, so a turn carrying only one would open an empty row.
-  if (!hasCopy && !hasUsage && !hasCompletedAt && !hasJump && !onForkFromHere)
+  if (
+    !hasCopy &&
+    !hasUsage &&
+    !hasCompletedAt &&
+    !hasJump &&
+    !onForkFromHere &&
+    !translation.visible
+  )
     return null
 
   return (
@@ -214,6 +235,38 @@ export function TurnStats({
             </TooltipTrigger>
             <TooltipContent side="top">
               {tTasks("createFromMessage")}
+            </TooltipContent>
+          </Tooltip>
+        )}
+        {translation.visible && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={translation.toggle}
+                className={cn(
+                  iconButtonClass,
+                  translation.translated && "text-foreground"
+                )}
+                aria-label={
+                  translation.translated
+                    ? t("showOriginal")
+                    : t("translateReply")
+                }
+                aria-pressed={translation.translated}
+              >
+                {translation.pending ? (
+                  <Loader2
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5 animate-spin"
+                  />
+                ) : (
+                  <Languages aria-hidden="true" className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {translation.translated ? t("showOriginal") : t("translateReply")}
             </TooltipContent>
           </Tooltip>
         )}

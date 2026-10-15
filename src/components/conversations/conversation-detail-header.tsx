@@ -21,6 +21,10 @@ import {
   updateConversationTitle,
 } from "@/lib/api"
 import { formatConversationTitle } from "@/lib/conversation-title"
+import {
+  useConversationTitleLocked,
+  useTranslatedTitle,
+} from "@/hooks/use-translated-title"
 import { ConversationHeaderFolderPicker } from "@/components/chat/conversation-context-bar"
 import { useAppWorkspaceStore } from "@/stores/app-workspace-store"
 import { useTabActions } from "@/contexts/tab-context"
@@ -168,8 +172,13 @@ export const ConversationDetailHeader = memo(function ConversationDetailHeader({
   } | null>(null)
 
   const persisted = conversationId != null
+  // In the reply language when replies are auto-translated; display only.
+  // Renaming still starts from the stored title.
   const displayTitle =
-    formatConversationTitle(title) || t("untitledConversation")
+    useTranslatedTitle(
+      formatConversationTitle(title),
+      useConversationTitleLocked(conversationId)
+    ) || t("untitledConversation")
 
   const handleTogglePin = useCallback(() => {
     if (conversationId == null) return

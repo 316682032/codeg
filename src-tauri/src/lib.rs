@@ -52,6 +52,7 @@ pub mod preferences;
 pub mod process;
 pub mod supervise;
 mod terminal;
+pub mod translation;
 pub mod turn_timings;
 pub mod update;
 pub mod web;
@@ -108,7 +109,7 @@ mod tauri_app {
         remote_workspace as remote_workspace_commands, science as science_commands,
         session_info as session_info_commands,
         system_settings, terminal as terminal_commands,
-        token_usage as token_usage_commands,
+        token_usage as token_usage_commands, translation as translation_commands,
         forge as forge_commands, version_control, windows, work_task as work_task_commands,
         workspace_state as workspace_state_commands, workspace_windows,
     };
@@ -1708,6 +1709,13 @@ mod tauri_app {
                 conversation_tags::update_conversation_tags,
                 conversation_tags::get_conversation_branch_tag,
                 conversation_tags::update_conversation_branch_tag,
+                translation_commands::get_translation_settings,
+                translation_commands::save_translation_settings,
+                translation_commands::translate_texts,
+                translation_commands::test_translation_provider,
+                translation_commands::clear_translation_cache,
+                translation_commands::save_sent_original,
+                translation_commands::get_sent_originals,
                 conversations::delete_conversation,
                 folders::load_folder_history,
                 folders::get_folder,

@@ -658,3 +658,51 @@ async fn a_server_that_shares_its_screen_answers_its_web_clients() {
     assert_eq!(resp.status_code(), 200);
     assert_eq!(resp.json::<Value>(), json!({}));
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Translation
+// ────────────────────────────────────────────────────────────────────────────
+
+// The settings and translate routes read API keys from the OS keyring, which an
+// integration test binary must not touch (unit tests swap in an in-memory store
+// that is not compiled here); they are covered in `commands::translation`. This
+// one only proves the routes are mounted behind auth.
+#[tokio::test]
+async fn translation_cache_clear_is_mounted_behind_auth() {
+    let (server, _data, _static) = build_test_server().await;
+    let resp = server
+        .post("/api/clear_translation_cache")
+        .json(&json!({}))
+        .await;
+    assert_eq!(resp.status_code(), 401);
+
+    let resp = server
+        .post("/api/clear_translation_cache")
+        .add_header("authorization", format!("Bearer {TEST_TOKEN}"))
+        .json(&json!({}))
+        .await;
+    assert_eq!(resp.status_code(), 200);
+    assert_eq!(resp.json::<Value>(), json!(0));
+}
+
+// A sent message's original goes in and comes back over HTTP with the field
+// names the frontend sends (`sent`, `original`, `texts`).
+#[tokio::test]
+async fn a_sent_original_round_trips_through_the_routes() {
+    let (server, _data, _static) = build_test_server().await;
+    let auth = format!("Bearer {TEST_TOKEN}");
+    let resp = server
+        .post("/api/save_sent_original")
+        .add_header("authorization", auth.clone())
+        .json(&json!({ "sent": ["Hello there"], "original": "你好" }))
+        .await;
+    assert_eq!(resp.status_code(), 200);
+
+    let resp = server
+        .post("/api/get_sent_originals")
+        .add_header("authorization", auth)
+        .json(&json!({ "texts": ["Hello there", "Unknown"] }))
+        .await;
+    assert_eq!(resp.status_code(), 200);
+    assert_eq!(resp.json::<Value>(), json!(["你好", null]));
+}

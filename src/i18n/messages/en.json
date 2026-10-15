@@ -56,7 +56,8 @@
       "browser": "Browser Use",
       "computer_use": "Computer Use",
       "quick_messages": "Quick Messages",
-      "logs": "Runtime Logs"
+      "logs": "Runtime Logs",
+      "translation": "Translation"
     }
   },
   "AppearanceSettings": {
@@ -534,6 +535,10 @@
       "zoom_reset": {
         "title": "Reset zoom",
         "description": "Set the window zoom back to 100%"
+      },
+      "translate_input": {
+        "title": "Translate Message",
+        "description": "Translate the message input box into the message translation language"
       }
     }
   },
@@ -3534,7 +3539,11 @@
         "jumpToPreviousUserMessage": "Jump to user message",
         "showMore": "Show more",
         "showLess": "Show less",
-        "resizeWidth": "Drag to resize the chat width · double-click to reset"
+        "resizeWidth": "Drag to resize the chat width · double-click to reset",
+        "translateReply": "Translate reply",
+        "showOriginal": "Show original",
+        "showSentOriginal": "Show what you wrote",
+        "showSent": "Show what was sent"
       },
       "liveTurnStats": {
         "thinking": "Thinking...",
@@ -7158,6 +7167,118 @@
         "bypassed": "This computer's browser engine sends some addresses around the tunnel, so the remote host's pages stay closed rather than load from this computer.",
         "probeFailed": "The built-in browser couldn't confirm that it reaches the remote host through the tunnel. Try again in a moment."
       }
+    }
+  },
+  "Translation": {
+    "replyFailed": "Could not translate the reply: {message}",
+    "translateInput": "Translate message",
+    "inputChanged": "The message changed while it was being translated. Translate it again.",
+    "inputDamaged": "The translation lost a mention, command or code span, so the message was left as written.",
+    "inputFailed": "Could not translate the message: {message}",
+    "errors": {
+      "missingKey": "No API key is set for {provider}. Add one in Settings → Translation.",
+      "unsupportedLanguage": "Translation into {language} is not supported.",
+      "auth": "{model} rejected the API key. Check it in Settings → Translation.",
+      "rateLimited": "{model} is rate limited. Try again in a moment.",
+      "rejected": "{model} refused the request: {message}",
+      "network": "Could not reach {model}.",
+      "badResponse": "{model} did not return a translation.",
+      "unknown": "Translation failed."
+    }
+  },
+  "TranslationSettings": {
+    "title": "Translation",
+    "description": "Translate your messages before they are sent, and agent replies into your language. Translation is a separate layer: the agent itself never changes how it writes.",
+    "loading": "Loading…",
+    "loadFailed": "Could not load the translation settings: {message}",
+    "saveFailed": "Could not save: {message}",
+    "keySaved": "API key saved",
+    "keyRemoved": "API key removed",
+    "cacheCleared": "{count, plural, =0 {The cache was already empty} one {Cleared # translation} other {Cleared # translations}}",
+    "providers": {
+      "dashscope": "Alibaba Cloud Bailian",
+      "tokenhub": "Tencent Cloud TokenHub"
+    },
+    "engine": {
+      "title": "Translation engine",
+      "description": "The selected engine does all translation. Expand an engine to enter its API key, pick a model and test it.",
+      "primary": "Primary",
+      "backup": "Fallback",
+      "idle": "Not used",
+      "setPrimary": "Make {provider} the primary engine",
+      "needsKeyFirst": "Enter an API key first",
+      "configured": "Configured",
+      "needsSetup": "Needs an API key",
+      "notSetUp": "Not configured",
+      "model": "Model",
+      "modelHint": {
+        "balanced": "Recommended: fast and accurate",
+        "quality": "Higher quality, slower",
+        "speed": "Fastest, slightly less accurate"
+      },
+      "advanced": "Advanced",
+      "baseUrl": "API address",
+      "baseUrlHint": "Rarely needs changing. Leave empty for the default.",
+      "resetBaseUrl": "Reset to default",
+      "fallback": "Switch automatically when rate limited",
+      "fallbackPath": "When the primary engine is rate limited or down, try in turn: {path}",
+      "fallbackNone": "Nothing to switch to yet. Give the other engine an API key and it takes over when the primary is rate limited."
+    },
+    "key": {
+      "title": "API key",
+      "getKey": "Get a key",
+      "placeholder": "Paste the API key",
+      "label": "{provider} API key",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Saved",
+      "replace": "Replace",
+      "remove": "Remove API key",
+      "show": "Show API key",
+      "hide": "Hide API key"
+    },
+    "test": {
+      "description": "Translate a sample sentence to check the key, model and network (no cache, no fallback).",
+      "run": "Test",
+      "running": "Testing…",
+      "ok": "{model} works · {ms} ms",
+      "slow": "{model} works, but slowly · {ms} ms"
+    },
+    "output": {
+      "title": "Reply translation",
+      "description": "When on, each agent reply is translated as a whole once it is finished, and only the translation is shown; while the agent writes you see the original. Thinking is translated when you expand it, and session names the agent gives are translated too. When off, translate a reply with the button under it.",
+      "target": "Translate into",
+      "followUi": "Interface language ({language})"
+    },
+    "input": {
+      "title": "Message translation",
+      "description": "Translate the message box in place with its translate button, the shortcut or the right-click menu. Mentions, commands, paths and code stay as written, and Undo brings back the original; once sent, the button beside the message switches back to what you wrote.",
+      "target": "Translate into",
+      "onSend": "Translate into {language} when sending",
+      "onSendDescription": "If the translation fails, nothing is sent.",
+      "shortcut": "Shortcut",
+      "shortcutNone": "Not set",
+      "shortcutEdit": "Change"
+    },
+    "glossary": {
+      "title": "Glossary",
+      "description": "Fix how certain terms are translated, in both directions; leave the translation empty to keep a term as written. Built in between English and Chinese: agent → 智能体, prompt → 提示词, session → 会话; an entry for the same term overrides them.",
+      "term": "Term",
+      "translation": "Translation",
+      "termPlaceholder": "e.g. worktree",
+      "translationPlaceholder": "Empty keeps the term as written",
+      "add": "Add term",
+      "remove": "Remove \"{term}\"",
+      "removeEmpty": "Remove this row",
+      "bulkEdit": "Bulk edit",
+      "tableEdit": "Edit as list",
+      "bulkPlaceholder": "worktree = 工作树\nCodeg",
+      "bulkHint": "One \"term = translation\" per line; a term on its own is kept as written."
+    },
+    "cache": {
+      "title": "Translation cache",
+      "description": "Finished translations are kept for 30 days, so a reopened conversation shows them at once. Clear the cache to translate everything again, for example after switching models.",
+      "clear": "Clear cache"
     }
   }
 }

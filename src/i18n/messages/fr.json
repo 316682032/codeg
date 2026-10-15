@@ -56,7 +56,8 @@
       "browser": "Utilisation du navigateur",
       "computer_use": "Utilisation de l'ordinateur",
       "quick_messages": "Messages rapides",
-      "logs": "Journaux d'exécution"
+      "logs": "Journaux d'exécution",
+      "translation": "Traduction"
     }
   },
   "AppearanceSettings": {
@@ -534,6 +535,10 @@
       "zoom_reset": {
         "title": "Réinitialiser le zoom",
         "description": "Remet le zoom de la fenêtre à 100%"
+      },
+      "translate_input": {
+        "title": "Traduire le message",
+        "description": "Traduit la zone de saisie dans la langue de traduction des messages"
       }
     }
   },
@@ -3534,7 +3539,11 @@
         "jumpToPreviousUserMessage": "Aller au message utilisateur",
         "showMore": "Afficher plus",
         "showLess": "Afficher moins",
-        "resizeWidth": "Faites glisser pour ajuster la largeur du chat · double-clic pour réinitialiser"
+        "resizeWidth": "Faites glisser pour ajuster la largeur du chat · double-clic pour réinitialiser",
+        "translateReply": "Traduire la réponse",
+        "showOriginal": "Afficher l'original",
+        "showSentOriginal": "Afficher ce que vous avez écrit",
+        "showSent": "Afficher ce qui a été envoyé"
       },
       "liveTurnStats": {
         "thinking": "Réflexion...",
@@ -7158,6 +7167,118 @@
         "bypassed": "Le moteur du navigateur de cet ordinateur envoie certaines adresses en dehors du tunnel ; les pages de l'hôte distant restent donc fermées plutôt que d'être chargées depuis cet ordinateur.",
         "probeFailed": "Le navigateur intégré n'a pas pu confirmer qu'il atteint l'hôte distant par le tunnel. Réessayez dans un instant."
       }
+    }
+  },
+  "Translation": {
+    "replyFailed": "Impossible de traduire la réponse : {message}",
+    "translateInput": "Traduire le message",
+    "inputChanged": "Le message a changé pendant la traduction. Traduisez-le à nouveau.",
+    "inputDamaged": "La traduction a perdu une mention, une commande ou du code ; le message est resté tel quel.",
+    "inputFailed": "Impossible de traduire le message : {message}",
+    "errors": {
+      "missingKey": "Aucune clé d'API n'est définie pour {provider}. Ajoutez-en une dans Réglages → Traduction.",
+      "unsupportedLanguage": "La langue {language} n'est pas prise en charge.",
+      "auth": "{model} a refusé la clé d'API. Vérifiez-la dans Réglages → Traduction.",
+      "rateLimited": "{model} a atteint sa limite de requêtes. Réessayez dans un instant.",
+      "rejected": "{model} a refusé la requête : {message}",
+      "network": "Impossible de joindre {model}.",
+      "badResponse": "{model} n'a pas renvoyé de traduction.",
+      "unknown": "La traduction a échoué."
+    }
+  },
+  "TranslationSettings": {
+    "title": "Traduction",
+    "description": "Traduit vos messages avant l'envoi et les réponses des agents dans votre langue. La traduction est une couche à part : l'agent ne change pas sa façon d'écrire.",
+    "loading": "Chargement…",
+    "loadFailed": "Impossible de charger les réglages de traduction : {message}",
+    "saveFailed": "Échec de l'enregistrement : {message}",
+    "keySaved": "Clé d'API enregistrée",
+    "keyRemoved": "Clé d'API supprimée",
+    "cacheCleared": "{count, plural, =0 {Le cache était déjà vide} one {# traduction effacée} other {# traductions effacées}}",
+    "providers": {
+      "dashscope": "Alibaba Cloud Bailian",
+      "tokenhub": "Tencent Cloud TokenHub"
+    },
+    "engine": {
+      "title": "Moteur de traduction",
+      "description": "Le moteur sélectionné fait toutes les traductions. Dépliez un moteur pour saisir sa clé d'API, choisir le modèle et le tester.",
+      "primary": "Principal",
+      "backup": "Secours",
+      "idle": "Non utilisé",
+      "setPrimary": "Utiliser {provider} comme moteur principal",
+      "needsKeyFirst": "Saisissez d'abord une clé d'API",
+      "configured": "Configuré",
+      "needsSetup": "Clé d'API requise",
+      "notSetUp": "Non configuré",
+      "model": "Modèle",
+      "modelHint": {
+        "balanced": "Recommandé : rapide et précis",
+        "quality": "Meilleure qualité, plus lent",
+        "speed": "Le plus rapide, un peu moins précis"
+      },
+      "advanced": "Avancé",
+      "baseUrl": "Adresse de l'API",
+      "baseUrlHint": "Rarement à modifier. Laissez vide pour l'adresse par défaut.",
+      "resetBaseUrl": "Rétablir",
+      "fallback": "Basculer automatiquement en cas de limite",
+      "fallbackPath": "Si le moteur principal atteint sa limite ou tombe en panne, essai dans l'ordre : {path}",
+      "fallbackNone": "Rien vers quoi basculer pour l'instant. Donnez une clé d'API à l'autre moteur et il prendra le relais quand le principal atteint sa limite."
+    },
+    "key": {
+      "title": "Clé d'API",
+      "getKey": "Obtenir une clé",
+      "placeholder": "Collez la clé d'API",
+      "label": "Clé d'API {provider}",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "saved": "Enregistrée",
+      "replace": "Remplacer",
+      "remove": "Supprimer la clé d'API",
+      "show": "Afficher la clé d'API",
+      "hide": "Masquer la clé d'API"
+    },
+    "test": {
+      "description": "Traduit une phrase d'exemple pour vérifier la clé, le modèle et le réseau (sans cache ni secours).",
+      "run": "Tester",
+      "running": "Test en cours…",
+      "ok": "{model} fonctionne · {ms} ms",
+      "slow": "{model} fonctionne, mais lentement · {ms} ms"
+    },
+    "output": {
+      "title": "Traduction des réponses",
+      "description": "Activé, chaque réponse de l'agent est traduite en entier une fois terminée, et seule la traduction s'affiche ; pendant qu'il écrit, vous voyez l'original. Le raisonnement est traduit quand vous le dépliez, de même que les noms de session donnés par l'agent. Désactivé, traduisez une réponse avec le bouton situé dessous.",
+      "target": "Traduire en",
+      "followUi": "Langue de l'interface ({language})"
+    },
+    "input": {
+      "title": "Traduction des messages",
+      "description": "Traduisez la zone de saisie sur place avec son bouton de traduction, le raccourci ou le menu contextuel. Mentions, commandes, chemins et code restent tels quels, et Annuler rétablit l'original ; une fois envoyé, le bouton à côté du message réaffiche ce que vous avez écrit.",
+      "target": "Traduire en",
+      "onSend": "Traduire en {language} à l'envoi",
+      "onSendDescription": "Si la traduction échoue, rien n'est envoyé.",
+      "shortcut": "Raccourci",
+      "shortcutNone": "Non défini",
+      "shortcutEdit": "Modifier"
+    },
+    "glossary": {
+      "title": "Glossaire",
+      "description": "Fixe la traduction de certains termes, dans les deux sens ; laissez la traduction vide pour garder le terme tel quel. Intégrés entre anglais et chinois : agent → 智能体, prompt → 提示词, session → 会话 ; une entrée pour le même terme les remplace.",
+      "term": "Terme",
+      "translation": "Traduction",
+      "termPlaceholder": "ex. worktree",
+      "translationPlaceholder": "Vide : gardé tel quel",
+      "add": "Ajouter un terme",
+      "remove": "Supprimer « {term} »",
+      "removeEmpty": "Supprimer cette ligne",
+      "bulkEdit": "Modifier en texte",
+      "tableEdit": "Modifier en liste",
+      "bulkPlaceholder": "worktree = arbre de travail\nCodeg",
+      "bulkHint": "Un « terme = traduction » par ligne ; un terme seul est gardé tel quel."
+    },
+    "cache": {
+      "title": "Cache des traductions",
+      "description": "Les traductions sont conservées 30 jours, si bien qu'une conversation rouverte les affiche aussitôt. Videz le cache pour tout retraduire, par exemple après un changement de modèle.",
+      "clear": "Vider le cache"
     }
   }
 }
