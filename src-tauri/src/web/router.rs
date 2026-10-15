@@ -90,14 +90,6 @@ pub fn build_router(
             post(handlers::feedback::submit_session_feedback),
         )
         .route(
-            "/get_generative_ui_settings",
-            post(handlers::generative_ui::get_generative_ui_settings),
-        )
-        .route(
-            "/set_generative_ui_settings",
-            post(handlers::generative_ui::set_generative_ui_settings),
-        )
-        .route(
             "/get_question_settings",
             post(handlers::question::get_question_settings),
         )
@@ -223,6 +215,10 @@ pub fn build_router(
         .route(
             "/get_folder_conversation_turns",
             post(handlers::conversations::get_folder_conversation_turns),
+        )
+        .route(
+            "/get_folder_conversation_outline",
+            post(handlers::conversations::get_folder_conversation_outline),
         )
         .route(
             "/list_opened_tabs",
@@ -1260,6 +1256,23 @@ pub fn build_router(
             "/experts_open_central_dir",
             post(handlers::experts::experts_open_central_dir),
         )
+        // ─── Generative UI (the ui-render skill) ───
+        .route(
+            "/generative_ui_skill_info",
+            post(handlers::generative_ui::generative_ui_skill_info),
+        )
+        .route(
+            "/generative_ui_list_all_install_statuses",
+            post(handlers::generative_ui::generative_ui_list_all_install_statuses),
+        )
+        .route(
+            "/generative_ui_apply_links",
+            post(handlers::generative_ui::generative_ui_apply_links),
+        )
+        .route(
+            "/generative_ui_read_content",
+            post(handlers::generative_ui::generative_ui_read_content),
+        )
         // ─── Science ───
         .route("/science_list", post(handlers::science::science_list))
         .route(
@@ -1397,6 +1410,10 @@ pub fn build_router(
         .route(
             "/stop_office_watch",
             post(handlers::office_tools::stop_office_watch),
+        )
+        .route(
+            "/renew_office_watch",
+            post(handlers::office_tools::renew_office_watch),
         )
         // ─── Project boot ───
         .route(
@@ -1765,6 +1782,14 @@ pub fn build_router(
             post(handlers::forge::forge_settings_set),
         )
         .route(
+            "/forge_auto_status",
+            post(handlers::forge::forge_auto_status),
+        )
+        .route(
+            "/forge_auto_scan_now",
+            post(handlers::forge::forge_auto_scan_now),
+        )
+        .route(
             "/work_task_deliver_pr",
             post(handlers::work_task::work_task_deliver_pr),
         )
@@ -1936,6 +1961,17 @@ pub fn build_router(
         .route(
             "/get_system_language_settings",
             post(handlers::system_settings::get_system_language_settings),
+        )
+        // Forge webhooks for the repository panel's auto-processing. No forge
+        // can send codeg's bearer token, so the delivery authenticates itself:
+        // its HMAC signature (GitHub / Gitea) or secret token (GitLab) is
+        // checked against the folders' webhook secrets before anything else
+        // happens. See `handlers::forge::forge_webhook`.
+        .route(
+            "/forge_webhook",
+            post(handlers::forge::forge_webhook).layer(DefaultBodyLimit::max(
+                handlers::forge::WEBHOOK_BODY_LIMIT,
+            )),
         )
         .route(
             "/workspace_download/{ticket}",
