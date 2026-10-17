@@ -217,7 +217,9 @@ mod tests {
 
     /// The release workflow has to sign every server archive for its version:
     /// one signed without `--app-version` names none, and every server would
-    /// refuse to update to it.
+    /// refuse to update to it. The fork also signs the Linux RPM it bundles
+    /// apart, for the same reason, so every signing line is checked and the
+    /// server archives are counted by their `dist/` path.
     #[test]
     fn the_release_workflow_signs_server_archives_for_their_version() {
         let workflow = std::fs::read_to_string(concat!(
@@ -230,7 +232,11 @@ mod tests {
             .map(str::trim)
             .filter(|line| line.starts_with("pnpm tauri signer sign"))
             .collect();
-        assert_eq!(signs.len(), 2, "the Unix and the Windows archive");
+        assert_eq!(
+            signs.iter().filter(|line| line.contains("\"dist/")).count(),
+            2,
+            "the Unix and the Windows archive"
+        );
         for line in signs {
             assert!(line.contains("--app-version"), "{line}");
         }
