@@ -35,7 +35,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">🌐 <strong>Translated replies and messages</strong><br/>Each part of an agent's reply is translated into your language as soon as it is finished, thinking and question cards too, and a message translates to English in one keystroke, via Alibaba Cloud or Tencent Cloud translation models, at about a second per 1,000 characters.</td>
-    <td width="50%" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
+    <td width="50%" valign="top">🧩 <strong>Claude Code sub-agent sessions</strong><br/>Sub-agent cards get "View sub-agent session", which opens the sub-agent's full conversation the way it already does for Codex; a sub-agent can be watched while it runs.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
   </tr>
 </table>
 
@@ -79,6 +82,17 @@
 - On a rate limit it falls back to `qwen-mt-lite` or the other engine; a glossary pins down how specific terms are translated, and an entry with no translation keeps its term as written.
 - API keys are kept in the OS keychain (on a server, in `tokens.json` in the data directory), never in the database. Translation requests connect directly, bypassing any proxy, and go through the proxy only when the network allows nothing else.
 - Reply translations are for display only: the conversation history keeps the agent's original text. What you wrote before a message was translated is kept in the local database, and clearing the translation cache leaves it alone.
+
+</details>
+
+<details>
+<summary><strong>Claude Code sub-agent sessions</strong>: details</summary>
+<br/>
+
+- Claude Code keeps each sub-agent's (Agent / Task tool) whole conversation in a file of its own, `~/.claude/projects/<project>/<session id>/subagents/agent-<id>.jsonl`. In the official build the card shows only a summary of what it did and the final result (a background sub-agent's not even the summary), and that file can't be opened.
+- This build adds a "View sub-agent session" button beside the card's title that opens the file in a side panel: the task the sub-agent was given, its thinking and replies, and every tool call with its input and output. It's the same button Codex and Grok sub-agent cards have.
+- The button appears as soon as the sub-agent starts, in the foreground or the background. Opened while the sub-agent is still running, the panel refreshes every 2 seconds and shows the tool call in progress as running. Opened after the conversation is reloaded, it shows the file as it was then; close and reopen it to see the latest.
+- Earlier conversations work too, as long as the sub-agent's file is still there.
 
 </details>
 

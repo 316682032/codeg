@@ -1,10 +1,20 @@
 import { type ReactElement } from "react"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react"
 import { NextIntlClientProvider } from "next-intl"
 import { describe, expect, it } from "vitest"
 
 import { AgentToolCallPart } from "./agent-tool-call"
 import type { AdaptedContentPart } from "@/lib/adapters/ai-elements-adapter"
+import {
+  SessionViewerHostContext,
+  type SessionViewerRequest,
+} from "./session-viewer-host-context"
 import { BACKGROUND_TASK_MARKER } from "@/lib/background-agent"
 import enMessages from "@/i18n/messages/en.json"
 
@@ -1149,6 +1159,139 @@ describe("AgentToolCallPart child session action", () => {
     expect(
       screen.getByRole("button", { name: "View sub-agent session" })
     ).toBeInTheDocument()
+  })
+
+  /** Render under a host that records what the action asks it to open. */
+  function renderHosted(part: ToolCallPart) {
+    const requests: SessionViewerRequest[] = []
+    render(
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        <SessionViewerHostContext.Provider
+          value={{ open: (request) => requests.push(request) }}
+        >
+          <AgentToolCallPart part={part} renderToolCall={() => null} />
+        </SessionViewerHostContext.Provider>
+      </NextIntlClientProvider>
+    )
+    fireEvent.click(
+      screen.getByRole("button", { name: "View sub-agent session" })
+    )
+    return requests
+  }
+
+  it("opens a Claude Code child's transcript by the agentId the parser names", () => {
+    const requests = renderHosted({
+      ...basePart(
+        JSON.stringify({ subagent_type: "Explore", description: "map repo" }),
+        "output-available"
+      ),
+      output: "final result",
+      agentStats: {
+        agent_type: "Explore",
+        child_session_id: "a18d64a8ea894c0c6",
+        child_session_agent_type: "claude_code",
+      },
+    })
+    expect(requests).toEqual([
+      expect.objectContaining({
+        kind: "agentSession",
+        sessionId: "a18d64a8ea894c0c6",
+        agentType: "claude_code",
+        live: false,
+      }),
+    ])
+  })
+
+  it("reads stats that name no agent as grok's, their only earlier producer", () => {
+    const requests = renderHosted({
+      ...basePart(
+        JSON.stringify({ subagent_type: "explore" }),
+        "output-available"
+      ),
+      output: "final result",
+      agentStats: { child_session_id: "019fe6bf-0bcb-70c2-a02d-e5c006dfc32a" },
+    })
+    expect(requests[0]).toMatchObject({ agentType: "grok" })
+  })
+
+  it("opens a running Claude Code foreground child from the backend's stamp", () => {
+    // The card is still running: nothing on the wire names the child but the
+    // stamp the backend reads off the SDK's `task_started`.
+    const requests = renderHosted({
+      ...basePart(
+        JSON.stringify({ subagent_type: "Explore", description: "map repo" }),
+        "input-available"
+      ),
+      meta: {
+        claudeCode: { toolName: "Agent", subagent: true },
+        "codeg.claudeSubagent": { agentId: "a04a6ca8e303c783a" },
+      },
+    })
+    expect(requests).toEqual([
+      expect.objectContaining({
+        sessionId: "a04a6ca8e303c783a",
+        agentType: "claude_code",
+        live: true,
+      }),
+    ])
+  })
+
+  it("keeps the stamped child on a background launch and after it settles", () => {
+    const stamp = {
+      claudeCode: { toolName: "Agent", subagent: true },
+      "codeg.claudeSubagent": { agentId: "ade7790817b0e8643" },
+    }
+    const launched = renderHosted({
+      ...basePart(
+        JSON.stringify({ subagent_type: "Explore" }),
+        "output-available"
+      ),
+      output:
+        "Async agent launched successfully.\nagentId: ade7790817b0e8643 (internal ID)",
+      meta: stamp,
+    })
+    expect(launched[0]).toMatchObject({
+      sessionId: "ade7790817b0e8643",
+      agentType: "claude_code",
+      live: true,
+    })
+    cleanup()
+    const settled = renderHosted({
+      ...basePart(
+        JSON.stringify({ subagent_type: "Explore" }),
+        "output-available"
+      ),
+      output: `${BACKGROUND_TASK_MARKER}${JSON.stringify({
+        task_id: "ade7790817b0e8643",
+        status: "completed",
+        result: "done",
+      })}`,
+      meta: stamp,
+    })
+    expect(settled[0]).toMatchObject({
+      sessionId: "ade7790817b0e8643",
+      agentType: "claude_code",
+      live: false,
+    })
+  })
+
+  it("does not read a child out of an ack or a lifecycle marker alone", () => {
+    // Grok and CodeBuddy settle their cards with the same marker; only a stamp
+    // or parsed stats say whose session an id is.
+    renderCard({
+      ...basePart(
+        JSON.stringify({ subagent_type: "explore" }),
+        "output-available"
+      ),
+      output: `${BACKGROUND_TASK_MARKER}${JSON.stringify({
+        task_id: "019f9432-e0d8-74c3-bd02-0772c4e04a65",
+        status: "completed",
+      })}`,
+      meta: { claudeCode: { toolName: "Agent", subagent: true } },
+    })
+    expect(
+      screen.queryByRole("button", { name: "View sub-agent session" })
+    ).not.toBeInTheDocument()
   })
 
   it("stays hidden for a sub-agent with no session of its own", () => {

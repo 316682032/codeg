@@ -555,6 +555,10 @@ fn agent_stats_size(stats: &crate::models::message::AgentExecutionStats) -> usiz
         + opt_str_size(&stats.status)
         + opt_str_size(&stats.recovered_result)
         + opt_str_size(&stats.child_session_id)
+        // A wire slug — a custom agent's runs to 64 characters plus `custom:`.
+        + stats
+            .child_session_agent_type
+            .map_or(0, |agent| json_str_len(&agent.as_wire()))
         + stats
             .tool_calls
             .iter()
@@ -1055,6 +1059,9 @@ mod tests {
                             .collect(),
                         recovered_result: Some("The \"full\" report\n\t".repeat(400)),
                         child_session_id: Some("019fe6bf-0bcb-70c2-a02d-e5c006dfc32a".into()),
+                        child_session_agent_type: Some(
+                            crate::models::agent::AgentType::ClaudeCode,
+                        ),
                     }),
                     images: vec![image],
                 },

@@ -35,7 +35,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">🌐 <strong>Respostas e mensagens traduzidas</strong><br/>Cada parte da resposta do agente é traduzida para o seu idioma assim que termina, incluindo o raciocínio e os cartões de pergunta, e uma mensagem vai para o inglês com uma tecla, com modelos de tradução da Alibaba Cloud ou da Tencent Cloud, em cerca de um segundo a cada 1.000 caracteres.</td>
-    <td width="50%" valign="top">🔄 <strong>Acompanha o original</strong><br/>O projeto original é mesclado regularmente; o que não está listado aqui funciona como na versão oficial. O Kiro CLI integrado, a primeira coisa que esta versão adicionou, faz parte da versão oficial desde a 0.36.0.</td>
+    <td width="50%" valign="top">🧩 <strong>Sessões dos subagentes do Claude Code</strong><br/>Os cartões de subagente ganham "Ver a sessão do subagente", que abre a conversa completa dele como já acontece com o Codex; um subagente pode ser acompanhado enquanto trabalha.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Acompanha o original</strong><br/>O projeto original é mesclado regularmente; o que não está listado aqui funciona como na versão oficial. O Kiro CLI integrado, a primeira coisa que esta versão adicionou, faz parte da versão oficial desde a 0.36.0.</td>
   </tr>
 </table>
 
@@ -79,6 +82,17 @@
 - Ao atingir um limite de solicitações, passa para o `qwen-mt-lite` ou para o outro mecanismo; um glossário fixa como certos termos são traduzidos, e uma entrada sem tradução mantém o termo como está.
 - As chaves de API ficam no chaveiro do sistema (num servidor, em `tokens.json` no diretório de dados), nunca no banco de dados. As solicitações de tradução se conectam diretamente, sem proxy, e só usam o proxy quando a rede não permite outra saída.
 - A tradução das respostas serve só para exibição: o histórico da conversa mantém o texto original do agente. O que você escreveu antes de traduzir uma mensagem fica guardado no banco de dados local, e limpar o cache de tradução não o apaga.
+
+</details>
+
+<details>
+<summary><strong>Sessões dos subagentes do Claude Code</strong>: detalhes</summary>
+<br/>
+
+- O Claude Code guarda a conversa inteira de cada subagente (ferramenta Agent / Task) em um arquivo próprio, `~/.claude/projects/<projeto>/<id da sessão>/subagents/agent-<id>.jsonl`. Na versão oficial o cartão mostra só um resumo do processo e o resultado final (o de um subagente em segundo plano, nem o resumo), e esse arquivo não pode ser aberto.
+- Esta versão adiciona ao lado do título do cartão o botão "Ver a sessão do subagente", que abre esse registro em um painel lateral: a tarefa recebida, o raciocínio e as respostas, e cada chamada de ferramenta com entrada e saída. É o mesmo botão dos cartões de subagente do Codex e do Grok.
+- O botão aparece assim que o subagente começa, em primeiro ou em segundo plano. Aberto enquanto ele ainda trabalha, o painel se atualiza a cada 2 segundos e mostra como "Em execução" a chamada de ferramenta que está rodando. Aberto depois de recarregar a conversa, mostra o registro como estava naquele momento; feche e abra de novo para ver o mais recente.
+- Conversas anteriores também funcionam, desde que o arquivo do subagente ainda exista.
 
 </details>
 

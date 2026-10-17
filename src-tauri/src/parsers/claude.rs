@@ -1284,6 +1284,107 @@ pub(crate) fn find_session_file_in(base_dir: &Path, session_id: &str) -> Option<
     None
 }
 
+/// How deep below a `subagents` directory a transcript is looked for. Claude
+/// Code files a sub-agent either directly in it or in a per-agent subdirectory
+/// of it (`agentTranscriptSubdirs`), and nothing it writes nests further.
+const SUBAGENT_TRANSCRIPT_MAX_DEPTH: usize = 3;
+
+/// The `subagents` directory the sub-agents launched from `transcript` are
+/// written to.
+///
+/// A session's own are under `<session>/subagents/`. One launched BY a
+/// sub-agent goes to the same directory as its launcher, because Claude Code
+/// files every sub-agent of a run under the root session's id — so a
+/// transcript that is itself an `agent-<id>.jsonl` resolves to the `subagents`
+/// directory it sits in, not to one beside its own file.
+fn subagents_dir_for(transcript: &Path) -> PathBuf {
+    let is_subagent = transcript
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .is_some_and(|stem| stem.starts_with("agent-"));
+    if is_subagent {
+        let enclosing = transcript
+            .ancestors()
+            .skip(1)
+            .take(SUBAGENT_TRANSCRIPT_MAX_DEPTH)
+            .find(|dir| dir.file_name().is_some_and(|name| name == "subagents"));
+        if let Some(dir) = enclosing {
+            return dir.to_path_buf();
+        }
+    }
+    transcript.with_extension("").join("subagents")
+}
+
+/// The transcript of sub-agent `agent_id` inside one `subagents` directory —
+/// directly in it, which is where nearly all of them are, or in one of its
+/// subdirectories.
+///
+/// `agent_id` becomes a filename, so the caller must have passed it through
+/// [`is_safe_subagent_id`].
+fn find_subagent_transcript(subagents_dir: &Path, agent_id: &str) -> Option<PathBuf> {
+    let file_name = format!("agent-{agent_id}.jsonl");
+    let direct = subagents_dir.join(&file_name);
+    if direct.is_file() {
+        return Some(direct);
+    }
+    find_file_below(subagents_dir, &file_name, SUBAGENT_TRANSCRIPT_MAX_DEPTH)
+}
+
+/// `file_name` in some subdirectory of `dir`, at most `depth` levels down.
+fn find_file_below(dir: &Path, file_name: &str, depth: usize) -> Option<PathBuf> {
+    if depth == 0 {
+        return None;
+    }
+    for entry in fs::read_dir(dir).ok()?.flatten() {
+        let sub = entry.path();
+        if !entry.file_type().is_ok_and(|t| t.is_dir()) {
+            continue;
+        }
+        let candidate = sub.join(file_name);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+        if let Some(found) = find_file_below(&sub, file_name, depth - 1) {
+            return Some(found);
+        }
+    }
+    None
+}
+
+/// The transcript of sub-agent `agent_id`, in whichever session of
+/// `base_dir` launched it — what `get_conversation` reads when the Agent card
+/// opens the child's session by its `agentId`.
+///
+/// A card knows the child's id but not which session directory holds it (the
+/// live card does not know its own session's), and an `agentId` names exactly
+/// one transcript, so every session directory is a candidate. Two passes keep
+/// the common case to one stat per session: the direct location everywhere
+/// first, and the subdirectories only if that found nothing.
+fn find_subagent_transcript_in(base_dir: &Path, agent_id: &str) -> Option<PathBuf> {
+    if !is_safe_subagent_id(agent_id) {
+        return None;
+    }
+    let subagent_dirs: Vec<PathBuf> = fs::read_dir(base_dir)
+        .ok()?
+        .flatten()
+        .filter(|entry| entry.file_type().is_ok_and(|t| t.is_dir()))
+        .filter_map(|project| fs::read_dir(project.path()).ok())
+        .flat_map(|sessions| sessions.flatten())
+        .filter(|entry| entry.file_type().is_ok_and(|t| t.is_dir()))
+        .map(|session| session.path().join("subagents"))
+        .collect();
+    let file_name = format!("agent-{agent_id}.jsonl");
+    subagent_dirs
+        .iter()
+        .map(|dir| dir.join(&file_name))
+        .find(|direct| direct.is_file())
+        .or_else(|| {
+            subagent_dirs
+                .iter()
+                .find_map(|dir| find_file_below(dir, &file_name, SUBAGENT_TRANSCRIPT_MAX_DEPTH))
+        })
+}
+
 /// After `/clear`, Claude Code rolls over to a NEW `{uuid}.jsonl` while the
 /// ACP session id stays the same. The successor sits next to `current_file`,
 /// its early records contain `<command-name>/clear</command-name>`, and it
@@ -1761,6 +1862,25 @@ impl AgentParser for ClaudeParser {
                     follow_clear_rollover_chain(&file_path, conversation_id);
                 return self.parse_conversation_detail(&resolved_path, &resolved_id);
             }
+        }
+
+        // Not a session: a sub-agent the Agent card opens by its `agentId`. Its
+        // transcript is a session file in all but location, so the same parse
+        // reads it; the session it ran under becomes its parent. A session id
+        // is a UUID and an `agentId` never is, so the conversation views'
+        // misses (a session whose file is not written yet) skip the scan.
+        let subagent = uuid::Uuid::parse_str(conversation_id)
+            .is_err()
+            .then(|| find_subagent_transcript_in(&self.base_dir, conversation_id))
+            .flatten();
+        if let Some(path) = subagent {
+            let mut detail = self.parse_conversation_detail(&path, conversation_id)?;
+            detail.summary.parent_id = subagents_dir_for(&path)
+                .parent()
+                .and_then(|session| session.file_name())
+                .and_then(|name| name.to_str())
+                .map(str::to_string);
+            return Ok(detail);
         }
 
         Err(ParseError::ConversationNotFound(
@@ -2283,7 +2403,9 @@ impl ClaudeRecordAccumulator {
                     // sibling names the task (`agentId`), and the ack block's
                     // tool_use_id anchors the lifecycle fold to the LAUNCHING
                     // tool call (see `finalize_background_lifecycle`).
-                    if tur.get("status").and_then(|s| s.as_str()) == Some("async_launched") {
+                    let is_async_launch =
+                        tur.get("status").and_then(|s| s.as_str()) == Some("async_launched");
+                    if is_async_launch {
                         if let Some(task_id) = tur
                             .get("agentId")
                             .and_then(|v| v.as_str())
@@ -2304,31 +2426,51 @@ impl ClaudeRecordAccumulator {
                         }
                     }
 
+                    // The child's own transcript, named by the `agentId` that
+                    // both a finished launch and an async one's ack carry.
+                    // Reject path traversal first: the id becomes a filename
+                    // component under the session dir (see `is_safe_subagent_id`
+                    // — rejects separators, `..`, a Windows drive colon, and
+                    // NUL).
+                    let child = tur
+                        .get("agentId")
+                        .and_then(|v| v.as_str())
+                        .filter(|id| is_safe_subagent_id(id))
+                        .and_then(|id| {
+                            find_subagent_transcript(&subagents_dir_for(path), id)
+                                .map(|transcript| (id, transcript))
+                        });
+
                     // Extract agent execution stats from toolUseResult
-                    if tur.get("agentType").is_some() {
+                    let stats = if tur.get("agentType").is_some() {
                         let mut stats = extract_agent_execution_stats(tur);
                         // Load tool calls from subagent's own JSONL transcript
-                        if let Some(agent_id) = tur.get("agentId").and_then(|v| v.as_str()) {
-                            // Reject path traversal: `agent_id` becomes a filename
-                            // component under the session dir (see
-                            // `is_safe_subagent_id` — rejects separators, `..`, a
-                            // Windows drive colon, and NUL).
-                            if is_safe_subagent_id(agent_id) {
-                                let subagent_dir = path.with_extension("").join("subagents");
-                                let subagent_path =
-                                    subagent_dir.join(format!("agent-{}.jsonl", agent_id));
-                                if subagent_path.exists() {
-                                    let (calls, timeline, _, _, duration_ms) =
-                                        parse_subagent_tool_calls(&subagent_path);
-                                    stats.tool_calls = calls;
-                                    stats.timeline = timeline;
-                                    // The transcript-derived span only fills
-                                    // the gap: a task-reported duration is the
-                                    // more direct measurement.
-                                    stats.total_duration_ms =
-                                        stats.total_duration_ms.or(duration_ms);
-                                }
-                            }
+                        if let Some((_, subagent_path)) = &child {
+                            let (calls, timeline, _, _, duration_ms) =
+                                parse_subagent_tool_calls(subagent_path);
+                            stats.tool_calls = calls;
+                            stats.timeline = timeline;
+                            // The transcript-derived span only fills the gap: a
+                            // task-reported duration is the more direct
+                            // measurement.
+                            stats.total_duration_ms = stats.total_duration_ms.or(duration_ms);
+                        }
+                        Some(stats)
+                    } else if is_async_launch && child.is_some() {
+                        // The ack of a child that has only just started carries
+                        // no totals; its card gets the way into the child's
+                        // session and nothing else.
+                        Some(AgentExecutionStats::default())
+                    } else {
+                        None
+                    };
+                    if let Some(mut stats) = stats {
+                        // The child's transcript is a session in all but
+                        // location: the card opens it by this id, which
+                        // `get_conversation` resolves (`find_subagent_transcript_in`).
+                        if let Some((agent_id, _)) = child {
+                            stats.child_session_id = Some(agent_id.to_string());
+                            stats.child_session_agent_type = Some(AgentType::ClaudeCode);
                         }
                         for block in content.iter_mut() {
                             if let ContentBlock::ToolResult {
@@ -3457,9 +3599,10 @@ fn extract_agent_execution_stats(tur: &serde_json::Value) -> AgentExecutionStats
         tool_calls: Vec::new(),
         timeline: Vec::new(),
         recovered_result: None,
-        // Claude's sub-agent lives inside the parent transcript (a sidechain),
-        // not as a session of its own.
+        // Set by the caller once the child's transcript is found: the
+        // `toolUseResult` names the child but not where it was written.
         child_session_id: None,
+        child_session_agent_type: None,
     }
 }
 
@@ -3473,8 +3616,9 @@ fn extract_agent_execution_stats(tur: &serde_json::Value) -> AgentExecutionStats
 ///
 /// A sub-agent runs its own conversation with the model and writes it to
 /// `<session>/subagents/agent-<id>.jsonl`. Session discovery only globs the
-/// session-level transcripts, so those files are never a conversation anyone
-/// can open — and their tokens were counted nowhere at all: 4.9 % of all Claude
+/// session-level transcripts, so those files never show up as conversations of
+/// their own (only the Agent card opens one) — and their tokens were counted
+/// nowhere at all: 4.9 % of all Claude
 /// spend in a real transcript tree, concentrated in exactly the sessions that
 /// delegate the most work.
 ///
@@ -4687,6 +4831,173 @@ mod tests {
         );
         assert_eq!(stats.timeline[1].child_index, Some(0));
         assert_eq!(stats.tool_calls[0].tool_name, "Read");
+    }
+
+    fn first_agent_stats(detail: &ConversationDetail) -> Option<AgentExecutionStats> {
+        detail
+            .turns
+            .iter()
+            .flat_map(|t| t.blocks.iter())
+            .find_map(|b| match b {
+                ContentBlock::ToolResult { agent_stats, .. } => agent_stats.clone(),
+                _ => None,
+            })
+    }
+
+    #[test]
+    fn a_finished_sub_agent_card_names_the_childs_session_when_its_transcript_exists() {
+        let child = vec![subagent_record_undated(json!({"type": "text", "text": "Done."}))];
+        let detail = parse_with_subagents(&session_launching("abc", 1), &[("abc", child)]);
+        let stats = first_agent_stats(&detail).expect("Agent result carries agent_stats");
+        assert_eq!(stats.child_session_id.as_deref(), Some("abc"));
+        assert_eq!(stats.child_session_agent_type, Some(AgentType::ClaudeCode));
+
+        // Nothing on disk to open: the card keeps its stats and offers no session.
+        let detail = parse_with_subagents(&session_launching("gone", 1), &[]);
+        let stats = first_agent_stats(&detail).expect("Agent result carries agent_stats");
+        assert_eq!(stats.child_session_id, None);
+        assert_eq!(stats.child_session_agent_type, None);
+    }
+
+    #[test]
+    fn an_async_launch_ack_opens_the_childs_session_and_keeps_its_lifecycle_marker() {
+        let session = vec![
+            assistant_block_line(
+                "a1",
+                "msg_launch",
+                "2026-03-01T10:00:00Z",
+                json!({"type": "tool_use", "id": "tu1", "name": "Agent", "input": {
+                    "description": "Map the code", "prompt": "Map it", "subagent_type": "Explore"
+                }}),
+                json!({"input_tokens": 1, "output_tokens": 0}),
+            ),
+            json!({
+                "type": "user",
+                "timestamp": "2026-03-01T10:00:01Z",
+                "uuid": "r1",
+                "message": {"role": "user", "content": [{
+                    "type": "tool_result",
+                    "tool_use_id": "tu1",
+                    "content": [{"type": "text", "text": "Async agent launched successfully.\nagentId: abc (internal ID)"}]
+                }]},
+                "toolUseResult": {"isAsync": true, "status": "async_launched", "agentId": "abc"}
+            })
+            .to_string(),
+        ];
+        let child = vec![subagent_record_undated(json!({"type": "text", "text": "Mapping."}))];
+
+        let detail = parse_with_subagents(&session, &[("abc", child)]);
+        let stats = first_agent_stats(&detail).expect("the ack carries the child's session");
+        assert_eq!(stats.child_session_id.as_deref(), Some("abc"));
+        assert_eq!(stats.child_session_agent_type, Some(AgentType::ClaudeCode));
+        // Only the way in: an ack that has just launched the child has no
+        // totals, and must not grow a duration or a tool list.
+        assert_eq!(stats.total_duration_ms, None);
+        assert!(stats.tool_calls.is_empty() && stats.timeline.is_empty());
+        let output = detail
+            .turns
+            .iter()
+            .flat_map(|t| t.blocks.iter())
+            .find_map(|b| match b {
+                ContentBlock::ToolResult { output_preview, .. } => output_preview.clone(),
+                _ => None,
+            })
+            .unwrap();
+        assert!(output.starts_with(BACKGROUND_TASK_MARKER), "{output}");
+
+        let detail = parse_with_subagents(&session, &[]);
+        assert!(first_agent_stats(&detail).is_none());
+    }
+
+    fn subagent_transcript_lines(agent_id: &str, session: &str) -> String {
+        [
+            json!({
+                "parentUuid": null, "isSidechain": true, "agentId": agent_id,
+                "type": "user", "uuid": "su1", "timestamp": "2026-10-05T16:52:52.602Z",
+                "sessionId": session, "cwd": "/tmp/demo",
+                "message": {"role": "user", "content": "Find the bug"}
+            }),
+            json!({
+                "parentUuid": "su1", "isSidechain": true, "agentId": agent_id,
+                "type": "assistant", "uuid": "sa1", "timestamp": "2026-10-05T16:52:55.000Z",
+                "sessionId": session, "cwd": "/tmp/demo",
+                "message": {"id": "m1", "role": "assistant", "model": "claude-opus-5-5",
+                    "content": [{"type": "text", "text": "Found it."}]}
+            }),
+        ]
+        .iter()
+        .map(|l| format!("{l}\n"))
+        .collect()
+    }
+
+    #[test]
+    fn get_conversation_opens_a_sub_agent_transcript_by_its_agent_id() {
+        let base = tempfile::tempdir().unwrap();
+        let project = base.path().join("-tmp-demo");
+        let session = "3c0c7872-fef7-41f4-bfb9-c0840777c604";
+        fs::create_dir_all(project.join(session).join("subagents")).unwrap();
+        fs::write(project.join(format!("{session}.jsonl")), b"{}\n").unwrap();
+        // Another session's directory, holding no sub-agents, is skipped over.
+        fs::create_dir_all(project.join("other-session").join("tool-results")).unwrap();
+        fs::write(
+            project.join(session).join("subagents").join("agent-a18d64a8ea894c0c6.jsonl"),
+            subagent_transcript_lines("a18d64a8ea894c0c6", session),
+        )
+        .unwrap();
+
+        let parser = ClaudeParser::with_base_dir(base.path().to_path_buf());
+        let detail = parser
+            .get_conversation("a18d64a8ea894c0c6")
+            .expect("the sub-agent's transcript opens by its agentId");
+        assert_eq!(detail.summary.id, "a18d64a8ea894c0c6");
+        assert_eq!(detail.summary.parent_id.as_deref(), Some(session));
+        let roles: Vec<_> = detail.turns.iter().map(|t| t.role.clone()).collect();
+        assert!(matches!(roles.as_slice(), [TurnRole::User, TurnRole::Assistant]), "{roles:?}");
+
+        // A transcript filed one directory down is found too.
+        let nested = project.join(session).join("subagents").join("workflow-1");
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(
+            nested.join("agent-b2.jsonl"),
+            subagent_transcript_lines("b2", session),
+        )
+        .unwrap();
+        let detail = parser.get_conversation("b2").expect("nested transcript opens");
+        assert_eq!(detail.summary.parent_id.as_deref(), Some(session));
+
+        assert!(matches!(
+            parser.get_conversation("missing"),
+            Err(ParseError::ConversationNotFound(_))
+        ));
+        // A session id is never taken for a sub-agent's, even one named so.
+        let uuid = "9c1d1f4e-4c2a-4f0e-9a51-0d3c2f6b7a10";
+        fs::write(
+            project.join(session).join("subagents").join(format!("agent-{uuid}.jsonl")),
+            subagent_transcript_lines(uuid, session),
+        )
+        .unwrap();
+        assert!(matches!(
+            parser.get_conversation(uuid),
+            Err(ParseError::ConversationNotFound(_))
+        ));
+        assert!(find_subagent_transcript_in(base.path(), "../a18d64a8ea894c0c6").is_none());
+    }
+
+    #[test]
+    fn a_sub_agents_own_sub_agents_are_looked_up_in_the_root_sessions_directory() {
+        let root = Path::new("/p/-proj/S");
+        assert_eq!(
+            subagents_dir_for(Path::new("/p/-proj/S.jsonl")),
+            root.join("subagents")
+        );
+        assert_eq!(
+            subagents_dir_for(&root.join("subagents").join("agent-a1.jsonl")),
+            root.join("subagents")
+        );
+        assert_eq!(
+            subagents_dir_for(&root.join("subagents").join("wf").join("agent-a2.jsonl")),
+            root.join("subagents")
+        );
     }
 
     /// A resume replays the surviving history into the SAME transcript,

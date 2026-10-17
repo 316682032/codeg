@@ -13,6 +13,13 @@
  * that file on a timer is therefore a real live view of a running child, and
  * the same call serves a finished one.
  *
+ * Codex and Claude Code reach it the same way: a codex child is a rollout of
+ * its own, and a Claude Code child writes a session-format transcript to
+ * `<session>/subagents/agent-<agentId>.jsonl`, which `get_conversation`
+ * resolves by its `agentId`. The card holds at most a timeline of a Claude
+ * Code child, and none at all for an async one reopened from history; its full
+ * turns are only here.
+ *
  * Deliberately NOT `LiveTranscriptView`/`MessageListView`: those are bound to a
  * codeg conversation row and a live ACP connection, and a grok sub-agent has
  * neither. This renders the parsed turns directly with the shared
@@ -42,6 +49,7 @@ import {
 } from "@/components/ui/drawer"
 import {
   adaptMessageTurns,
+  mergeAdjacentToolGroups,
   type AdaptedMessage,
 } from "@/lib/adapters/ai-elements-adapter"
 import { getConversation } from "@/lib/api"
@@ -60,41 +68,82 @@ const LIVE_REFRESH_MS = 2000
  *
  * Reading a RUNNING session's file is exactly the case the adapter's "a
  * `tool_use` with no `tool_result` means the conversation ended, so it
- * completed" rule gets wrong — and here it doesn't even apply: the grok parser
- * pairs every call with a placeholder result and backfills it, so an unfinished
- * call arrives MATCHED and lands in the settled branch. The parser's own
- * `status` is the only honest signal, and it is used affirmatively: absent (any
- * other agent) or already terminal leaves the call exactly where it was.
+ * completed" rule gets wrong — and for grok it doesn't even apply: the grok
+ * parser pairs every call with a placeholder result and backfills it, so an
+ * unfinished call arrives MATCHED and lands in the settled branch. Where the
+ * parser records one, its own `status` is the honest signal, and it is used
+ * affirmatively: already terminal leaves the call exactly where it was.
+ *
+ * Claude Code records no status, but its transcript writes a call's result as
+ * soon as the call returns — an empty one included — so a call in the LAST
+ * turn with no result yet is the one the child is waiting on
+ * (`trustMissingResult`). Earlier turns are left alone: a call that never got
+ * its result there was cut off, and the child has moved on. Not codex: a
+ * code-mode call can settle without ever writing an output.
  *
  * Gated on `live` by the caller — a child that was interrupted keeps whatever
  * status it was last given, so once the parent card settles the transcript's
  * stale `in_progress` must stop producing a spinner nothing will ever clear.
  */
-function inProgressToolCallsByTurn(
-  turns: MessageTurn[]
+export function inProgressToolCallsByTurn(
+  turns: MessageTurn[],
+  trustMissingResult: boolean
 ): Map<number, Set<string>> {
   const out = new Map<number, Set<string>>()
+  const answered = new Set<string>()
+  for (const turn of turns) {
+    for (const block of turn.blocks) {
+      if (block.type === "tool_result" && block.tool_use_id) {
+        answered.add(block.tool_use_id)
+      }
+    }
+  }
+  const last = turns.length - 1
   turns.forEach((turn, i) => {
     const pending = new Set<string>()
     for (const block of turn.blocks) {
-      if (
-        block.type === "tool_use" &&
-        block.tool_use_id &&
-        toolStatusUnsettled(block.status)
-      ) {
-        pending.add(block.tool_use_id)
-      }
+      if (block.type !== "tool_use" || !block.tool_use_id) continue
+      const unsettled =
+        block.status != null
+          ? toolStatusUnsettled(block.status)
+          : trustMissingResult && i === last && !answered.has(block.tool_use_id)
+      if (unsettled) pending.add(block.tool_use_id)
     }
     if (pending.size > 0) out.set(i, pending)
   })
   return out
 }
 
+/**
+ * One block per run of consecutive assistant messages, the way the main thread
+ * folds them (`mergeConsecutiveAssistantTurns`). Claude Code records every API
+ * message of a child as a turn of its own, so without this each step is a
+ * separate block and back-to-back tool calls never fold into one pill.
+ */
+export function mergeAssistantRuns(
+  messages: AdaptedMessage[]
+): AdaptedMessage[] {
+  const out: AdaptedMessage[] = []
+  for (const message of messages) {
+    const last = out[out.length - 1]
+    if (message.role === "assistant" && last?.role === "assistant") {
+      out[out.length - 1] = {
+        ...last,
+        content: mergeAdjacentToolGroups([...last.content, ...message.content]),
+      }
+    } else {
+      out.push(message)
+    }
+  }
+  return out
+}
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** The child's native session id (`agent_stats.child_session_id`, or the live
-   *  `meta.grokSubagentSession.childSessionId`). */
+  /** The child's native session id (`agent_stats.child_session_id`, the live
+   *  `meta.grokSubagentSession.childSessionId`, a codex `agent_id`, or the
+   *  `agentId` a Claude Code async launch ack names). */
   sessionId: string
   agentType: AgentType
   /** The sub-agent's declared type ("general-purpose", "explore", …) — the
@@ -153,15 +202,22 @@ export function SubagentSessionDialog({
         const detail = await getConversation(agentType, sessionId)
         if (!mountedRef.current || seq !== seqRef.current) return
         setMessages(
-          adaptMessageTurns(
-            detail.turns,
-            {
-              attachedResources: sharedT("attachedResources"),
-              toolCallFailed: sharedT("toolCallFailed"),
-              pageHandoffName,
-            },
-            undefined,
-            live ? inProgressToolCallsByTurn(detail.turns) : undefined
+          mergeAssistantRuns(
+            adaptMessageTurns(
+              detail.turns,
+              {
+                attachedResources: sharedT("attachedResources"),
+                toolCallFailed: sharedT("toolCallFailed"),
+                pageHandoffName,
+              },
+              undefined,
+              live
+                ? inProgressToolCallsByTurn(
+                    detail.turns,
+                    agentType === "claude_code"
+                  )
+                : undefined
+            )
           )
         )
         setError(null)
