@@ -13,7 +13,7 @@ description: 把一个通用功能贡献给上游 spacering-net/codeg：从 main
 - 给上游的分支**从 `main` 开，不从 `keh4l` 开**——`keh4l` 带着 fork 的更新地址、签名公钥、版本号，这些绝不能进上游 PR。
 - 提交身份 `git -c user.name=keh4l -c user.email=2461454684@qq.com …`；提交信息照上游风格：`feat(<scope>): <小写开头的结论>` / `fix(...)` / `chore(...)`，正文分段讲清"为什么、怎么做、取舍"（参考 `git log upstream/main` 里的 `feat(antigravity): add Google Antigravity as a built-in agent`）。
 - 只有用户明确要求时才提交、推送、开 PR。不推 `main`，PR 开出后不 rebase、不 force push（用 merge 跟进上游）。
-- 已有先例：PR spacering-net/codeg#851（Kiro CLI），分支 `feat/kiro-builtin-agent`。
+- 已有先例：PR spacering-net/codeg#851（Kiro CLI），分支 `feat/kiro-builtin-agent`，0.36.0 合并进上游。
 
 ## 步骤
 

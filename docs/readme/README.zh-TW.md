@@ -30,31 +30,14 @@
 
 <table>
   <tr>
-    <td width="50%" valign="top">🤖 <strong>內建 Kiro CLI</strong><br/>直接使用你裝好的 <code>kiro-cli</code>：選模型和模式，設定 MCP 和技能，繼續以前的工作階段。</td>
     <td width="50%" valign="top">🪟 <strong>每個視窗一組分頁</strong><br/>同一台伺服器開多個視窗時，可以關掉分頁同步，讓各視窗各自管理分頁；會話和訊息照常同步。</td>
-  </tr>
-  <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code 顯示思考過程</strong><br/>向 API 請求思考摘要，思考區域不再是空的。</td>
-    <td width="50%" valign="top">🌐 <strong>翻譯回覆和訊息</strong><br/>智慧體寫完回覆後整則翻譯成你的語言，要送出的訊息一鍵翻譯成英文；使用阿里雲百煉或騰訊雲的翻譯模型，一千字約一秒。</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>緊跟上游</strong><br/>上游的更新定期合併進來；沒列在這裡的功能，和官方版完全一樣。</td>
+    <td width="50%" valign="top">🌐 <strong>翻譯回覆和訊息</strong><br/>智慧體寫完回覆後整則翻譯成你的語言，要送出的訊息一鍵翻譯成英文；使用阿里雲百煉或騰訊雲的翻譯模型，一千字約一秒。</td>
+    <td width="50%" valign="top">🔄 <strong>緊跟上游</strong><br/>上游的更新定期合併進來；沒列在這裡的功能，和官方版完全一樣。客製版最早加入的內建 Kiro CLI，0.36.0 起已併入官方版。</td>
   </tr>
 </table>
-
-<details>
-<summary><strong>內建 Kiro CLI</strong> 的細節</summary>
-<br/>
-
-- 使用你以 [Kiro 官方安裝程式](https://kiro.dev/docs/getting-started/installation/)安裝好的 `kiro-cli`。
-- 輸入框裡可以選擇模型、模式、推理強度與思考開關，也能使用它的斜線指令。
-- 權限模式可選「每次詢問」或「信任所有工具」。
-- 可以為它設定 MCP 伺服器與技能，還能匯入並繼續它以前的工作階段。
-- 「設定 → 智慧體」裡的「升級」會執行 Kiro 自己的更新程式。
-- 以前以自訂智慧體使用的 Kiro 對話，會移轉到內建的 Kiro 底下。
-- 已向上游提交：[spacering-net/codeg#851](https://github.com/spacering-net/codeg/pull/851)。
-
-</details>
 
 <details>
 <summary><strong>每個視窗一組分頁</strong> 的細節</summary>
@@ -151,7 +134,7 @@ $env:CODEG_STATIC_DIR="$env:LOCALAPPDATA\codeg\web"; codeg-server
 ### 換回官方版
 
 > [!WARNING]
-> 先備份 Codeg 的資料。客製版為 Kiro 加了一個資料庫遷移，沒有這個遷移的官方版可能無法用同一份資料啟動。
+> 先備份 Codeg 的資料。客製版有幾個官方版沒有的資料庫遷移（例如翻譯功能用的資料表），官方版可能無法用同一份資料啟動。
 
 ## 文件
 

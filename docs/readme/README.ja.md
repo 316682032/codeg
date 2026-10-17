@@ -30,31 +30,14 @@
 
 <table>
   <tr>
-    <td width="50%" valign="top">🤖 <strong>Kiro CLI を内蔵</strong><br/>インストール済みの <code>kiro-cli</code> をそのまま使用：モデルとモードの選択、MCP とスキルの設定、過去のセッションの再開。</td>
     <td width="50%" valign="top">🪟 <strong>ウィンドウごとのタブ</strong><br/>同じサーバーで複数のウィンドウを開くとき、タブ同期をオフにすると各ウィンドウが独自のタブを持てます。会話とメッセージはこれまでどおり同期されます。</td>
-  </tr>
-  <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code の思考を表示</strong><br/>API に思考の要約を要求するので、思考欄が空のままになりません。</td>
-    <td width="50%" valign="top">🌐 <strong>返信とメッセージの翻訳</strong><br/>エージェントの返信を書き終えたあとまとめて自分の言語へ、送るメッセージをワンキーで英語へ翻訳。Alibaba Cloud または Tencent Cloud の翻訳モデルで、1,000 字あたり約 1 秒です。</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>上流に追従</strong><br/>上流の更新は定期的にマージされます。ここにない機能は公式版とまったく同じです。</td>
+    <td width="50%" valign="top">🌐 <strong>返信とメッセージの翻訳</strong><br/>エージェントの返信を書き終えたあとまとめて自分の言語へ、送るメッセージをワンキーで英語へ翻訳。Alibaba Cloud または Tencent Cloud の翻訳モデルで、1,000 字あたり約 1 秒です。</td>
+    <td width="50%" valign="top">🔄 <strong>上流に追従</strong><br/>上流の更新は定期的にマージされます。ここにない機能は公式版とまったく同じです。このビルドが最初に追加した Kiro CLI の内蔵は、0.36.0 から公式版に取り込まれています。</td>
   </tr>
 </table>
-
-<details>
-<summary><strong>Kiro CLI を内蔵</strong> の詳細</summary>
-<br/>
-
-- [Kiro 公式インストーラー](https://kiro.dev/docs/getting-started/installation/)でインストールした `kiro-cli` を使います。
-- 入力欄でモデル・モード・推論の強さ・思考の切り替えを選べ、スラッシュコマンドも使えます。
-- 権限モードは「毎回確認」か「すべてのツールを信頼」から選べます。
-- MCP サーバーとスキルを設定でき、過去のセッションを取り込んで再開できます。
-- 設定 → エージェントの「アップグレード」は Kiro 自身のアップデーターを実行します。
-- カスタムエージェントとして使っていた Kiro の会話は、組み込みの Kiro に移行されます。
-- 上流にも提案済みです：[spacering-net/codeg#851](https://github.com/spacering-net/codeg/pull/851)。
-
-</details>
 
 <details>
 <summary><strong>ウィンドウごとのタブ</strong> の詳細</summary>
@@ -151,7 +134,7 @@ $env:CODEG_STATIC_DIR="$env:LOCALAPPDATA\codeg\web"; codeg-server
 ### 公式版に戻すとき
 
 > [!WARNING]
-> まず Codeg のデータをバックアップしてください。このビルドは Kiro 用のデータベース移行を追加しており、それを持たない公式版は同じデータで起動できない場合があります。
+> まず Codeg のデータをバックアップしてください。このビルドには公式版にないデータベース移行（翻訳機能のテーブルなど）があり、公式版は同じデータで起動できない場合があります。
 
 ## ドキュメント
 

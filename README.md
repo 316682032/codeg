@@ -30,31 +30,14 @@
 
 <table>
   <tr>
-    <td width="50%" valign="top">🤖 <strong>内置 Kiro CLI</strong><br/>直接用你装好的 <code>kiro-cli</code>：选模型和模式，配 MCP 和技能，继续以前的会话。</td>
     <td width="50%" valign="top">🪟 <strong>每个窗口一套标签</strong><br/>同一个服务器开多个窗口时，可以关掉标签同步，让每个窗口各管各的；会话和消息照常同步。</td>
-  </tr>
-  <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code 显示思考过程</strong><br/>向 API 请求思考摘要，思考区域不再是空的。</td>
-    <td width="50%" valign="top">🌐 <strong>翻译回复和消息</strong><br/>智能体写完回复后整条翻译成你的语言，要发的消息一键翻译成英文；用阿里云百炼或腾讯云的翻译模型，一千字约一秒。</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>紧跟上游</strong><br/>上游的更新定期合并进来；没列在这里的功能，和官方版完全一样。</td>
+    <td width="50%" valign="top">🌐 <strong>翻译回复和消息</strong><br/>智能体写完回复后整条翻译成你的语言，要发的消息一键翻译成英文；用阿里云百炼或腾讯云的翻译模型，一千字约一秒。</td>
+    <td width="50%" valign="top">🔄 <strong>紧跟上游</strong><br/>上游的更新定期合并进来；没列在这里的功能，和官方版完全一样。定制版最早加的内置 Kiro CLI，0.36.0 起已并入官方版。</td>
   </tr>
 </table>
-
-<details>
-<summary><strong>内置 Kiro CLI</strong> 的细节</summary>
-<br/>
-
-- 使用你用 [Kiro 官方安装程序](https://kiro.dev/docs/getting-started/installation/)装好的 `kiro-cli`。
-- 输入框里可以选模型、模式、推理强度和思考开关，也能用它的斜杠命令。
-- 权限模式可选「每次询问」或「信任所有工具」。
-- 可以给它配 MCP 服务器和技能，还能导入并继续它以前的会话。
-- 「设置 → 智能体」里的「升级」调用 Kiro 自己的更新程序。
-- 以前作为自定义智能体使用的 Kiro 对话，会迁移到内置的 Kiro 下。
-- 已向上游提交：[spacering-net/codeg#851](https://github.com/spacering-net/codeg/pull/851)。
-
-</details>
 
 <details>
 <summary><strong>每个窗口一套标签</strong> 的细节</summary>
@@ -151,7 +134,7 @@ $env:CODEG_STATIC_DIR="$env:LOCALAPPDATA\codeg\web"; codeg-server
 ### 换回官方版
 
 > [!WARNING]
-> 先备份 Codeg 的数据。定制版为 Kiro 加了一个数据库迁移，没有这个迁移的官方版可能无法用同一份数据启动。
+> 先备份 Codeg 的数据。定制版有几个官方版没有的数据库迁移（例如翻译功能用的表），官方版可能无法用同一份数据启动。
 
 ## 文档
 

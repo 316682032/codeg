@@ -30,31 +30,14 @@
 
 <table>
   <tr>
-    <td width="50%" valign="top">🤖 <strong>Kiro CLI 내장</strong><br/>설치해 둔 <code>kiro-cli</code>를 그대로 사용: 모델과 모드 선택, MCP와 스킬 설정, 지난 세션 이어 하기.</td>
     <td width="50%" valign="top">🪟 <strong>창마다 자체 탭</strong><br/>같은 서버에서 여러 창을 열 때 탭 동기화를 끄면 창마다 자체 탭을 유지합니다. 대화와 메시지는 그대로 동기화됩니다.</td>
-  </tr>
-  <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code의 생각 과정 표시</strong><br/>API에 생각 요약을 요청하므로 생각 영역이 더 이상 비어 있지 않습니다.</td>
-    <td width="50%" valign="top">🌐 <strong>답변과 메시지 번역</strong><br/>에이전트의 답변을 다 쓴 뒤 한꺼번에 내 언어로, 보낼 메시지를 키 한 번으로 영어로 번역합니다. Alibaba Cloud 또는 Tencent Cloud 번역 모델을 쓰며 1,000자당 약 1초입니다.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>업스트림 추종</strong><br/>업스트림 변경은 정기적으로 병합됩니다. 여기에 없는 기능은 공식 빌드와 똑같습니다.</td>
+    <td width="50%" valign="top">🌐 <strong>답변과 메시지 번역</strong><br/>에이전트의 답변을 다 쓴 뒤 한꺼번에 내 언어로, 보낼 메시지를 키 한 번으로 영어로 번역합니다. Alibaba Cloud 또는 Tencent Cloud 번역 모델을 쓰며 1,000자당 약 1초입니다.</td>
+    <td width="50%" valign="top">🔄 <strong>업스트림 추종</strong><br/>업스트림 변경은 정기적으로 병합됩니다. 여기에 없는 기능은 공식 빌드와 똑같습니다. 이 빌드가 처음 추가한 Kiro CLI 내장 기능은 0.36.0부터 공식 빌드에 포함되었습니다.</td>
   </tr>
 </table>
-
-<details>
-<summary><strong>Kiro CLI 내장</strong> 자세히</summary>
-<br/>
-
-- [Kiro 공식 설치 프로그램](https://kiro.dev/docs/getting-started/installation/)으로 설치한 `kiro-cli`를 실행합니다.
-- 입력창에서 모델, 모드, 추론 강도, 생각(thinking) 스위치를 고를 수 있고 슬래시 명령도 쓸 수 있습니다.
-- 권한 모드는 '매번 묻기' 또는 '모든 도구 신뢰' 중에서 고릅니다.
-- MCP 서버와 스킬을 설정할 수 있고, 지난 세션을 가져와 이어서 진행할 수 있습니다.
-- 설정 → 에이전트의 '업그레이드'는 Kiro 자체 업데이트 프로그램을 실행합니다.
-- 커스텀 에이전트로 쓰던 Kiro 대화는 내장 Kiro로 옮겨집니다.
-- 업스트림에도 제안되어 있습니다: [spacering-net/codeg#851](https://github.com/spacering-net/codeg/pull/851).
-
-</details>
 
 <details>
 <summary><strong>창마다 자체 탭</strong> 자세히</summary>
@@ -151,7 +134,7 @@ $env:CODEG_STATIC_DIR="$env:LOCALAPPDATA\codeg\web"; codeg-server
 ### 공식 빌드로 돌아갈 때
 
 > [!WARNING]
-> 먼저 Codeg 데이터를 백업하세요. 이 빌드는 Kiro용 데이터베이스 마이그레이션을 추가하므로, 이것이 없는 공식 빌드는 같은 데이터로 시작하지 못할 수 있습니다.
+> 먼저 Codeg 데이터를 백업하세요. 이 빌드에는 공식 빌드에 없는 데이터베이스 마이그레이션(번역 기능의 테이블 등)이 있어, 공식 빌드는 같은 데이터로 시작하지 못할 수 있습니다.
 
 ## 문서
 

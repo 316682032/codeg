@@ -89,7 +89,7 @@ description: 为 keh4l/codeg 定制版发一个新版本（改版本号、写双
    gh release view "v${VER}" -R keh4l/codeg --json isDraft,isPrerelease,assets --jq '"draft=\(.isDraft) prerelease=\(.isPrerelease) assets=\(.assets|length)"'
    curl -fsSL https://github.com/keh4l/codeg/releases/latest/download/latest.json | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d["version"], len(d["platforms"]))'
    ```
-   期望：不是草稿；`latest.json` 的版本等于 `VER`，有 12 个平台条目（v0.32.4-1 时是 36 个附件）。需要更进一步时，下载最小的 `codeg-server-darwin-arm64.tar.gz` 和它的 `.sha256`/`.sig`（用 `curl -C - --retry 3`，大文件容易中断），`shasum -a 256 -c` 校验，再用一个临时测试调用 `crate::update::verify::verify_release_signature` 验签，验完删除临时测试。
+   期望：不是草稿；`latest.json` 的版本等于 `VER`，有 12 个平台条目（v0.32.4-1 时是 36 个附件）。需要更进一步时，下载最小的 `codeg-server-darwin-arm64.tar.gz` 和它的 `.sha256`/`.sig`（用 `curl -C - --retry 3`，大文件容易中断），`shasum -a 256 -c` 校验，再用一个临时测试调用 `crate::update::verify::verify_release_signature(data, sig, VER)` 验签，验完删除临时测试。0.36.0 起签名必须写明版本（trusted comment 里的 `version:<VER>`，桌面版 `requireSignedVersion`、服务端 `verify_signed_version` 都会检查），验签失败说没写版本时，看 `release.yml` 的 `tauri signer sign` 是否还带着 `--app-version`。
 8. **汇报**：版本号、Release 链接 `https://github.com/keh4l/codeg/releases/tag/v<VER>`、各平台构建结果、验证结果、需要用户注意的事。
 
 ## 出错时

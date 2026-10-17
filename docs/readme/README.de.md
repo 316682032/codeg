@@ -30,31 +30,14 @@
 
 <table>
   <tr>
-    <td width="50%" valign="top">🤖 <strong>Kiro CLI eingebaut</strong><br/>Nutzt dein installiertes <code>kiro-cli</code>: Modell und Modus wählen, MCP-Server und Skills hinzufügen, frühere Sitzungen fortsetzen.</td>
     <td width="50%" valign="top">🪟 <strong>Tabs pro Fenster</strong><br/>Mit mehreren Fenstern auf einem Server lässt sich die Tab-Synchronisierung abschalten, dann behält jedes Fenster seine eigenen Tabs; Unterhaltungen und Nachrichten werden weiter synchronisiert.</td>
-  </tr>
-  <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code zeigt sein Thinking</strong><br/>Fordert bei der API Thinking-Zusammenfassungen an, der Thinking-Bereich bleibt also nicht mehr leer.</td>
-    <td width="50%" valign="top">🌐 <strong>Übersetzte Antworten und Nachrichten</strong><br/>Agentenantworten werden nach dem Fertigschreiben in deine Sprache übersetzt, und eine Nachricht wird per Tastendruck ins Englische übersetzt, mit Übersetzungsmodellen von Alibaba Cloud oder Tencent Cloud in etwa einer Sekunde pro 1.000 Zeichen.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version.</td>
+    <td width="50%" valign="top">🌐 <strong>Übersetzte Antworten und Nachrichten</strong><br/>Agentenantworten werden nach dem Fertigschreiben in deine Sprache übersetzt, und eine Nachricht wird per Tastendruck ins Englische übersetzt, mit Übersetzungsmodellen von Alibaba Cloud oder Tencent Cloud in etwa einer Sekunde pro 1.000 Zeichen.</td>
+    <td width="50%" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
   </tr>
 </table>
-
-<details>
-<summary><strong>Kiro CLI eingebaut</strong> – Details</summary>
-<br/>
-
-- Startet das `kiro-cli`, das du mit [Kiros eigenem Installer](https://kiro.dev/docs/getting-started/installation/) installiert hast.
-- Im Eingabefeld wählst du Modell, Modus, Reasoning-Stufe und Thinking; seine Slash-Befehle funktionieren auch.
-- Berechtigungsmodus: jedes Mal fragen oder allen Tools vertrauen.
-- Du kannst ihm MCP-Server und Skills geben und frühere Sitzungen importieren und fortsetzen.
-- „Aktualisieren“ unter Einstellungen → Agenten startet Kiros eigenen Updater.
-- Unterhaltungen, die du mit Kiro als benutzerdefiniertem Agenten geführt hast, wandern zum eingebauten Agenten.
-- Upstream vorgeschlagen: [spacering-net/codeg#851](https://github.com/spacering-net/codeg/pull/851).
-
-</details>
 
 <details>
 <summary><strong>Tabs pro Fenster</strong> – Details</summary>
@@ -151,7 +134,7 @@ Beide installieren aus den Releases dieses Repositorys, und auch der eingebaute 
 ### Zurück zur offiziellen Version
 
 > [!WARNING]
-> Sichere zuerst deine Codeg-Daten. Diese Version fügt eine Datenbankmigration für Kiro hinzu, und eine offizielle Version ohne sie startet mit denselben Daten möglicherweise nicht.
+> Sichere zuerst deine Codeg-Daten. Diese Version fügt Datenbankmigrationen hinzu, die die offizielle Version nicht hat (etwa die Tabellen der Übersetzung), und eine offizielle Version startet mit denselben Daten möglicherweise nicht.
 
 ## Dokumentation
 

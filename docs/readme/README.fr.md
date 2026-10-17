@@ -30,31 +30,14 @@
 
 <table>
   <tr>
-    <td width="50%" valign="top">🤖 <strong>Kiro CLI intégré</strong><br/>Utilise le <code>kiro-cli</code> que vous avez installé : choix du modèle et du mode, serveurs MCP et skills, reprise des sessions passées.</td>
     <td width="50%" valign="top">🪟 <strong>Des onglets par fenêtre</strong><br/>Avec plusieurs fenêtres sur un même serveur, désactivez la synchronisation des onglets et chaque fenêtre garde les siens ; conversations et messages restent synchronisés.</td>
-  </tr>
-  <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code affiche sa réflexion</strong><br/>Demande à l'API des résumés de la réflexion : cette zone n'est plus vide.</td>
-    <td width="50%" valign="top">🌐 <strong>Réponses et messages traduits</strong><br/>Les réponses de l'agent sont traduites dans votre langue une fois terminées, et un message passe en anglais d'une touche, grâce aux modèles de traduction d'Alibaba Cloud ou de Tencent Cloud, en une seconde environ pour 1 000 caractères.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Au plus près de l'original</strong><br/>Le projet d'origine est fusionné régulièrement ; ce qui n'est pas listé ici fonctionne comme dans la version officielle.</td>
+    <td width="50%" valign="top">🌐 <strong>Réponses et messages traduits</strong><br/>Les réponses de l'agent sont traduites dans votre langue une fois terminées, et un message passe en anglais d'une touche, grâce aux modèles de traduction d'Alibaba Cloud ou de Tencent Cloud, en une seconde environ pour 1 000 caractères.</td>
+    <td width="50%" valign="top">🔄 <strong>Au plus près de l'original</strong><br/>Le projet d'origine est fusionné régulièrement ; ce qui n'est pas listé ici fonctionne comme dans la version officielle. Kiro CLI intégré, le premier ajout de cette version, fait partie de la version officielle depuis la 0.36.0.</td>
   </tr>
 </table>
-
-<details>
-<summary><strong>Kiro CLI intégré</strong> : détails</summary>
-<br/>
-
-- Lance le `kiro-cli` que vous avez installé avec [l'installateur officiel de Kiro](https://kiro.dev/docs/getting-started/installation/).
-- Dans le compositeur, vous choisissez son modèle, son mode, son niveau de raisonnement et la réflexion, et vous disposez de ses commandes slash.
-- Mode d'autorisation : demander à chaque fois, ou faire confiance à tous les outils.
-- Vous pouvez lui donner des serveurs MCP et des skills, et importer et reprendre ses sessions passées.
-- « Mettre à jour » dans Réglages → Agents lance l'outil de mise à jour de Kiro lui-même.
-- Les conversations que vous aviez avec Kiro en tant qu'agent personnalisé passent sur l'agent intégré.
-- Proposé en amont : [spacering-net/codeg#851](https://github.com/spacering-net/codeg/pull/851).
-
-</details>
 
 <details>
 <summary><strong>Des onglets par fenêtre</strong> : détails</summary>
@@ -151,7 +134,7 @@ Les deux installent depuis les versions de ce dépôt, et l'outil de mise à jou
 ### Revenir à la version officielle
 
 > [!WARNING]
-> Sauvegardez d'abord vos données Codeg. Cette version ajoute une migration de base de données pour Kiro, et une version officielle qui ne l'a pas peut refuser de démarrer avec les mêmes données.
+> Sauvegardez d'abord vos données Codeg. Cette version ajoute des migrations de base de données que la version officielle n'a pas (les tables de la traduction, entre autres), et une version officielle peut refuser de démarrer avec les mêmes données.
 
 ## Documentation
 

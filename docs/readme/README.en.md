@@ -30,31 +30,14 @@
 
 <table>
   <tr>
-    <td width="50%" valign="top">🤖 <strong>Kiro CLI built in</strong><br/>Uses the <code>kiro-cli</code> you installed: pick its model and mode, add MCP servers and skills, resume past sessions.</td>
     <td width="50%" valign="top">🪟 <strong>Tabs per window</strong><br/>With several windows on one server, turn tab sync off and each window keeps its own tabs; conversations and messages still sync.</td>
-  </tr>
-  <tr>
     <td width="50%" valign="top">💭 <strong>Claude Code shows its thinking</strong><br/>Requests thinking summaries from the API, so the thinking section is no longer empty.</td>
-    <td width="50%" valign="top">🌐 <strong>Translated replies and messages</strong><br/>Agent replies are translated into your language once they are finished, and a message translates to English in one keystroke, via Alibaba Cloud or Tencent Cloud translation models, at about a second per 1,000 characters.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build.</td>
+    <td width="50%" valign="top">🌐 <strong>Translated replies and messages</strong><br/>Agent replies are translated into your language once they are finished, and a message translates to English in one keystroke, via Alibaba Cloud or Tencent Cloud translation models, at about a second per 1,000 characters.</td>
+    <td width="50%" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
   </tr>
 </table>
-
-<details>
-<summary><strong>Kiro CLI built in</strong>: details</summary>
-<br/>
-
-- Runs the `kiro-cli` you installed with [Kiro's own installer](https://kiro.dev/docs/getting-started/installation/).
-- Pick its model, mode, reasoning effort and thinking in the composer, and use its slash commands.
-- Permission mode: ask every time, or trust all tools.
-- Give it MCP servers and skills, and import and resume its past sessions.
-- Upgrade in Settings → Agents runs Kiro's own updater.
-- Conversations you had with Kiro as a custom agent move over to the built-in one.
-- Proposed upstream as [spacering-net/codeg#851](https://github.com/spacering-net/codeg/pull/851).
-
-</details>
 
 <details>
 <summary><strong>Tabs per window</strong>: details</summary>
@@ -151,7 +134,7 @@ Both install from this repository's releases, and the server's built-in updater 
 ### Going back to the official build
 
 > [!WARNING]
-> Back up your Codeg data first. This build adds a database migration for Kiro, and an official build that doesn't have it may refuse to start on the same data.
+> Back up your Codeg data first. This build adds database migrations the official build doesn't have (the translation tables, for one), and an official build may refuse to start on the same data.
 
 ## Documentation
 
