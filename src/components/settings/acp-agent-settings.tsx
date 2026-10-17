@@ -778,6 +778,9 @@ export function inferGrokMode(
 export function importantEnvKeysByAgent(
   agentType: AgentType
 ): ImportantEnvKeys {
+  if (agentType === "zcode") {
+    return { apiBaseUrl: [], apiKey: [], model: [] }
+  }
   if (agentType === "claude_code") {
     return {
       apiBaseUrl: ["ANTHROPIC_BASE_URL", "OPENAI_BASE_URL", "API_BASE_URL"],
@@ -4021,6 +4024,25 @@ export function buildAcpAdapterCheck(
   // The English fallbacks mirror the four i18n messages one-for-one (they are
   // what renders if no translator is mounted), so each state keeps the detail
   // that state is about — above all, the path we found the vendor CLI at.
+  if (adapter.native_required) {
+    return {
+      check_id: "acp_adapter",
+      label: acpText("adapter.label", "ACP adapter"),
+      status: installed && sawNative ? "pass" : "warn",
+      message: acpText(
+        "zcode.adapterInfo",
+        "Codeg runs {adapterPackage} as an ACP bridge. Install and sign in to the official ZCode runtime first; the bridge uses its existing configuration.",
+        values
+      ),
+      fixes: [
+        {
+          label: acpText("adapter.learnMore", "Learn more"),
+          kind: "open_url",
+          payload: adapter.docs_url,
+        },
+      ],
+    }
+  }
   const split = `Codeg drives agents over ACP and the ${adapter.native_label} does not speak ACP, so Codeg needs a separate adapter package, ${adapter.adapter_package}.`
   const coexist = `It ships its own runtime, never modifies or replaces your ${adapter.native_cmd} command, and reads the same ${adapter.shared_config_dir} — your existing sign-in and settings carry over.`
   const [key, fallback] = installed
@@ -4095,7 +4117,10 @@ export function providerToRebindTo(
 export function buildVersionCheck(
   agent: AcpAgentInfo,
   uvReady: boolean = true,
-  latestRelease: AgentLatestRelease | null = null
+  latestRelease: AgentLatestRelease | null = null,
+  // For a `system` agent: whether the preflight found the user's install
+  // (its `system_cli` check), or `undefined` before a preflight has answered.
+  systemCliFound?: boolean
 ): UiCheckItem | null {
   // An agent codeg launches but never installs (Kiro CLI): no pin to compare
   // against, and installing or removing it is its own installer's job. The
@@ -4104,7 +4129,14 @@ export function buildVersionCheck(
   // the copy the terminal runs and the one Codeg launches stay the same.
   if (agent.distribution_type === "system") {
     const installed = agent.installed_version
-    if (installed) {
+    // Whether the install is there is the preflight's call: it resolves the
+    // very binary a launch would run. The version is only what `--version`
+    // printed — it can come back empty for a CLI that is present (a probe
+    // that timed out, say right after an update) and stay set after the CLI
+    // was removed (a refresh keeps the last version it saw). Without a
+    // preflight answer yet, a known version is the evidence there is.
+    const found = systemCliFound ?? Boolean(installed)
+    if (found) {
       return {
         check_id: "version_status",
         label: acpText("version.statusLabel", "Version Status"),
@@ -4117,9 +4149,14 @@ export function buildVersionCheck(
             ? "{versionText}. Installed with the official installer; Upgrade runs its own updater."
             : "{versionText}. Installed and updated by its own installer; Codeg launches it as-is.",
           {
-            versionText: acpText("version.localOnly", "Local: {localVersion}", {
-              localVersion: installed,
-            }),
+            versionText: installed
+              ? acpText("version.localOnly", "Local: {localVersion}", {
+                  localVersion: installed,
+                })
+              : acpText(
+                  "version.localUndetected",
+                  "Local: version not detected"
+                ),
           }
         ),
         fixes: agent.supports_self_update
@@ -4436,7 +4473,15 @@ export function getAgentChecks(
   )
   const uvReady =
     agent.distribution_type !== "uvx" || !uvCheck || uvCheck.status === "pass"
-  const versionCheck = buildVersionCheck(agent, uvReady, latestRelease ?? null)
+  const systemCliCheck = current?.result?.checks?.find(
+    (check) => check.check_id === "system_cli"
+  )
+  const versionCheck = buildVersionCheck(
+    agent,
+    uvReady,
+    latestRelease ?? null,
+    systemCliCheck ? systemCliCheck.status === "pass" : undefined
+  )
   const remoteChecks: UiCheckItem[] = (current?.result?.checks ?? []).map(
     (check) => ({
       ...check,
@@ -8463,6 +8508,11 @@ export function AcpAgentSettings() {
 
                 <div className="space-y-2">
                   <label className="text-xs font-medium">{t("envVars")}</label>
+                  {selectedAgent.agent_type === "zcode" && (
+                    <p className="text-2xs text-muted-foreground">
+                      {t("zcode.runtimeHint")}
+                    </p>
+                  )}
                   <div className="relative group">
                     <Textarea
                       value={selectedDraft.envText}
@@ -11139,7 +11189,17 @@ supports_websockets = true`}
                         selectedAgent.agent_type,
                         enabled,
                         envMapToText(env),
-                        selectedAgent.model_provider_id
+                        selectedAgent.model_provider_id,
+                        // Both keys this panel owns, folded into the raw
+                        // editor's draft. The enable switch and the generic env
+                        // Save persist that draft WHOLESALE, so without this a
+                        // switch from trust-all back to ask would be silently
+                        // undone the next time either one fires. `undefined`
+                        // (the key field was cleared) deletes the line.
+                        {
+                          KIRO_API_KEY: env.KIRO_API_KEY,
+                          KIRO_TRUST_ALL_TOOLS: env.KIRO_TRUST_ALL_TOOLS,
+                        }
                       )
                     }
                   />
@@ -11825,7 +11885,10 @@ supports_websockets = true`}
                       </Button>
                     </div>
                   </div>
-                ) : isCustomAgentType(selectedAgent.agent_type) ? (
+                ) : selectedAgent.agent_type ===
+                  "zcode" ? null : isCustomAgentType(
+                    selectedAgent.agent_type
+                  ) ? (
                   // A custom agent is driven purely by the ACP protocol: codeg
                   // knows nothing about its config file layout or auth model,
                   // so the generic "config management" editor below would be

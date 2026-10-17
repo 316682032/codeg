@@ -40,7 +40,7 @@ use crate::acp::agent_session::AgentSession;
 use tokio::sync::{mpsc, oneshot, RwLock};
 use tokio_util::sync::CancellationToken;
 
-use crate::acp::agent_mentions::append_agent_routes;
+use crate::acp::agent_mentions::{append_agent_routes, append_assistant_routes};
 use crate::acp::background_watch;
 use crate::acp::cursor_ext::{
     CursorAskQuestionRequest, CursorCreatePlanRequest, CursorGenerateImageRequest,
@@ -63,8 +63,8 @@ use crate::acp::types::{
     PlanEntryInfo, PluginLoadFailure, PromptCapabilitiesInfo, PromptInputBlock,
     SessionConfigBooleanInfo, SessionConfigKindInfo, SessionConfigOptionInfo,
     SessionConfigSelectGroupInfo, SessionConfigSelectInfo, SessionConfigSelectOptionInfo,
-    SessionFailureRecord, SessionModeInfo, SessionModeStateInfo, SessionNotice,
-    ToolCallImageInfo, UserMessageBlock,
+    SessionFailureRecord, SessionModeInfo, SessionModeStateInfo, SessionNotice, ToolCallImageInfo,
+    UserMessageBlock,
 };
 use crate::logging::throttle::LeadingEdgeThrottle;
 use crate::models::agent::AgentType;
@@ -253,6 +253,13 @@ fn merge_agent_env_with_color(
 /// silently loses its confirmation prompts; `--force` also turns cursor's own
 /// sandbox off (`approvalMode: unrestricted` → `insecure_none`), which is not
 /// something to switch on for someone who never asked.
+pub(crate) fn cursor_force_enabled(value: Option<&str>) -> bool {
+    let Some(value) = value.map(str::trim) else {
+        return false;
+    };
+    value == "1" || value.eq_ignore_ascii_case("true")
+}
+
 /// The Kiro panel's permission-mode knob (see the `System` launch branch).
 pub(crate) const KIRO_TRUST_ALL_TOOLS_ENV: &str = "KIRO_TRUST_ALL_TOOLS";
 
@@ -261,13 +268,6 @@ pub(crate) const KIRO_TRUST_ALL_TOOLS_ENV: &str = "KIRO_TRUST_ALL_TOOLS";
 /// anything unrecognized leave the CLI asking — the safe side.
 pub(crate) fn kiro_trust_all_tools_enabled(value: Option<&str>) -> bool {
     cursor_force_enabled(value)
-}
-
-pub(crate) fn cursor_force_enabled(value: Option<&str>) -> bool {
-    let Some(value) = value.map(str::trim) else {
-        return false;
-    };
-    value == "1" || value.eq_ignore_ascii_case("true")
 }
 
 /// Cursor subscription-mode launch policy. When the user picked the official
@@ -1196,6 +1196,16 @@ pub enum ConnectionCommand {
         /// prompt actually being processed. `None` for delegation children,
         /// empty prompts, unbound conversations, and non-linked senders.
         user_message: Option<(String, Vec<UserMessageBlock>)>,
+        /// Codeg-authored blocks appended after `blocks` at the final agent
+        /// boundary, and only there: the assistant brief a delegated child
+        /// receives with its first prompt and with each resume prompt. Carried
+        /// ON this command, never staged in `SessionState`, so it can only ride
+        /// the prompt it was meant for — a resume can reuse a child connection
+        /// already open in a tab, and a staged brief would go out with whatever
+        /// prompt that tab sent first. Ingress scrubbing, the ledger, every
+        /// broadcast and the title seed only ever read `blocks`. Empty for
+        /// every other prompt.
+        internal_suffix: Vec<PromptInputBlock>,
     },
     SetMode {
         mode_id: String,
@@ -1566,17 +1576,16 @@ fn pi_runtime_outdated_message() -> String {
 /// Transcript directory for an agent that codeg must record itself, or `None`
 /// for agents with their own store parser.
 ///
-/// Only custom ACP agents are recorded: every built-in has a dedicated parser
-/// reading the agent's native transcript, and recording those too would double
-/// the storage while risking two disagreeing histories.
+/// Custom ACP agents and ZCode use Codeg-owned transcripts. Agents with
+/// native store parsers are excluded to avoid duplicate history.
 fn transcript_dir_for(agent_type: AgentType) -> Option<&'static str> {
     agent_type
-        .custom_id()
-        .map(|_| registry::registry_id_for(agent_type))
+        .uses_acp_transcript()
+        .then(|| registry::registry_id_for(agent_type))
 }
 
-/// Ensure a custom agent's transcript file exists with its header. No-op for
-/// built-ins, and idempotent per session (a reconnect keeps the original
+/// Ensure a Codeg-owned transcript exists with its header. No-op for agents
+/// with native stores, and idempotent per session (a reconnect keeps the original
 /// header, so the session's original cwd/start time survive).
 fn record_transcript_header(agent_type: AgentType, session_id: &str, cwd: &str) {
     drop(queue_transcript_header(agent_type, session_id, cwd, None));
@@ -1925,6 +1934,14 @@ async fn build_agent(
     let agent = match meta.distribution {
         AgentDistribution::Npx { cmd, args, env, .. } => {
             let mut merged_env = merge_agent_env(env, runtime_env, scratch);
+            let mut zcode_runtime = None;
+            if agent_type == AgentType::ZCode {
+                let runtime = crate::acp::zcode::resolve_runtime(runtime_env, cwd)
+                    .await
+                    .map_err(|error| AcpError::protocol(error.to_string()))?;
+                runtime.apply(&mut merged_env);
+                zcode_runtime = Some(runtime);
+            }
             // pi-acp spawns the real `pi` binary; fail fast with a clear,
             // install-prompt-routable error if it (or a BYO-pi override) isn't
             // resolvable, rather than letting pi-acp die mid-connection on a raw
@@ -1984,16 +2001,28 @@ async fn build_agent(
             for (k, v) in &merged_env {
                 parts.push(format!("{k}={v}"));
             }
-            parts.push(
-                crate::commands::acp::resolve_npx_command(cmd)
-                    .await
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| {
-                        crate::process::normalized_program(cmd)
-                            .to_string_lossy()
-                            .to_string()
-                    }),
-            );
+            let bridge_command = crate::commands::acp::resolve_npx_command(cmd)
+                .await
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| {
+                    crate::process::normalized_program(cmd)
+                        .to_string_lossy()
+                        .to_string()
+                });
+            if let Some(runtime) = zcode_runtime {
+                let entry = crate::acp::zcode::bridge_entry(Path::new(&bridge_command))
+                    .ok_or_else(|| {
+                        AcpError::protocol(crate::acp::zcode::bridge_entry_missing_message(
+                            &bridge_command,
+                        ))
+                    })?;
+                // Use the same validated Node for the bridge and official CLI,
+                // bypassing npm shims that might select an older Node on PATH.
+                parts.push(runtime.node.to_string_lossy().into_owned());
+                parts.push(entry.to_string_lossy().into_owned());
+            } else {
+                parts.push(bridge_command);
+            }
             // Grok's root-level launch flags go BEFORE its `agent stdio`
             // subcommand (which rejects them):
             //  - `--no-auto-update`: codeg owns the pinned version, so suppress the
@@ -3626,6 +3655,31 @@ fn env_pinned_config_option_ids(
 /// Cline's provider selector id — the one `CLINE_PROVIDER` freezes.
 const CLINE_PROVIDER_CONFIG_OPTION_ID: &str = "provider";
 
+/// Whether a launch replays a saved preference for `config_id` — the one rule
+/// behind both [`apply_preferred_session_options`]'s skip and the option probe
+/// leaving such options out of what an editor offers (an option codeg never
+/// replays is one a saved selection cannot affect). Two cases:
+///
+///   * what this launch's environment froze (`env_pinned`) — a set can only
+///     fail, and it is reachable, because the composer saves the pick BEFORE
+///     the set is awaited, so anyone who clicked cline's provider dropdown
+///     while it was still offered has one stored;
+///   * cline's `provider` unconditionally, because the settings panel owns it
+///     (it writes providers.json and decides the launch env). Pinning alone is
+///     not enough: the preference saved during a BYO launch is merely SKIPPED
+///     there, and would then be replayed on the next sign-in launch — which is
+///     not pinned — switching the user's billing account away from the one the
+///     panel shows. Switching accounts mid-session is still allowed; it just
+///     does not outlive the session.
+pub(crate) fn config_option_never_replayed(
+    agent_type: AgentType,
+    env_pinned: &[String],
+    config_id: &str,
+) -> bool {
+    env_pinned.iter().any(|id| id == config_id)
+        || (agent_type == AgentType::Cline && config_id == CLINE_PROVIDER_CONFIG_OPTION_ID)
+}
+
 /// The advertised options minus the ones this launch pinned through the
 /// environment. Applied on the way out so all three producers of a
 /// `SessionConfigOptions` event share one rule.
@@ -3658,22 +3712,6 @@ async fn emit_session_config_options_values(
         AcpEvent::SessionConfigOptions {
             config_options: map_session_config_options(&visible),
         },
-    )
-    .await;
-}
-
-/// Emit an already-mapped `SessionConfigOptionInfo` list (used by the Grok and
-/// Kiro paths, which synthesize `Info` directly rather than mapping schema
-/// `SessionConfigOption`s).
-async fn emit_session_config_options_info(
-    state: &Arc<RwLock<SessionState>>,
-    emitter: &EventEmitter,
-    config_options: Vec<SessionConfigOptionInfo>,
-) {
-    emit_with_state(
-        state,
-        emitter,
-        AcpEvent::SessionConfigOptions { config_options },
     )
     .await;
 }
@@ -4602,22 +4640,67 @@ fn set_select_current(opts: &mut [SessionConfigOptionInfo], id: &str, value: &st
     }
 }
 
+/// Edit the session's emitted selectors and re-emit them, as ONE step against
+/// every other writer of that list.
+///
+/// Kiro's selectors have two writers that run concurrently: the conversation
+/// loop answering a pick (`set_kiro_config_option`) and the builder-chain
+/// handler for `_kiro.dev/metadata`, which Kiro sends right around the replies
+/// the loop waits on. Each edits a copy — the emit helpers take the state's
+/// write lock themselves (see `emit_grok_incompatible_agent_switch`), so the
+/// copy is made first — and a copy made before the other writer's emit could
+/// otherwise be emitted after it: a model switch reverting in its selector,
+/// or an effort selector Kiro just withdrew coming back. The emit is gated on
+/// the list and the reasoning state still being the ones the copy was made
+/// from; when either moved, the edit is redone on the newer ones. `edit`
+/// returns whether there is anything to emit.
+async fn edit_emitted_options(
+    state: &Arc<RwLock<SessionState>>,
+    emitter: &EventEmitter,
+    mut edit: impl FnMut(&mut Vec<SessionConfigOptionInfo>, Option<&KiroReasoning>) -> bool,
+) {
+    loop {
+        let (base, reasoning) = {
+            let guard = state.read().await;
+            (guard.config_options.clone(), guard.kiro_reasoning.clone())
+        };
+        let Some(base) = base else {
+            return;
+        };
+        let mut next = base.clone();
+        if !edit(&mut next, reasoning.as_ref()) {
+            return;
+        }
+        let emitted = emit_with_state_gated(
+            state,
+            emitter,
+            AcpEvent::SessionConfigOptions {
+                config_options: next,
+            },
+            |s| s.config_options.as_ref() == Some(&base) && s.kiro_reasoning == reasoning,
+        )
+        .await;
+        if emitted {
+            return;
+        }
+    }
+}
+
 /// Update one selector of the session's emitted options and re-emit them.
-/// Clones out of the read guard first — the emit helpers take the same
-/// state's write lock (see `emit_grok_incompatible_agent_switch`).
 async fn update_emitted_option(
     state: &Arc<RwLock<SessionState>>,
     emitter: &EventEmitter,
     id: &str,
     value: &str,
 ) {
-    let current = state.read().await.config_options.clone();
-    if let Some(mut opts) = current {
-        if opts.iter().any(|o| o.id == id) {
-            set_select_current(&mut opts, id, value);
-            emit_session_config_options_info(state, emitter, opts).await;
+    edit_emitted_options(state, emitter, |opts, _| {
+        if !opts.iter().any(|o| o.id == id) {
+            return false;
         }
-    }
+        set_select_current(opts, id, value);
+        true
+    })
+    .await;
 }
 
 /// On connect, re-apply the agent, model, thinking and effort the user last
@@ -4641,10 +4724,21 @@ async fn apply_kiro_preferred_options(
             sel.current_value != pref && sel.options.iter().any(|x| x.value == pref)
         })
     };
+    // Whether the saved model replaced the one the session started on. The
+    // reasoning state known after that still describes the OLD model — Kiro
+    // reports the new one's in a later `_kiro.dev/metadata`, and nothing in
+    // that notification says which model it is about — so it cannot rule a
+    // saved value out: checked against it, an effort the old model lacks (the
+    // default `auto` takes none) would be skipped for good, since no later
+    // metadata re-applies a saved value.
+    let mut model_switched = false;
     if let Some(pref) = preferred_config_values.get(KIRO_MODEL_OPTION_ID) {
         if wanted(KIRO_MODEL_OPTION_ID, pref, opts) {
             match set_kiro_model(cx, session_id, pref).await {
-                Ok(()) => set_select_current(opts, KIRO_MODEL_OPTION_ID, pref),
+                Ok(()) => {
+                    set_select_current(opts, KIRO_MODEL_OPTION_ID, pref);
+                    model_switched = true;
+                }
                 Err(e) => tracing::error!("[ACP] failed to apply preferred kiro model '{pref}': {e}"),
             }
         }
@@ -4669,12 +4763,17 @@ async fn apply_kiro_preferred_options(
     }
     // The reasoning state arrives in a notification that may not have landed
     // yet, so a saved value is sent whenever the known state does not already
-    // rule it out; Kiro's next metadata is the authority either way.
+    // rule it out; Kiro's next metadata is the authority either way. After a
+    // model switch nothing known rules anything out (see `model_switched`).
     if let Some(enabled) = preferred_config_values
         .get(KIRO_THINKING_OPTION_ID)
         .and_then(|pref| kiro_thinking_value(pref))
     {
-        let known = state.read().await.kiro_reasoning.clone();
+        let known = if model_switched {
+            None
+        } else {
+            state.read().await.kiro_reasoning.clone()
+        };
         let applicable = known
             .as_ref()
             .is_none_or(|r| r.thinking_toggleable && r.thinking != Some(enabled));
@@ -4690,7 +4789,11 @@ async fn apply_kiro_preferred_options(
         }
     }
     if let Some(pref) = preferred_config_values.get(KIRO_EFFORT_OPTION_ID) {
-        let known = state.read().await.kiro_reasoning.clone();
+        let known = if model_switched {
+            None
+        } else {
+            state.read().await.kiro_reasoning.clone()
+        };
         let applicable = known.as_ref().is_none_or(|r| {
             r.levels.contains(pref) && r.current.as_deref() != Some(pref.as_str())
         });
@@ -4720,9 +4823,9 @@ async fn apply_kiro_metadata(
         if guard.kiro_reasoning.as_ref() == Some(&reasoning) {
             return;
         }
-        guard.kiro_reasoning = Some(reasoning.clone());
+        guard.kiro_reasoning = Some(reasoning);
     }
-    rebuild_kiro_reasoning_selectors(state, emitter, &reasoning).await;
+    rebuild_kiro_reasoning_selectors(state, emitter).await;
 }
 
 /// Put the reasoning selectors in their slot — right after the model
@@ -4743,23 +4846,25 @@ fn place_kiro_reasoning_selectors(opts: &mut Vec<SessionConfigOptionInfo>, reaso
     );
 }
 
-/// Rebuild the reasoning selectors in the emitted options from `reasoning`.
-/// A no-op until codeg has emitted Kiro's own selectors.
+/// Rebuild the reasoning selectors in the emitted options from the session's
+/// latest reasoning state. A no-op until codeg has emitted Kiro's own
+/// selectors, and while Kiro has reported no reasoning state.
 async fn rebuild_kiro_reasoning_selectors(
     state: &Arc<RwLock<SessionState>>,
     emitter: &EventEmitter,
-    reasoning: &KiroReasoning,
 ) {
-    let current = state.read().await.config_options.clone();
-    let Some(mut opts) = current else {
-        return;
-    };
-    // Only a session whose selectors codeg built itself has an effort slot.
-    if !opts.iter().any(|o| o.id == KIRO_MODEL_OPTION_ID) {
-        return;
-    }
-    place_kiro_reasoning_selectors(&mut opts, reasoning);
-    emit_session_config_options_info(state, emitter, opts).await;
+    edit_emitted_options(state, emitter, |opts, reasoning| {
+        let Some(reasoning) = reasoning else {
+            return false;
+        };
+        // Only a session whose selectors codeg built itself has an effort slot.
+        if !opts.iter().any(|o| o.id == KIRO_MODEL_OPTION_ID) {
+            return false;
+        }
+        place_kiro_reasoning_selectors(opts, reasoning);
+        true
+    })
+    .await;
 }
 
 /// Apply a composer selector change, on whichever channel this agent really
@@ -5255,14 +5360,74 @@ async fn emit_grok_incompatible_agent_switch(
     .await;
 }
 
+/// ZCode session/new is a lazy placeholder. Confirm a mode before accepting
+/// the first prompt; loaded sessions do not pass through this path.
+async fn configure_new_zcode_session(
+    agent_type: AgentType,
+    cx: &ConnectionTo<Agent>,
+    session: &AgentSession,
+    handshake: &CancellationToken,
+    preferred_mode: Option<&str>,
+    preferred_config: &BTreeMap<String, String>,
+    initial_options: Option<Vec<SessionConfigOption>>,
+) -> Result<
+    (Option<Vec<SessionConfigOption>>, BTreeMap<String, String>),
+    agent_client_protocol::Error,
+> {
+    if agent_type != AgentType::ZCode {
+        return Ok((initial_options, preferred_config.clone()));
+    }
+    let available = session
+        .modes()
+        .as_ref()
+        .map(|modes| {
+            modes
+                .available_modes
+                .iter()
+                .map(|mode| mode.id.to_string())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let mode = crate::acp::zcode::initial_mode(preferred_mode, preferred_config, &available);
+    let options = unless_cancelled(handshake, tokio::time::timeout(
+        std::time::Duration::from_secs(60),
+        set_session_config_option_inner(
+            cx, session.session_id(), agent_type, "mode".to_string(),
+            encode_config_option_value(false, &mode),
+        ),
+    ))
+    .await?
+    .map_err(|_| agent_client_protocol::util::internal_error(
+        "ZCode did not confirm the initial mode within 60 seconds; the session will not send a prompt",
+    ))??;
+    let actual = current_config_option_values(&map_session_config_options(&options));
+    if actual.get("mode") != Some(&mode) {
+        return Err(agent_client_protocol::util::internal_error(
+            "ZCode did not confirm the initial mode; the session will not send a prompt",
+        ));
+    }
+    let mut preferred = preferred_config.clone();
+    preferred.insert("mode".to_string(), mode);
+    Ok((Some(options), preferred))
+}
+
+/// The saved mode a new session still replays once established. ZCode's gate
+/// has already applied and confirmed it, while the session's mode list is
+/// still the placeholder's, so replaying would only send set_mode again.
+fn mode_to_replay_after_gate(
+    agent_type: AgentType,
+    preferred_mode_id: Option<String>,
+) -> Option<String> {
+    preferred_mode_id.filter(|_| agent_type != AgentType::ZCode)
+}
+
 /// Emit the composer's session config-option selectors. For Grok this reads the
 /// synthesized `x.ai/sessionConfig` (parity path); for every other agent it runs
 /// the standard preference-application + schema-mapping pipeline unchanged.
 ///
 /// `session_models` is the establishing answer's raw top-level `models`, `None`
 /// where none was captured; the standard pipeline reads it for
-/// [`session_model_list_offers`], and Kiro's model selector is built from it
-/// (see `synthesize_kiro_model_option`).
+/// [`session_model_list_offers`].
 #[allow(clippy::too_many_arguments)]
 async fn apply_and_emit_session_config_options(
     cx: &ConnectionTo<Agent>,
@@ -5311,10 +5476,6 @@ async fn apply_and_emit_session_config_options(
         // No x.ai/sessionConfig (unexpected): fall through to the standard path,
         // which for Grok emits an empty list (no selectors) — same as before.
     }
-    // What the agent picked on its own, read before the replay below rewrites
-    // any of it (see `SessionState::agent_chosen_config_values`).
-    state.write().await.agent_chosen_config_values =
-        current_config_option_values(&map_session_config_options(&initial_config_options));
     if agent_type == AgentType::Kiro {
         if let Some(model) = synthesize_kiro_model_option(session_models) {
             // The composer shows the legacy mode selector only when an agent
@@ -5329,6 +5490,12 @@ async fn apply_and_emit_session_config_options(
                 .filter(|(id, _)| !KIRO_SYNTHESIZED_OPTION_IDS.contains(&id.as_str()))
                 .map(|(id, value)| (id.clone(), value.clone()))
                 .collect();
+            // What the agent picked on its own, read before either replay
+            // below rewrites it (see `SessionState::agent_chosen_config_values`):
+            // the config options it advertised, and the agent and model
+            // selectors built from its handshake.
+            let mut agent_chosen =
+                current_config_option_values(&map_session_config_options(&initial_config_options));
             let updated = apply_preferred_session_options(
                 cx,
                 session,
@@ -5348,14 +5515,8 @@ async fn apply_and_emit_session_config_options(
                 synthesized.push(mode);
             }
             synthesized.push(model);
-            // Like Grok's picker, these come from the handshake rather than a
-            // config-option list: record them as the agent's own picks before
-            // the replay below rewrites them.
-            state
-                .write()
-                .await
-                .agent_chosen_config_values
-                .extend(current_config_option_values(&synthesized));
+            agent_chosen.extend(current_config_option_values(&synthesized));
+            state.write().await.agent_chosen_config_values = agent_chosen;
             let preferred_mode = preferred_config_values
                 .get(KIRO_MODE_OPTION_ID)
                 .map(String::as_str)
@@ -5378,20 +5539,29 @@ async fn apply_and_emit_session_config_options(
             let mut infos = map_session_config_options(&visible_config_options(&pinned, updated));
             infos.retain(|o| !KIRO_SYNTHESIZED_OPTION_IDS.contains(&o.id.as_str()));
             synthesized.extend(infos);
-            emit_session_config_options_info(state, emitter, synthesized).await;
+            emit_with_state(
+                state,
+                emitter,
+                AcpEvent::SessionConfigOptions {
+                    config_options: synthesized,
+                },
+            )
+            .await;
             // A metadata that landed between the read above and this emit found
             // no selectors to update and was only stored; apply it now.
             let latest = state.read().await.kiro_reasoning.clone();
             if latest != reasoning {
-                if let Some(latest) = latest {
-                    rebuild_kiro_reasoning_selectors(state, emitter, &latest).await;
-                }
+                rebuild_kiro_reasoning_selectors(state, emitter).await;
             }
             return;
         }
         // No `models` in the reply: the standard path, which is what an older
         // or future Kiro that speaks config options would want anyway.
     }
+    // What the agent picked on its own, read before the replay below rewrites
+    // any of it (see `SessionState::agent_chosen_config_values`).
+    state.write().await.agent_chosen_config_values =
+        current_config_option_values(&map_session_config_options(&initial_config_options));
     let updated = apply_preferred_session_options(
         cx,
         session,
@@ -5430,9 +5600,11 @@ fn effective_prompt_capabilities(
     capabilities: &agent_client_protocol::schema::v1::PromptCapabilities,
 ) -> PromptCapabilitiesInfo {
     PromptCapabilitiesInfo {
-        image: capabilities.image || agent_type == AgentType::Grok,
-        audio: capabilities.audio,
-        embedded_context: capabilities.embedded_context,
+        // ZCode attachments are outside the validated first integration.
+        image: agent_type != AgentType::ZCode
+            && (capabilities.image || agent_type == AgentType::Grok),
+        audio: agent_type != AgentType::ZCode && capabilities.audio,
+        embedded_context: agent_type != AgentType::ZCode && capabilities.embedded_context,
     }
 }
 
@@ -5612,7 +5784,7 @@ fn build_client_capabilities(
     // it denies `AskUserQuestion` for the session, so the model never gets the
     // tool. Verified on the real 1.1.67 wire, MCP tool-call approvals staying
     // on `session/request_permission`; the same form and answer handling ship
-    // in every release from 1.1.23 through 1.1.71, which matters because codeg
+    // in every release from 1.1.23 through 1.1.72, which matters because codeg
     // launches a `qoder` found on PATH ahead of the pinned package). Agents
     // without the bit fall back to their own `request_permission` button path.
     if matches!(
@@ -6009,20 +6181,22 @@ pub(crate) fn build_resume_session_request(
 /// typed response, handing back the raw top-level `models` alongside it.
 ///
 /// That field is the one reason these requests are untyped: grok puts its
-/// per-model reasoning-effort data there, and the typed responses have no field
-/// for it (the stable schema carries no session-model API), so it has to be read
-/// off the raw JSON before the typed parse drops it. Everything else is exactly
-/// the typed exchange — `UntypedMessage::new` serializes the very same request,
-/// the reply goes through the same serde impl (whose `configOptions` already
-/// skips an option kind this build does not know, one entry at a time), and a
-/// JSON-RPC error comes back as the same `Err(agent_client_protocol::Error)`
-/// with `.code` / `.to_string()` intact. `session/load` needs none of this and is
-/// a plain typed send.
+/// per-model reasoning-effort data there, Kiro its whole model catalog, and the
+/// typed responses have no field for it (the stable schema carries no
+/// session-model API), so it has to be read off the raw JSON before the typed
+/// parse drops it. Everything else is exactly the typed exchange —
+/// `UntypedMessage::new` serializes the very same request, the reply goes
+/// through the same serde impl (whose `configOptions` already skips an option
+/// kind this build does not know, one entry at a time), and a JSON-RPC error
+/// comes back as the same `Err(agent_client_protocol::Error)` with `.code` /
+/// `.to_string()` intact. `session/load` goes through here for Kiro only; every
+/// other agent's load is a plain typed send.
 ///
 /// `models` is `None` when the reply carries none. Other agents can send one too
-/// (codex-acp reports its model state there), but only two readers use it, and
-/// both check the agent first: grok's effort data, and Antigravity's flat model
-/// list (`session_model_list_offers`).
+/// (codex-acp reports its model state there), but only three readers use it,
+/// and each checks the agent first: grok's effort data, Kiro's model catalog
+/// (`synthesize_kiro_model_option`), and Antigravity's flat model list
+/// (`session_model_list_offers`).
 pub(crate) async fn send_capturing_models<Resp: serde::de::DeserializeOwned>(
     cx: &ConnectionTo<Agent>,
     method: &str,
@@ -6069,8 +6243,36 @@ async fn send_new_session_capturing_models(
 /// (`feedback_tool_available`, a registered delegation token pi can never use).
 /// `supports_mcp` stays `true` for pi (session/new tolerates the field), so this
 /// is a separate, narrower gate. Gate codeg-mcp injection on it.
+///
+/// Cline drops them the same way. Its ACP agent (`apps/cli/src/acp/acpAgent.ts`)
+/// keeps the `mcpServers` of `session/new` and `session/load` in its session
+/// state and never reads them back: the config it starts each session with
+/// carries no MCP servers, and the SDK connects only the servers in cline's own
+/// `cline_mcp_settings.json` and its plugins. Checked in the source of every
+/// release from 3.0.55 through 3.0.72, and live on 3.0.71 and 3.0.72: a stdio
+/// server sent on `session/new` is never started, while one in the settings
+/// file is, and its tools reach the model. User servers still reach Cline,
+/// through that file (see [`agent_reads_own_mcp_config`]); the codeg-mcp
+/// companion, which only travels over the wire, cannot.
 fn agent_delivers_wire_mcp(agent_type: AgentType) -> bool {
-    !matches!(agent_type, AgentType::Pi)
+    !matches!(agent_type, AgentType::Pi | AgentType::Cline)
+}
+
+/// Agents that load the MCP servers codeg's MCP settings manage from their OWN
+/// config file, so [`load_mcp_servers_for_agent`] forwards none of them over
+/// the wire; see the notes there for each one.
+fn agent_reads_own_mcp_config(agent_type: AgentType) -> bool {
+    matches!(
+        agent_type,
+        AgentType::Hermes
+            | AgentType::KimiCode
+            | AgentType::Grok
+            | AgentType::Cursor
+            | AgentType::Qoder
+            | AgentType::Antigravity
+            | AgentType::Kiro
+            | AgentType::Cline
+    )
 }
 
 /// Load MCP servers configured for `agent_type` and convert them into the
@@ -6109,16 +6311,13 @@ fn load_mcp_servers_for_agent(agent_type: AgentType) -> Vec<McpServer> {
     // against 2.24.1, a stdio server declared only there is initialized and
     // listed (`_kiro.dev/mcp/server_initialized`) on a `session/new` that
     // carries `mcpServers: []`. codeg's MCP settings UI manages that file.
-    if matches!(
-        agent_type,
-        AgentType::Hermes
-            | AgentType::KimiCode
-            | AgentType::Grok
-            | AgentType::Cursor
-            | AgentType::Qoder
-            | AgentType::Antigravity
-            | AgentType::Kiro
-    ) {
+    //
+    // Cline joins it as well: it connects the servers in
+    // `~/.cline/data/settings/cline_mcp_settings.json`, which codeg's MCP
+    // settings UI manages, and ignores the wire list altogether (see
+    // `agent_delivers_wire_mcp`), so forwarding that file's servers again only
+    // sends entries nobody reads.
+    if agent_reads_own_mcp_config(agent_type) {
         return Vec::new();
     }
     let entries = match crate::commands::mcp::read_servers_for_agent_type(agent_type) {
@@ -7341,7 +7540,7 @@ async fn run_connection(
             )
             .await;
 
-            let supports_fork = init_resp
+            let supports_fork = agent_type != AgentType::ZCode && init_resp
                 .agent_capabilities
                 .session_capabilities
                 .fork
@@ -8090,6 +8289,12 @@ async fn run_connection(
                         state.write().await.pi_startup_banner =
                             pi_startup_banner(agent_type, new_resp.meta.as_ref());
                         let mut session = AgentSession::attach(&cx, new_resp)?;
+                        let (initial_config_options, preferred_config_values) = configure_new_zcode_session(
+                            agent_type, &cx, &session, &handshake, preferred_mode_id.as_deref(),
+                            &preferred_config_values, initial_config_options,
+                        ).await?;
+                        let preferred_mode_id =
+                            mode_to_replay_after_gate(agent_type, preferred_mode_id.clone());
                         // Same conversation, new agent session: link the fresh
                         // transcript to the one the failed load was for, so the
                         // turns codeg already recorded keep rendering.
@@ -8113,6 +8318,11 @@ async fn run_connection(
                         )
                         .await;
                         emit_session_modes(&state, &emitter_clone, session.modes()).await;
+                        if agent_type == AgentType::ZCode {
+                            emit_with_state(&state, &emitter_clone, AcpEvent::ModeChanged {
+                                mode_id: preferred_config_values["mode"].clone(),
+                            }).await;
+                        }
                         unless_cancelled(
                             &handshake,
                             apply_and_emit_session_config_options(
@@ -8198,6 +8408,12 @@ async fn run_connection(
                 state.write().await.pi_startup_banner =
                     pi_startup_banner(agent_type, new_resp.meta.as_ref());
                 let mut session = AgentSession::attach(&cx, new_resp)?;
+                let (initial_config_options, preferred_config_values) = configure_new_zcode_session(
+                    agent_type, &cx, &session, &handshake, preferred_mode_id.as_deref(),
+                    &preferred_config_values, initial_config_options,
+                ).await?;
+                let preferred_mode_id =
+                    mode_to_replay_after_gate(agent_type, preferred_mode_id.clone());
                 record_transcript_header(agent_type, &sid, &cwd.to_string_lossy());
                 emit_with_state(
                     &state,
@@ -8208,6 +8424,11 @@ async fn run_connection(
                 )
                 .await;
                 emit_session_modes(&state, &emitter_clone, session.modes()).await;
+                if agent_type == AgentType::ZCode {
+                    emit_with_state(&state, &emitter_clone, AcpEvent::ModeChanged {
+                        mode_id: preferred_config_values["mode"].clone(),
+                    }).await;
+                }
                 unless_cancelled(
                     &handshake,
                     apply_and_emit_session_config_options(
@@ -9301,7 +9522,9 @@ async fn handle_permission_request(
     // Kiro's permission `toolCall` names no tool (no `_meta`), and in its raw
     // shape a `write` reads as the shell command `create` / `strReplace` and
     // shows no diff. Rewrite it like the live frames (see `kiro_live_tool`),
-    // telling the tool by its arguments.
+    // telling the tool by its arguments — only when they are all the
+    // built-in's own, so an MCP call that shares an argument name keeps every
+    // argument on the card (see `tool_name_from_input`).
     if agent_type == AgentType::Kiro {
         if let Some(raw_input) = tool_call_value.get_mut("rawInput") {
             let canonical = crate::parsers::kiro::tool_name_from_input(raw_input)
@@ -9454,8 +9677,9 @@ async fn set_session_config_option(
         .and_then(|opts| opts.iter().find(|o| o.id == config_id))
         .is_some_and(|o| matches!(o.kind, SessionConfigKindInfo::Boolean(_)));
     let value = encode_config_option_value(is_boolean, &value_id);
+    let agent_type = state.read().await.agent_type;
     let updated =
-        set_session_config_option_inner(cx, session_id, config_id.clone(), value).await?;
+        set_session_config_option_inner(cx, session_id, agent_type, config_id.clone(), value).await?;
     // Compare BEFORE emitting: the agent's answer is the only place a request and
     // its outcome are correlated. Once the option list is broadcast it is
     // indistinguishable from an unsolicited update.
@@ -9950,9 +10174,21 @@ fn order_preferred_config_values<'a>(
 async fn set_session_config_option_inner(
     cx: &ConnectionTo<Agent>,
     session_id: &SessionId,
+    agent_type: AgentType,
     config_id: String,
     value: SessionConfigOptionValue,
 ) -> Result<Vec<SessionConfigOption>, agent_client_protocol::Error> {
+    // Of the two ACP mode requests, only session/set_mode refreshes the
+    // bridge's plan-enabled mirror; set_config_option("mode") keeps reporting
+    // "plan" while that mirror is set (bridge 0.69.2 through 0.72.0). Send
+    // set_mode first for mode changes, then read the config response; the
+    // initial-mode gate still requires an exact confirmation before prompt.
+    if agent_type == AgentType::ZCode && config_id == "mode" {
+        if let Some(mode) = value.as_value_id() {
+            let req = SetSessionModeRequest::new(session_id.clone(), mode.to_string());
+            cx.send_request_to(Agent, req).block_task().await?;
+        }
+    }
     let req = SetSessionConfigOptionRequest::new(session_id.clone(), config_id, value);
     let response = cx.send_request_to(Agent, req).block_task().await?;
     Ok(response.config_options)
@@ -10063,19 +10299,8 @@ async fn apply_preferred_session_options(
 
     let session_id = session.session_id().clone();
     let mut options = initial_config_options;
-    // Ids this launch must not replay a saved preference for. Two rules:
-    //
-    //   * what this launch's environment froze — a set can only fail, and it is
-    //     reachable, because the composer saves the pick BEFORE the set is
-    //     awaited, so anyone who clicked cline's provider dropdown while it was
-    //     still offered has one stored;
-    //   * cline's `provider` unconditionally, because the settings panel owns
-    //     it (it writes providers.json and decides the launch env). Pinning
-    //     alone is not enough: the preference saved during a BYO launch is
-    //     merely SKIPPED there, and would then be replayed on the next sign-in
-    //     launch — which is not pinned — switching the user's billing account
-    //     away from the one the panel shows. Switching accounts mid-session is
-    //     still allowed; it just does not outlive the session.
+    // Ids this launch must not replay a saved preference for — see
+    // `config_option_never_replayed`, which the option probe shares.
     let (pinned, agent_type) = {
         let guard = state.read().await;
         (
@@ -10083,10 +10308,8 @@ async fn apply_preferred_session_options(
             guard.agent_type,
         )
     };
-    let never_replayed = |config_id: &str| {
-        pinned.iter().any(|id| id == config_id)
-            || (agent_type == AgentType::Cline && config_id == CLINE_PROVIDER_CONFIG_OPTION_ID)
-    };
+    let never_replayed =
+        |config_id: &str| config_option_never_replayed(agent_type, &pinned, config_id);
     // A model pick saved under a spelling the agent has since renamed — a
     // retired `[1m]` lane, or a concrete id re-spelled as its family alias —
     // replays as the spelling it lists now (see `heal_retired_model_pick`).
@@ -10149,7 +10372,8 @@ async fn apply_preferred_session_options(
         let is_boolean =
             advertised.is_some_and(|o| matches!(o.kind, SessionConfigKind::Boolean(_)));
         let value = encode_config_option_value(is_boolean, value_id);
-        match set_session_config_option_inner(cx, &session_id, config_id.clone(), value).await {
+        let agent_type = state.read().await.agent_type;
+        match set_session_config_option_inner(cx, &session_id, agent_type, config_id.clone(), value).await {
             Ok(updated) => options = updated,
             Err(e) => tracing::error!(
                 "[ACP] failed to apply preferred config '{config_id}'='{value_id}' \
@@ -10967,12 +11191,18 @@ pub(crate) fn map_prompt_blocks(blocks: Vec<PromptInputBlock>) -> Vec<ContentBlo
 /// companion's delegation group — that flag is the only gate, and it is already
 /// the injection gate's own verdict (`supports_mcp` + `agent_delivers_wire_mcp`
 /// + the delegation feature being on).
+///
+/// `internal_suffix` (the assistant brief, see [`ConnectionCommand::Prompt`])
+/// goes last, after the routing frames.
 fn prepare_agent_bound_prompt(
     agent_type: AgentType,
     mut blocks: Vec<PromptInputBlock>,
     delegation_enabled: bool,
+    internal_suffix: Vec<PromptInputBlock>,
 ) -> Vec<ContentBlock> {
     append_agent_routes(&mut blocks, delegation_enabled);
+    append_assistant_routes(&mut blocks, delegation_enabled);
+    blocks.extend(internal_suffix);
     if agent_type == AgentType::Grok {
         blocks = normalize_grok_image_blocks(blocks);
     }
@@ -12267,6 +12497,7 @@ async fn run_conversation_loop(
             Some(ConnectionCommand::Prompt {
                 blocks,
                 user_message,
+                internal_suffix,
             }) => {
                 // Fingerprint the outgoing prompt for the background watcher's
                 // foreground/out-of-turn classifier BEFORE the blocks are
@@ -12302,8 +12533,12 @@ async fn run_conversation_loop(
                 // and cross-client broadcast. Only the final agent-bound prompt
                 // receives the machine routing block derived from agent badges.
                 let delegation_enabled = state.read().await.delegation_enabled;
-                let prompt_blocks =
-                    prepare_agent_bound_prompt(agent_type, blocks, delegation_enabled);
+                let prompt_blocks = prepare_agent_bound_prompt(
+                    agent_type,
+                    blocks,
+                    delegation_enabled,
+                    internal_suffix,
+                );
                 if prompt_blocks.is_empty() {
                     // Defensive: the manager rejects empty prompts before the
                     // concurrency gate is set / the command is enqueued (see
@@ -17330,6 +17565,7 @@ fn map_grok_subagent_notification_inner(
                     summary: None,
                     tool_use_id: Some(call_id),
                     result,
+                    interim: false,
                 }],
                 watermark: 0,
             }])
@@ -17699,7 +17935,8 @@ struct KiroAgentSwitchedNotification {
 /// an editor, the clipboard or the microphone of the machine Kiro runs on, and
 /// the two that answer a prompt with nothing (checked against 2.24.1):
 /// `/prompts` needs the TUI's selection menu, and `/rewind` forks into a new
-/// Kiro session codeg would never see. Everything else answers in the
+/// Kiro session codeg would never see. So is any `$`-named entry, which the
+/// composer can only send as `$name`. Everything else answers in the
 /// conversation.
 ///
 /// The hint is Kiro's own when it has one, else its subcommand list — the
@@ -17719,7 +17956,9 @@ fn kiro_available_commands(notif: &KiroCommandsAvailableNotification) -> Vec<Ava
                 .and_then(|m| m.get("local"))
                 .and_then(serde_json::Value::as_bool)
                 .unwrap_or(false);
-            if name.is_empty() || local || TUI_ONLY.contains(&name) || !seen.insert(name.to_string()) {
+            // Every built-in's name is reserved, offered here or not: a prompt
+            // by that name never runs, because Kiro runs the command.
+            if name.is_empty() || !seen.insert(name.to_string()) || local || TUI_ONLY.contains(&name) {
                 return None;
             }
             let input_hint = meta
@@ -17773,6 +18012,10 @@ fn kiro_available_commands(notif: &KiroCommandsAvailableNotification) -> Vec<Ava
             input_hint: kiro_prompt_input_hint(prompt),
         })
     }));
+    // The composer sends a command named `$x` as `$x`, the token codex-acp
+    // gives its skills (`commandInvocationToken` in invocation-reference.ts),
+    // and Kiro runs only `/x`: picked from the menu, such an entry never runs.
+    available.retain(|command| !command.name.starts_with('$'));
     available
 }
 
@@ -17935,6 +18178,54 @@ mod kiro_ext_tests {
                 ("release", "Cut a release", Some("<version> [notes]")),
             ]
         );
+    }
+
+    /// A prompt that shares its name with a built-in Kiro keeps out of the
+    /// menu (the TUI-only and client-local ones included), so picking it can
+    /// never run the command instead.
+    #[test]
+    fn a_prompt_named_like_a_hidden_builtin_stays_out_of_the_slash_menu() {
+        let notif: KiroCommandsAvailableNotification = serde_json::from_value(serde_json::json!({
+            "sessionId": "s1",
+            "commands": [
+                {"name": "/compact", "description": "Compact conversation history"},
+                {"name": "/quit", "description": "Quit the application"},
+                {"name": "/clear", "description": "Clear the screen", "meta": {"local": true}}
+            ],
+            "prompts": [
+                {"name": "quit", "description": "A file prompt", "serverName": "local"},
+                {"name": "/clear", "description": "A skill", "serverName": "skill:config"},
+                {"name": "review", "description": "Review the diff", "serverName": "local"}
+            ]
+        }))
+        .unwrap();
+        let names: Vec<_> = kiro_available_commands(&notif)
+            .into_iter()
+            .map(|c| c.name)
+            .collect();
+        assert_eq!(names, ["compact", "review"]);
+    }
+
+    /// The composer sends a `$`-named command as `$name` (codex-acp's skill
+    /// token), which Kiro reads as plain text, so the entry could never run.
+    #[test]
+    fn a_dollar_named_prompt_stays_out_of_the_slash_menu() {
+        let notif: KiroCommandsAvailableNotification = serde_json::from_value(serde_json::json!({
+            "sessionId": "s1",
+            "commands": [
+                {"name": "/compact", "description": "Compact conversation history"}
+            ],
+            "prompts": [
+                {"name": "$report", "description": "Weekly report", "serverName": "reports"},
+                {"name": "review", "description": "Review the diff", "serverName": "local"}
+            ]
+        }))
+        .unwrap();
+        let names: Vec<_> = kiro_available_commands(&notif)
+            .into_iter()
+            .map(|c| c.name)
+            .collect();
+        assert_eq!(names, ["compact", "review"]);
     }
 
     #[test]
@@ -18372,6 +18663,303 @@ mod kiro_ext_tests {
             None
         );
         assert!(calls.is_empty());
+    }
+
+    /// The two requests a Kiro selector goes out on, as the agent side of a
+    /// test pipe receives them.
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, JsonRpcRequest)]
+    #[request(method = "session/set_model", response = serde_json::Value)]
+    #[serde(transparent)]
+    struct FakeKiroSetModel(serde_json::Value);
+
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, JsonRpcRequest)]
+    #[request(method = "_kiro.dev/commands/execute", response = serde_json::Value)]
+    #[serde(transparent)]
+    struct FakeKiroExecute(serde_json::Value);
+
+    /// Replay `prefs` onto a session showing `opts` over a pipe to a fake Kiro
+    /// that accepts everything, and return what it was sent (in order)
+    /// together with the selectors afterwards.
+    async fn replay_against_fake_kiro(
+        state: &Arc<RwLock<SessionState>>,
+        opts: Vec<SessionConfigOptionInfo>,
+        prefs: BTreeMap<String, String>,
+    ) -> (Vec<serde_json::Value>, Vec<SessionConfigOptionInfo>) {
+        use agent_client_protocol::Channel;
+
+        let sent: Arc<std::sync::Mutex<Vec<serde_json::Value>>> = Arc::default();
+        let (client_end, agent_end) = Channel::duplex();
+        let agent = tokio::spawn({
+            let model_log = Arc::clone(&sent);
+            let command_log = Arc::clone(&sent);
+            Agent
+                .builder()
+                .on_receive_request(
+                    async move |req: FakeKiroSetModel,
+                                responder: Responder<serde_json::Value>,
+                                _cx: ConnectionTo<Client>| {
+                        model_log.lock().unwrap().push(req.0);
+                        responder.respond(serde_json::json!({}))
+                    },
+                    on_receive_request!(),
+                )
+                .on_receive_request(
+                    async move |req: FakeKiroExecute,
+                                responder: Responder<serde_json::Value>,
+                                _cx: ConnectionTo<Client>| {
+                        command_log.lock().unwrap().push(req.0);
+                        responder.respond(serde_json::json!({"success": true, "message": "ok"}))
+                    },
+                    on_receive_request!(),
+                )
+                .connect_with(agent_end, async |_cx: ConnectionTo<Client>| {
+                    std::future::pending::<Result<(), agent_client_protocol::Error>>().await
+                })
+        });
+        let state = Arc::clone(state);
+        let opts = Client
+            .builder()
+            .connect_with(client_end, async move |cx: ConnectionTo<Agent>| {
+                let mut opts = opts;
+                apply_kiro_preferred_options(
+                    &cx,
+                    &SessionId::new("s1"),
+                    &state,
+                    &EventEmitter::Noop,
+                    &mut opts,
+                    &prefs,
+                    None,
+                )
+                .await;
+                Ok(opts)
+            })
+            .await
+            .expect("client connection");
+        agent.abort();
+        let sent = sent.lock().unwrap().clone();
+        (sent, opts)
+    }
+
+    fn kiro_state() -> Arc<RwLock<SessionState>> {
+        Arc::new(RwLock::new(SessionState::new(
+            "conn-kiro".to_string(),
+            AgentType::Kiro,
+            None,
+            "win".to_string(),
+            None,
+        )))
+    }
+
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, JsonRpcRequest)]
+    #[request(method = "session/set_mode", response = serde_json::Value)]
+    #[serde(transparent)]
+    struct FakeKiroSetMode(serde_json::Value);
+
+    /// The options probe reports, for an option it applied, what the agent runs
+    /// when that option is left unset (`SessionState::agent_chosen_config_values`).
+    /// Kiro's agent and model selectors are built from its handshake rather
+    /// than listed as config options, so its establishment records them itself:
+    /// as Kiro opened the session, before the saved picks replace them.
+    #[tokio::test]
+    async fn kiro_establishment_records_the_agents_own_picks() {
+        use agent_client_protocol::Channel;
+
+        let (client_end, agent_end) = Channel::duplex();
+        let agent = tokio::spawn(
+            Agent
+                .builder()
+                .on_receive_request(
+                    async |_req: FakeKiroSetModel,
+                           responder: Responder<serde_json::Value>,
+                           _cx: ConnectionTo<Client>| {
+                        responder.respond(serde_json::json!({}))
+                    },
+                    on_receive_request!(),
+                )
+                .on_receive_request(
+                    async |_req: FakeKiroSetMode,
+                           responder: Responder<serde_json::Value>,
+                           _cx: ConnectionTo<Client>| {
+                        responder.respond(serde_json::json!({}))
+                    },
+                    on_receive_request!(),
+                )
+                .connect_with(agent_end, async |_cx: ConnectionTo<Client>| {
+                    std::future::pending::<Result<(), agent_client_protocol::Error>>().await
+                }),
+        );
+        let state = kiro_state();
+        let establishment_state = Arc::clone(&state);
+        Client
+            .builder()
+            .connect_with(client_end, async move |cx: ConnectionTo<Agent>| {
+                let modes: SessionModeState = serde_json::from_value(serde_json::json!({
+                    "currentModeId": "kiro_default",
+                    "availableModes": [
+                        {"id": "kiro_default", "name": "kiro_default"},
+                        {"id": "kiro_planner", "name": "kiro_planner"}
+                    ]
+                }))
+                .expect("modes");
+                let response = NewSessionResponse::new(SessionId::new("s1")).modes(modes);
+                let mut session = AgentSession::attach(&cx, response)?;
+                let models = kiro_models();
+                let prefs = BTreeMap::from([
+                    ("model".to_string(), "claude-sonnet-5".to_string()),
+                    ("mode".to_string(), "kiro_planner".to_string()),
+                ]);
+                apply_and_emit_session_config_options(
+                    &cx,
+                    &mut session,
+                    &establishment_state,
+                    &EventEmitter::Noop,
+                    AgentType::Kiro,
+                    None,
+                    None,
+                    Some(&models),
+                    None,
+                    &prefs,
+                    Vec::new(),
+                )
+                .await;
+                Ok(())
+            })
+            .await
+            .expect("the establishment runs");
+        agent.abort();
+
+        let state = state.read().await;
+        assert_eq!(
+            state.agent_chosen_config_values,
+            BTreeMap::from([
+                ("mode".to_string(), "kiro_default".to_string()),
+                ("model".to_string(), "claude-opus-5.5".to_string()),
+            ]),
+            "Kiro's own picks, from before the replay"
+        );
+        // …while the session itself runs the saved picks.
+        let current =
+            current_config_option_values(state.config_options.as_deref().unwrap_or_default());
+        assert_eq!(
+            current.get("model").map(String::as_str),
+            Some("claude-sonnet-5")
+        );
+        assert_eq!(
+            current.get("mode").map(String::as_str),
+            Some("kiro_planner")
+        );
+    }
+
+    // The session opens on Kiro's default `auto`, whose metadata (no effort,
+    // no thinking switch) lands before the saved model is restored. That state
+    // describes `auto`, not the restored model, so it must not veto the saved
+    // thinking and effort — no later metadata would ever re-apply them.
+    #[tokio::test]
+    async fn a_restored_model_gets_its_saved_reasoning_despite_the_old_models_state() {
+        let state = kiro_state();
+        state.write().await.kiro_reasoning = Some(KiroReasoning::default());
+        let mut models = kiro_models();
+        models["currentModelId"] = serde_json::json!("auto");
+        let opts = vec![synthesize_kiro_model_option(Some(&models)).unwrap()];
+        let prefs = BTreeMap::from([
+            ("model".to_string(), "claude-opus-5.5".to_string()),
+            ("thinking".to_string(), "on".to_string()),
+            ("reasoning_effort".to_string(), "high".to_string()),
+        ]);
+
+        let (sent, opts) = replay_against_fake_kiro(&state, opts, prefs).await;
+
+        assert_eq!(
+            sent,
+            [
+                serde_json::json!({"sessionId": "s1", "modelId": "claude-opus-5.5"}),
+                serde_json::json!({"sessionId": "s1", "command": {
+                    "command": "reasoning", "args": {"thinkingEnabled": true}
+                }}),
+                serde_json::json!({"sessionId": "s1", "command": {
+                    "command": "effort", "args": {"level": "high"}
+                }}),
+            ]
+        );
+        let SessionConfigKindInfo::Select(sel) = &opts[0].kind else {
+            panic!("select expected");
+        };
+        assert_eq!(sel.current_value, "claude-opus-5.5");
+    }
+
+    // Without a model switch the known state still rules out what the model
+    // cannot take, or already runs at.
+    #[tokio::test]
+    async fn without_a_model_switch_the_known_reasoning_still_rules_values_out() {
+        let state = kiro_state();
+        state.write().await.kiro_reasoning = Some(KiroReasoning {
+            levels: vec!["low".into(), "high".into()],
+            current: Some("high".into()),
+            thinking_toggleable: false,
+            thinking: None,
+        });
+        let opts = vec![synthesize_kiro_model_option(Some(&kiro_models())).unwrap()];
+        let prefs = BTreeMap::from([
+            ("model".to_string(), "claude-opus-5.5".to_string()),
+            ("thinking".to_string(), "on".to_string()),
+            ("reasoning_effort".to_string(), "high".to_string()),
+        ]);
+
+        let (sent, _) = replay_against_fake_kiro(&state, opts, prefs).await;
+
+        assert!(sent.is_empty(), "{sent:?}");
+    }
+
+    // The set path and the `_kiro.dev/metadata` handler both rewrite the
+    // emitted selectors from a copy. A copy taken before the other writer's
+    // emit must not be emitted after it: here the metadata handler withdraws
+    // the effort selector between the model pick's copy and its emit, and the
+    // pick has to land on the list without it.
+    #[tokio::test]
+    async fn a_selector_edit_is_redone_on_a_list_another_writer_emitted_first() {
+        let state = kiro_state();
+        let reasoning = KiroReasoning {
+            levels: vec!["low".into(), "high".into()],
+            current: Some("high".into()),
+            ..KiroReasoning::default()
+        };
+        let mut opts = vec![synthesize_kiro_model_option(Some(&kiro_models())).unwrap()];
+        place_kiro_reasoning_selectors(&mut opts, &reasoning);
+        state.write().await.kiro_reasoning = Some(reasoning);
+        emit_with_state(
+            &state,
+            &EventEmitter::Noop,
+            AcpEvent::SessionConfigOptions {
+                config_options: opts,
+            },
+        )
+        .await;
+
+        let mut edits = 0;
+        edit_emitted_options(&state, &EventEmitter::Noop, |opts, _| {
+            edits += 1;
+            if edits == 1 {
+                // The metadata for `auto` arrives mid-edit: stored and
+                // emitted without an effort selector.
+                let mut other = state.try_write().expect("no lock is held while editing");
+                other.kiro_reasoning = Some(KiroReasoning::default());
+                let mut without_effort = other.config_options.clone().unwrap();
+                without_effort.retain(|o| o.id != KIRO_EFFORT_OPTION_ID);
+                other.config_options = Some(without_effort);
+            }
+            set_select_current(opts, KIRO_MODEL_OPTION_ID, "auto");
+            true
+        })
+        .await;
+
+        assert_eq!(edits, 2, "the stale copy is recomputed, not emitted");
+        let opts = state.read().await.config_options.clone().unwrap();
+        let ids: Vec<_> = opts.iter().map(|o| o.id.as_str()).collect();
+        assert_eq!(ids, ["model"]);
+        let SessionConfigKindInfo::Select(sel) = &opts[0].kind else {
+            panic!("select expected");
+        };
+        assert_eq!(sel.current_value, "auto");
     }
 }
 
@@ -20063,8 +20651,8 @@ async fn emit_conversation_update(
                 Some("completed" | "failed" | "cancelled" | "error")
             ) {
                 cb_state.hosted_terminal_calls.remove(&tool_call_id);
-                cb_state.kiro_calls.remove(&tool_call_id);
                 cb_state.qoder_ask_questions.remove(&tool_call_id);
+                cb_state.kiro_calls.remove(&tool_call_id);
             }
             // Symmetric with the ToolCall arm: an update may carry the terminal
             // status (and, on grok, usually re-carries the `x.ai/tool` meta).
@@ -20227,6 +20815,13 @@ async fn emit_conversation_update(
                 .available_commands
                 .iter()
                 .filter(|cmd| !is_config_option_state_command(agent_type, cmd.meta.as_ref()))
+                .filter(|cmd| {
+                    agent_type != AgentType::ZCode
+                        || !matches!(
+                            cmd.name.as_str(),
+                            "auto" | "goal" | "fork" | "rewind" | "queue" | "steer"
+                        )
+                })
                 .filter(|cmd| seen.insert(cmd.name.clone()))
                 .map(|cmd| {
                     let input_hint = cmd.input.as_ref().map(|input| match input {
@@ -25483,7 +26078,7 @@ mod tests {
             AgentType::Gemini,
             AgentType::custom("delegating-custom").expect("valid custom id"),
         ] {
-            let prompt = prepare_agent_bound_prompt(parent, blocks.clone(), true);
+            let prompt = prepare_agent_bound_prompt(parent, blocks.clone(), true, Vec::new());
             assert_eq!(prompt.len(), 2, "{parent} must receive the routing block");
             assert!(matches!(
                 &prompt[0],
@@ -25500,12 +26095,54 @@ mod tests {
         // An agent that never received the companion (OpenClaw's
         // supports_mcp=false, pi's wire exclusion) reaches here with delegation
         // off and keeps a pristine prompt.
-        let unrouted = prepare_agent_bound_prompt(AgentType::OpenClaw, blocks, false);
+        let unrouted = prepare_agent_bound_prompt(AgentType::OpenClaw, blocks, false, Vec::new());
         assert_eq!(unrouted.len(), 1);
         assert!(matches!(
             &unrouted[0],
             ContentBlock::Text(text) if text.text == visible
         ));
+    }
+
+    #[test]
+    fn the_internal_suffix_goes_last_after_every_routing_frame() {
+        let visible = "ask [@Codex](codeg://agent/codex) and [@Reviewer](codeg://assistant/3)";
+        let brief = crate::acp::agent_mentions::render_assistant_brief("Reviewer", "Cite lines.")
+            .expect("brief");
+        let prompt = prepare_agent_bound_prompt(
+            AgentType::ClaudeCode,
+            vec![PromptInputBlock::Text {
+                text: visible.into(),
+            }],
+            true,
+            vec![PromptInputBlock::Text {
+                text: brief.clone(),
+            }],
+        );
+        let texts: Vec<&str> = prompt
+            .iter()
+            .map(|b| match b {
+                ContentBlock::Text(t) => t.text.as_str(),
+                other => panic!("unexpected block {other:?}"),
+            })
+            .collect();
+        assert_eq!(texts.len(), 4);
+        assert_eq!(texts[0], visible);
+        assert!(texts[1].contains(r#""agentType":"codex""#));
+        assert!(texts[2].contains(r#"{"assistantId":3}"#));
+        assert_eq!(texts[3], brief, "the brief is the very last block");
+
+        // Delegation off: no routing — but a brief still reaches the child.
+        let unrouted = prepare_agent_bound_prompt(
+            AgentType::OpenClaw,
+            vec![PromptInputBlock::Text {
+                text: visible.into(),
+            }],
+            false,
+            vec![PromptInputBlock::Text {
+                text: brief.clone(),
+            }],
+        );
+        assert_eq!(unrouted.len(), 2);
     }
 
     #[test]
@@ -27818,6 +28455,7 @@ mod tests {
                 .send(ConnectionCommand::Prompt {
                     blocks: vec![PromptInputBlock::Text { text: text.into() }],
                     user_message: None,
+                    internal_suffix: Vec::new(),
                 })
                 .await
                 .expect("the connection is running");
@@ -35017,6 +35655,7 @@ mod tests {
                 .send(ConnectionCommand::Prompt {
                     blocks: vec![PromptInputBlock::Text { text: text.into() }],
                     user_message: None,
+                    internal_suffix: Vec::new(),
                 })
                 .await
                 .expect("the loop is running");
@@ -36180,6 +36819,7 @@ mod tests {
                 .send(ConnectionCommand::Prompt {
                     blocks: vec![PromptInputBlock::Text { text: text.into() }],
                     user_message: None,
+                    internal_suffix: Vec::new(),
                 })
                 .await
                 .expect("the loop is running");
@@ -36583,6 +37223,7 @@ mod tests {
                         text: "go on".into(),
                     }],
                     user_message: None,
+                    internal_suffix: Vec::new(),
                 })
                 .await
                 .expect("the loop is running");
@@ -37274,6 +37915,7 @@ mod tests {
                         text: prompt.into(),
                     }],
                     user_message: None,
+                    internal_suffix: Vec::new(),
                 })
                 .await
                 .expect("the loop is running");
@@ -38121,5 +38763,280 @@ mod tests {
             .await;
             assert_eq!(raw_output.as_deref(), Some(text), "{agent_type:?} {status}");
         }
+    }
+}
+
+#[cfg(test)]
+mod zcode_mode_tests {
+    use super::*;
+    use agent_client_protocol::schema::v1::{
+        PromptResponse, SetSessionConfigOptionResponse, SetSessionModeResponse,
+    };
+    use std::sync::Mutex;
+
+    fn mode_options(mode: &str) -> Vec<SessionConfigOption> {
+        serde_json::from_value(serde_json::json!([{
+            "id": "mode", "name": "Mode", "category": "mode", "type": "select",
+            "currentValue": mode,
+            "options": [
+                {"value":"build","name":"Build"},
+                {"value":"plan","name":"Plan"},
+                {"value":"yolo","name":"Yolo"}
+            ]
+        }]))
+        .unwrap()
+    }
+
+    async fn drive_mode_gate(
+        preferred: Option<&str>,
+        confirm: bool,
+        accept_mode: bool,
+    ) -> Vec<String> {
+        drive_mode_gate_with_cancel(preferred, confirm, accept_mode, false).await
+    }
+
+    async fn drive_mode_gate_with_cancel(
+        preferred: Option<&str>,
+        confirm: bool,
+        accept_mode: bool,
+        cancel_mode: bool,
+    ) -> Vec<String> {
+        let handshake = CancellationToken::new();
+        let native_handshake = handshake.clone();
+        let seen = Arc::new(Mutex::new(Vec::<String>::new()));
+        let seen_mode = seen.clone();
+        let seen_legacy = seen.clone();
+        let native_mode = Arc::new(Mutex::new(None::<String>));
+        let native_set = native_mode.clone();
+        let native_config = native_mode.clone();
+        let seen_prompt = seen.clone();
+        let (client_end, agent_end) = agent_client_protocol::Channel::duplex();
+        let agent = tokio::spawn(
+            Agent
+                .builder()
+                .on_receive_request(
+                    async move |req: SetSessionModeRequest,
+                                responder: Responder<SetSessionModeResponse>,
+                                _cx: ConnectionTo<Client>| {
+                        seen_legacy
+                            .lock()
+                            .unwrap()
+                            .push(format!("mode:{}", req.mode_id));
+                        if cancel_mode {
+                            native_handshake.cancel();
+                            std::future::pending::<()>().await;
+                        }
+                        if accept_mode {
+                            *native_set.lock().unwrap() = Some(req.mode_id.to_string());
+                            responder.respond(SetSessionModeResponse::new())
+                        } else {
+                            responder.respond_with_error(
+                                agent_client_protocol::Error::invalid_params()
+                                    .data("mode rejected"),
+                            )
+                        }
+                    },
+                    on_receive_request!(),
+                )
+                .on_receive_request(
+                    async move |req: SetSessionConfigOptionRequest,
+                                responder: Responder<SetSessionConfigOptionResponse>,
+                                _cx: ConnectionTo<Client>| {
+                        let value = serde_json::to_value(&req.value).unwrap();
+                        let mode = value["value"].as_str().unwrap().to_string();
+                        seen_mode.lock().unwrap().push(format!("config:{mode}"));
+                        if confirm
+                            && native_config.lock().unwrap().as_deref() == Some(mode.as_str())
+                        {
+                            responder
+                                .respond(SetSessionConfigOptionResponse::new(mode_options(&mode)))
+                        } else {
+                            responder
+                                .respond(SetSessionConfigOptionResponse::new(mode_options("yolo")))
+                        }
+                    },
+                    on_receive_request!(),
+                )
+                .on_receive_request(
+                    async move |_req: PromptRequest,
+                                responder: Responder<PromptResponse>,
+                                _cx: ConnectionTo<Client>| {
+                        seen_prompt.lock().unwrap().push("prompt".into());
+                        responder.respond(PromptResponse::new(StopReason::EndTurn))
+                    },
+                    on_receive_request!(),
+                )
+                .connect_to(agent_end),
+        );
+        Client
+            .builder()
+            .connect_with(client_end, async |cx: ConnectionTo<Agent>| {
+                let modes: SessionModeState = serde_json::from_value(serde_json::json!({
+                    "currentModeId":"yolo",
+                    "availableModes":[{"id":"build","name":"Build"},{"id":"plan","name":"Plan"},{"id":"yolo","name":"Yolo"}]
+                }))
+                .unwrap();
+                let response = NewSessionResponse::new(SessionId::new("zcode-test"))
+                    .modes(modes)
+                    .config_options(mode_options("yolo"));
+                let session = AgentSession::attach(&cx, response)?;
+                let result = configure_new_zcode_session(
+                    AgentType::ZCode,
+                    &cx,
+                    &session,
+                    &handshake,
+                    preferred,
+                    &BTreeMap::new(),
+                    Some(mode_options("yolo")),
+                )
+                .await;
+                if cancel_mode {
+                    assert!(result.unwrap_err().to_string().contains(HANDSHAKE_CANCELLED_SENTINEL));
+                } else if confirm && accept_mode {
+                    let (_, preferences) = result?;
+                    assert_eq!(
+                        preferences.get("mode").map(String::as_str),
+                        Some(preferred.unwrap_or("build"))
+                    );
+                    cx.send_request_to(
+                        Agent,
+                        PromptRequest::new(session.session_id().clone(), vec![]),
+                    )
+                    .block_task()
+                    .await?;
+                } else {
+                    assert!(
+                        result.is_err(),
+                        "a contradictory confirmation must block prompting"
+                    );
+                }
+                Ok::<_, agent_client_protocol::Error>(())
+            })
+            .await
+            .unwrap();
+        agent.abort();
+        let observed = seen.lock().unwrap().clone();
+        observed
+    }
+
+    #[tokio::test]
+    async fn zcode_confirms_build_before_first_prompt() {
+        assert_eq!(
+            drive_mode_gate(None, true, true).await,
+            vec!["mode:build", "config:build", "prompt"]
+        );
+    }
+
+    #[tokio::test]
+    async fn zcode_preserves_explicit_yolo_choice() {
+        assert_eq!(
+            drive_mode_gate(Some("yolo"), true, true).await,
+            vec!["mode:yolo", "config:yolo", "prompt"]
+        );
+    }
+
+    #[tokio::test]
+    async fn zcode_does_not_prompt_after_failed_mode_confirmation() {
+        assert_eq!(
+            drive_mode_gate(None, false, true).await,
+            vec!["mode:build", "config:build"]
+        );
+    }
+
+    #[tokio::test]
+    async fn zcode_plan_updates_native_mode_before_confirming_config() {
+        assert_eq!(
+            drive_mode_gate(Some("plan"), true, true).await,
+            vec!["mode:plan", "config:plan", "prompt"]
+        );
+    }
+
+    #[tokio::test]
+    async fn zcode_does_not_prompt_or_set_config_after_rejected_native_mode() {
+        assert_eq!(drive_mode_gate(None, true, false).await, vec!["mode:build"]);
+    }
+
+    #[tokio::test]
+    async fn zcode_cancelled_handshake_stops_mode_confirmation_before_config_or_prompt() {
+        let observed = tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            drive_mode_gate_with_cancel(None, true, true, true),
+        )
+        .await
+        .expect("a cancelled ZCode handshake must not wait for mode confirmation");
+        assert_eq!(observed, vec!["mode:build"]);
+    }
+
+    #[test]
+    fn zcode_does_not_replay_the_mode_its_gate_applied() {
+        assert_eq!(
+            mode_to_replay_after_gate(AgentType::ZCode, Some("plan".into())),
+            None
+        );
+        assert_eq!(
+            mode_to_replay_after_gate(AgentType::OpenCode, Some("plan".into())),
+            Some("plan".to_string())
+        );
+        assert_eq!(mode_to_replay_after_gate(AgentType::OpenCode, None), None);
+    }
+
+    #[test]
+    fn zcode_does_not_offer_unvalidated_attachments() {
+        let advertised = agent_client_protocol::schema::v1::PromptCapabilities::default()
+            .image(true)
+            .audio(true)
+            .embedded_context(true);
+        let zcode = effective_prompt_capabilities(AgentType::ZCode, &advertised);
+        assert!(!zcode.image && !zcode.audio && !zcode.embedded_context);
+        let other = effective_prompt_capabilities(AgentType::KimiCode, &advertised);
+        assert!(other.image && other.audio && other.embedded_context);
+    }
+
+    #[test]
+    fn zcode_records_history_without_enabling_native_parser_agents() {
+        assert_eq!(
+            transcript_dir_for(AgentType::ZCode),
+            Some("codeg-zcode-acp")
+        );
+        assert_eq!(transcript_dir_for(AgentType::ClaudeCode), None);
+        assert_eq!(transcript_dir_for(AgentType::DeepSeek), None);
+        assert!(transcript_dir_for(AgentType::custom("example").unwrap()).is_some());
+    }
+}
+
+#[cfg(test)]
+mod wire_mcp_gate_tests {
+    use super::*;
+
+    // Cline keeps the `mcpServers` it is sent and never connects them, so the
+    // codeg-mcp companion must not be injected: its delegation and feedback
+    // tools would be advertised to a model that never gets them. Its user
+    // servers travel through its own settings file instead.
+    #[test]
+    fn cline_takes_mcp_from_its_settings_file_not_the_wire() {
+        assert!(!agent_delivers_wire_mcp(AgentType::Cline));
+        assert!(agent_reads_own_mcp_config(AgentType::Cline));
+        assert!(load_mcp_servers_for_agent(AgentType::Cline).is_empty());
+    }
+
+    #[test]
+    fn pi_stays_off_the_wire_and_the_rest_stay_on_it() {
+        assert!(!agent_delivers_wire_mcp(AgentType::Pi));
+        for agent_type in [
+            AgentType::ClaudeCode,
+            AgentType::Codex,
+            AgentType::OpenCode,
+            AgentType::Hermes,
+            AgentType::CodeBuddy,
+            AgentType::Grok,
+            AgentType::Cursor,
+            AgentType::Qoder,
+            AgentType::DeepSeek,
+            AgentType::ZCode,
+        ] {
+            assert!(agent_delivers_wire_mcp(agent_type), "{agent_type}");
+        }
+        // DeepSeek reads no MCP file at all: the wire is its only channel.
+        assert!(!agent_reads_own_mcp_config(AgentType::DeepSeek));
     }
 }

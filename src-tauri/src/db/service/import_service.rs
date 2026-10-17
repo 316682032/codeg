@@ -10,7 +10,7 @@ use crate::models::{AgentType, ConversationSummary, ImportResult};
 use crate::parsers::{build_agent_parser, path_eq_for_matching, AgentEnv, AgentEnvs, AgentParser};
 
 /// Every locally-parsable agent, in the canonical parser order.
-const ALL_PARSER_AGENTS: [AgentType; 16] = [
+const ALL_PARSER_AGENTS: [AgentType; 17] = [
     AgentType::ClaudeCode,
     AgentType::Codex,
     AgentType::OpenCode,
@@ -27,6 +27,8 @@ const ALL_PARSER_AGENTS: [AgentType; 16] = [
     AgentType::Qoder,
     AgentType::Antigravity,
     AgentType::Kiro,
+    // Codeg-owned ACP history only; no scan of ZCode's native SQLite store.
+    AgentType::ZCode,
 ];
 
 fn build_parser(agent_type: AgentType, env: &AgentEnv) -> Box<dyn AgentParser> {
@@ -506,6 +508,8 @@ async fn import_one(
         deleted_at: Set(None),
         pinned_at: Set(None),
         origin_cwd: Set(None),
+        assistant_id: Set(None),
+        assistant_snapshot: Set(None),
     };
     conv.insert(conn).await?;
     Ok(ImportOutcome::Imported)
@@ -953,6 +957,8 @@ mod tests {
             deleted_at: Set(Some(now)),
             pinned_at: Set(None),
             origin_cwd: Set(None),
+            assistant_id: Set(None),
+            assistant_snapshot: Set(None),
         }
         .insert(&db.conn)
         .await
@@ -1240,6 +1246,8 @@ mod tests {
             deleted_at: Set(None),
             pinned_at: Set(None),
             origin_cwd: Set(None),
+            assistant_id: Set(None),
+            assistant_snapshot: Set(None),
         }
         .insert(&db.conn)
         .await

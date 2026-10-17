@@ -351,6 +351,26 @@ pub fn build_router(
             post(handlers::folders::set_folder_group),
         )
         .route(
+            "/assistant_list",
+            post(handlers::assistants::assistant_list),
+        )
+        .route(
+            "/assistant_create",
+            post(handlers::assistants::assistant_create),
+        )
+        .route(
+            "/assistant_update",
+            post(handlers::assistants::assistant_update),
+        )
+        .route(
+            "/assistant_delete",
+            post(handlers::assistants::assistant_delete),
+        )
+        .route(
+            "/assistant_reorder",
+            post(handlers::assistants::assistant_reorder),
+        )
+        .route(
             "/list_conversation_tags",
             post(handlers::conversation_tags::list_conversation_tags),
         )
@@ -1848,6 +1868,10 @@ pub fn build_router(
         .route(
             "/work_task_archive",
             post(handlers::work_task::work_task_archive),
+        )
+        .route(
+            "/work_task_defer",
+            post(handlers::work_task::work_task_defer),
         )
         .route(
             "/work_task_cleanup",

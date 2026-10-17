@@ -746,6 +746,13 @@ pub enum AcpEvent {
         /// `task_id=<id>` — so the live card can label the delegation before
         /// the ack text lands on the tool output.
         task_id: String,
+        /// The assistant the child runs as (its id, and its name when the task
+        /// started); absent for a plain agent delegation. `agent_type` is then
+        /// the assistant's agent — the one actually running.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        assistant_id: Option<i32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        assistant_name: Option<String>,
     },
     /// The child sub-session has finished (or errored / timed out / been
     /// canceled). The MCP tool_result has been delivered to the parent agent.
@@ -761,6 +768,12 @@ pub enum AcpEvent {
         /// hardcoded default. Mirrors `DelegationStarted.agent_type`.
         agent_type: crate::models::agent::AgentType,
         result: DelegationResultSummary,
+        /// Mirrors `DelegationStarted`'s assistant identity, for the same
+        /// missed-start reason as `agent_type`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        assistant_id: Option<i32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        assistant_name: Option<String>,
     },
     /// A human submitted a prompt from the Codeg conversation UI (desktop or
     /// web). Synthetic, notification-only event: it mutates no `SessionState`
@@ -882,6 +895,12 @@ pub struct BackgroundSettledInfo {
     /// parse.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub result: Option<String>,
+    /// The notification says the task will notify again
+    /// ([`crate::parsers::claude::task_notification_is_interim`]): the task is
+    /// still alive, so it stays in the watcher's outstanding count, the card
+    /// reads its result as interim, and no "finished" notification is raised.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub interim: bool,
 }
 
 /// Which settings surface drifted, so the frontend can word the
@@ -1416,6 +1435,21 @@ pub struct GrokModelSpec {
     pub context_window: Option<u64>,
 }
 
+/// Grok's model catalog as its `_x.ai/models/update` broadcast states it: the
+/// list a session's model picker should offer, plus each model's spec.
+/// Backend-internal — NOT serialized onto the wire.
+#[derive(Debug, Clone)]
+pub struct GrokModelCatalog {
+    /// The picker's model rows in catalog order — `value` is the model id and
+    /// `name` its display name. No description: the rows a handshake's
+    /// `x.ai/sessionConfig` yields carry none, and the picker must read the
+    /// same whichever of the two built it.
+    pub models: Vec<SessionConfigSelectOptionInfo>,
+    /// Per-model specs, parsed exactly as a handshake's `models` are. Each
+    /// `default` here is the bare catalog default, not a session's own effort.
+    pub specs: std::collections::HashMap<String, GrokModelSpec>,
+}
+
 /// Kiro CLI's reasoning-effort state, from `_kiro.dev/metadata.reasoning`:
 /// `{"support": "alwaysOn" | "toggleable" | "unavailable", "effort"?: "high",
 /// "effortLevels": ["low", …, "max"]}` (verified against 2.24.1). `support`
@@ -1433,21 +1467,6 @@ pub struct KiroReasoning {
     /// Whether thinking is on (`thinkingEnabled`), when Kiro reports it — only
     /// once it has been set, in the session or as the model's saved default.
     pub thinking: Option<bool>,
-}
-
-/// Grok's model catalog as its `_x.ai/models/update` broadcast states it: the
-/// list a session's model picker should offer, plus each model's spec.
-/// Backend-internal — NOT serialized onto the wire.
-#[derive(Debug, Clone)]
-pub struct GrokModelCatalog {
-    /// The picker's model rows in catalog order — `value` is the model id and
-    /// `name` its display name. No description: the rows a handshake's
-    /// `x.ai/sessionConfig` yields carry none, and the picker must read the
-    /// same whichever of the two built it.
-    pub models: Vec<SessionConfigSelectOptionInfo>,
-    /// Per-model specs, parsed exactly as a handshake's `models` are. Each
-    /// `default` here is the bare catalog default, not a session's own effort.
-    pub specs: std::collections::HashMap<String, GrokModelSpec>,
 }
 
 /// Read-only snapshot of the modes + config_options an agent advertises
@@ -1481,6 +1500,16 @@ pub struct AgentOptionsSnapshot {
     /// `None` when the agent advertised nothing within the probe window.
     #[serde(default)]
     pub prompt_capabilities: Option<PromptCapabilitiesInfo>,
+    /// The options the caller asked the probe to set that the probe session
+    /// did not end up holding — rejected, skipped as withdrawn, or no longer
+    /// listed. An editor that probed for a chosen model reads `model` here as
+    /// "these options are the OTHER model's": the probe still succeeds, and
+    /// the applied options' `current_value` is deliberately rewritten to the
+    /// agent's own pick (see `report_agent_chosen_values`), so nothing else in
+    /// the snapshot can tell. Always serialized, empty included, so a missing
+    /// field can only mean a backend that predates it.
+    #[serde(default)]
+    pub unapplied_config_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

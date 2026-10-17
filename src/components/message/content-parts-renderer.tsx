@@ -71,10 +71,12 @@ import {
 import { COLLAB_AGENT_TOOL_NAME } from "@/lib/collab-tool"
 import { isCodegMcpWorkbenchTool } from "@/lib/codeg-mcp-tool"
 import { fsSeparator } from "@/lib/path-utils"
+import { localImageMime } from "@/lib/markdown-local-image"
 import { DelegatedSubThread } from "./delegated-sub-thread"
 import { DelegationStatusCard } from "./delegation-status-card"
 import { CodexVisualizeCard } from "./codex-visualize-card"
 import { HtmlFilePreviews } from "./html-file-previews"
+import { ReadImagePreview } from "./read-image-preview"
 import {
   findHtmlFileMentions,
   hasCodexVisualizeRef,
@@ -1544,6 +1546,9 @@ function FileToolInput({
   // or a line range of one, past the usual size limits; `"true"` counts too.
   const allowLarge =
     isRead && (input.allow_large === true || input.allow_large === "true")
+  // A Read of an image shows the picture: its result is no text to number,
+  // and often no bytes at all (codex's `view_image` returns only the path).
+  const imageMime = isRead && filePath ? localImageMime(filePath) : null
 
   const badges: string[] = []
   if (offset != null) badges.push(t("offset", { offset }))
@@ -1593,6 +1598,11 @@ function FileToolInput({
           </span>
         )}
       </header>
+      {filePath && imageMime && (
+        <div className="shrink-0">
+          <ReadImagePreview path={filePath} mime={imageMime} />
+        </div>
+      )}
       {displayContent && (
         <div className="overflow-auto">
           <FileContentLines
@@ -2449,6 +2459,8 @@ const ToolCallPart = memo(function ToolCallPart({
   // both its `in_progress` status and this badge until the conversation is
   // reloaded. That is pre-existing routing, not something the marker changes,
   // and the strip above the transcript is the surface that does clear on time.
+  // (The exception is a turn the user stopped: until the next prompt, reports
+  // on the calls it left open settle the promoted cards — `cancelledTurn`.)
   const airBackgrounded = useMemo(
     () => toolCallMovedToBackground(part.meta) && isUnsettledToolCall(part),
     [part]

@@ -73,6 +73,8 @@ pub enum McpAppType {
     Antigravity,
     /// Serializes as `kiro`, matching `AgentType::as_wire`.
     Kiro,
+    #[serde(rename = "zcode")]
+    ZCode,
     /// Serializes as `pi`, matching `AgentType::as_wire`. Scan-only: codeg
     /// reads and round-trips the pi MCP EXTENSION's config, but pi is not an
     /// assignable target and gets no MCP over the ACP wire. See the pi section
@@ -90,7 +92,7 @@ pub enum McpAppType {
 /// server come back on the next refresh. Both used to keep their own hand-typed
 /// copy of this list; one shared constant plus [`tests::all_mcp_apps_is_exhaustive`]
 /// (which fails to compile when a variant is added) is what keeps them honest.
-const ALL_MCP_APPS: [McpAppType; 16] = [
+const ALL_MCP_APPS: [McpAppType; 17] = [
     McpAppType::ClaudeCode,
     McpAppType::Codex,
     McpAppType::Gemini,
@@ -107,6 +109,7 @@ const ALL_MCP_APPS: [McpAppType; 16] = [
     McpAppType::Antigravity,
     McpAppType::Kiro,
     McpAppType::Pi,
+    McpAppType::ZCode,
 ];
 
 #[derive(Debug, Clone, Serialize)]
@@ -443,11 +446,21 @@ pub async fn mcp_install_from_marketplace(
     })
 }
 
+/// Save `spec` for `server_id` to exactly the agents in `apps`.
+///
+/// `shown_spec` is the spec the editor loaded for this server before the user
+/// edited it: Kiro keeps its own value for every field the save left as shown
+/// (see `upsert_kiro_server_at`). It comes from the editor because a scan
+/// taken now could already reflect a change another agent made while the
+/// editor was open, and then misread which fields the user touched. A client
+/// that sends none (a new server, or an older build) gets the scan's spec for
+/// the id as the closest stand-in, and a new server has none.
 #[cfg_attr(feature = "tauri-runtime", tauri::command)]
 pub async fn mcp_upsert_local_server(
     server_id: String,
     spec: Value,
     apps: Vec<McpAppType>,
+    shown_spec: Option<Value>,
 ) -> Result<LocalMcpServer, AppCommandError> {
     let canonical_spec = canonicalize_spec(&spec, "local MCP save")?;
     let target_apps = normalize_apps(apps);
@@ -476,11 +489,26 @@ pub async fn mcp_upsert_local_server(
     // Nothing below is reversible, and the walk REMOVES the server from every
     // non-target agent, so a target whose config cannot take it has to be
     // caught before the first write rather than halfway through.
-    require_complete_scan(&scan_local_servers())?;
+    let scan = scan_local_servers();
+    require_complete_scan(&scan)?;
+    // Canonicalized like the saved spec, so a field left alone compares equal.
+    let shown = match shown_spec {
+        Some(shown) => canonicalize_spec(&shown, "local MCP save").ok(),
+        None => scan
+            .servers
+            .iter()
+            .find(|server| server.id == server_id)
+            .map(|server| server.spec.clone()),
+    };
     with_upsert_preflight(&target_set, || {
         for app in ALL_MCP_APPS {
             if target_set.contains(&app) {
-                upsert_server_for_app(app, &server_id, &canonical_spec)?;
+                match (app, shown.as_ref()) {
+                    (McpAppType::Kiro, Some(shown)) => {
+                        upsert_kiro_server_edited(&server_id, &canonical_spec, shown)?
+                    }
+                    _ => upsert_server_for_app(app, &server_id, &canonical_spec)?,
+                }
             } else {
                 let _ = remove_server_for_app(app, &server_id)?;
             }
@@ -583,6 +611,11 @@ fn normalize_apps(apps: Vec<McpAppType>) -> Vec<McpAppType> {
 /// spec) pairs instead of writing a misrepresented entry or aborting the whole
 /// multi-agent operation. See issue #325.
 fn app_can_host_spec(app: McpAppType, canonical_spec: &Value) -> bool {
+    // ZCode's first integration validates stdio only. Do not offer remote
+    // transports merely because the bridge advertises them.
+    if app == McpAppType::ZCode {
+        return canonical_spec.get("type").and_then(Value::as_str) == Some("stdio");
+    }
     let is_sse = canonical_spec.get("type").and_then(Value::as_str) == Some("sse");
     !(matches!(app, McpAppType::Codex | McpAppType::DeepSeek | McpAppType::Kiro) && is_sse)
 }
@@ -2462,6 +2495,19 @@ fn remove_cline_server(id: &str) -> Result<bool, AppCommandError> {
 // the pair, exactly as it does for Codex.
 // ---------------------------------------------------------------------------
 
+// ZCode client MCP configuration belongs to Codeg, never to the official
+// ZCode provider/credential documents. The canonical wire-store format is
+// shared with DeepSeek; only the path and delivery agent differ.
+fn zcode_mcp_json_path() -> PathBuf {
+    crate::paths::codeg_acp_transcripts_root()
+        .with_file_name("mcp")
+        .join("zcode.json")
+}
+
+fn read_zcode_servers() -> Result<BTreeMap<String, Value>, AppCommandError> {
+    read_deepseek_servers_at(&zcode_mcp_json_path())
+}
+
 fn deepseek_mcp_json_path() -> PathBuf {
     crate::parsers::deepseek::resolve_dsh_home_dir().join("mcp.json")
 }
@@ -2554,12 +2600,12 @@ fn read_deepseek_servers_at(path: &Path) -> Result<BTreeMap<String, Value>, AppC
     };
 
     for (id, spec) in servers {
-        match canonicalize_spec(spec, "DeepSeek config") {
+        match canonicalize_spec(spec, "client MCP config") {
             Ok(normalized) => {
                 out.insert(id.to_string(), normalized);
             }
             Err(err) => {
-                eprintln!("[MCP] skip invalid DeepSeek MCP entry id={id}: {err}");
+                eprintln!("[MCP] skip invalid client MCP entry id={id}: {err}");
             }
         }
     }
@@ -2577,7 +2623,7 @@ fn upsert_deepseek_server_at(path: &Path, id: &str, spec: &Value) -> Result<(), 
         root = json!({});
     }
 
-    let canonical = canonicalize_spec(spec, "DeepSeek write")?;
+    let canonical = canonicalize_spec(spec, "client MCP write")?;
 
     let obj = root.as_object_mut().ok_or_else(|| {
         mcp_configuration_invalid(format!("invalid JSON root in {}", path.display()))
@@ -3079,7 +3125,7 @@ impl LocalMcpReader {
     }
 }
 
-fn local_mcp_readers() -> [LocalMcpReader; 16] {
+fn local_mcp_readers() -> [LocalMcpReader; 17] {
     [
         LocalMcpReader::new("Claude Code", McpAppType::ClaudeCode, read_claude_servers),
         LocalMcpReader::new("Codex", McpAppType::Codex, read_codex_servers),
@@ -3100,6 +3146,11 @@ fn local_mcp_readers() -> [LocalMcpReader; 16] {
         ),
         LocalMcpReader::new("Qoder", McpAppType::Qoder, read_qoder_servers),
         LocalMcpReader::new("Kiro CLI", McpAppType::Kiro, read_kiro_servers),
+        LocalMcpReader::new("ZCode", McpAppType::ZCode, read_zcode_servers),
+        // Scan-only, so it reads last: the merge below is first-writer-wins,
+        // and a pi entry that won would decide the transport every save of
+        // that id is checked against — dropping an assignable agent that
+        // cannot host pi's transport.
         LocalMcpReader::new("pi", McpAppType::Pi, read_pi_servers),
     ]
 }
@@ -3251,6 +3302,7 @@ fn upsert_server_for_app(app: McpAppType, id: &str, spec: &Value) -> Result<(), 
         McpAppType::Antigravity => upsert_antigravity_server(id, spec),
         McpAppType::Kiro => upsert_kiro_server(id, spec),
         McpAppType::Pi => upsert_pi_server(id, spec),
+        McpAppType::ZCode => upsert_deepseek_server_at(&zcode_mcp_json_path(), id, spec),
     }
 }
 
@@ -3280,6 +3332,7 @@ pub fn read_servers_for_agent_type(
         // unlike Kimi/Grok/Cursor, DeepSeek must stay OFF the forward skip
         // list in `connection.rs` or these servers never arrive.
         AgentType::DeepSeek => read_deepseek_servers(),
+        AgentType::ZCode => read_zcode_servers(),
         // Qoder reads MCP servers from its own settings.json `mcpServers`
         // (gemini-schema settings file) at startup — see the Qoder section
         // above for why it rides the forward skip list instead of the wire.
@@ -4268,16 +4321,63 @@ fn canonical_to_kiro_entry(spec: &Value) -> Result<Value, AppCommandError> {
 }
 
 fn upsert_kiro_server(id: &str, spec: &Value) -> Result<(), AppCommandError> {
-    upsert_kiro_server_at(&kiro_mcp_json_path(), id, spec)
+    upsert_kiro_server_at(&kiro_mcp_json_path(), id, spec, None)
 }
 
-fn upsert_kiro_server_at(path: &Path, id: &str, spec: &Value) -> Result<(), AppCommandError> {
+/// [`upsert_kiro_server`] for a save from the MCP editor, which knows the spec
+/// the editor showed for the server before the user edited it.
+fn upsert_kiro_server_edited(id: &str, spec: &Value, shown: &Value) -> Result<(), AppCommandError> {
+    upsert_kiro_server_at(&kiro_mcp_json_path(), id, spec, Some(shown))
+}
+
+/// Write `spec` as Kiro's entry for `id`.
+///
+/// With `shown` (the spec the editor showed before the edit), a Kiro field the
+/// save left exactly as shown keeps the value Kiro's own entry has — its
+/// absence included. The editor shows ONE spec per server, and for a server
+/// another agent also holds, a field both agents model is the other agent's
+/// (see [`merge_kiro_extension_fields`]): writing it back would silently
+/// re-enable a server the user disabled only in Kiro, or hand Kiro the tool
+/// approvals the user gave only to Cline. A field the user did change is
+/// theirs, and is written. Only an entry the Kiro reader lists counts as
+/// Kiro's own: one it skips (no command or url, a `registry` reference) was
+/// never shown, so nothing in it is carried over.
+fn upsert_kiro_server_at(
+    path: &Path,
+    id: &str,
+    spec: &Value,
+    shown: Option<&Value>,
+) -> Result<(), AppCommandError> {
     let mut root = read_json_file(path)?;
     if !root.is_object() {
         root = json!({});
     }
 
-    let entry = canonical_to_kiro_entry(spec)?;
+    let mut entry = canonical_to_kiro_entry(spec)?;
+    let existing = root
+        .get("mcpServers")
+        .and_then(|servers| servers.get(id))
+        .filter(|existing| canonicalize_spec(existing, "Kiro config").is_ok())
+        .and_then(Value::as_object);
+    if let (Some(shown), Some(existing), Some(entry)) = (shown, existing, entry.as_object_mut()) {
+        let stdio = spec.get("type").and_then(Value::as_str) == Some("stdio");
+        for key in KIRO_EXTENSION_KEYS {
+            if spec.get(*key) != shown.get(*key) {
+                continue;
+            }
+            match existing
+                .get(*key)
+                .filter(|value| is_kiro_extension_field(key, value, stdio))
+            {
+                Some(value) => {
+                    entry.insert((*key).to_string(), value.clone());
+                }
+                None => {
+                    entry.remove(*key);
+                }
+            }
+        }
+    }
 
     let obj = root.as_object_mut().ok_or_else(|| {
         mcp_configuration_invalid(format!("invalid JSON root in {}", path.display()))
@@ -4314,6 +4414,17 @@ fn remove_kiro_server_at(path: &Path, id: &str) -> Result<bool, AppCommandError>
         return Ok(false);
     };
 
+    // An entry the reader skips — a `registry` reference, or anything else
+    // `canonicalize_spec` rejects — was never listed as Kiro's, so no edit made
+    // in codeg can be about it. Saving a same-named server for other agents
+    // still walks Kiro to remove it from every agent it was not assigned to,
+    // and that walk must leave such an entry alone.
+    let representable = servers
+        .get(id)
+        .is_some_and(|spec| canonicalize_spec(spec, "Kiro config").is_ok());
+    if !representable {
+        return Ok(false);
+    }
     let removed = servers.remove(id).is_some();
     if removed {
         write_json_file(path, &root)?;
@@ -4592,6 +4703,7 @@ fn remove_server_for_app(app: McpAppType, id: &str) -> Result<bool, AppCommandEr
         McpAppType::Antigravity => remove_antigravity_server(id),
         McpAppType::Kiro => remove_kiro_server(id),
         McpAppType::Pi => remove_pi_server(id),
+        McpAppType::ZCode => remove_deepseek_server_at(&zcode_mcp_json_path(), id),
     }
 }
 
@@ -7434,7 +7546,7 @@ mod tests {
         let mut edited = servers["fetch"].clone();
         edited["cwd"] = json!("/somewhere");
         edited["timeout"] = json!("soon");
-        upsert_kiro_server_at(&path, "fetch", &edited).unwrap();
+        upsert_kiro_server_at(&path, "fetch", &edited, None).unwrap();
         let root: Value =
             serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
         let fetch = &root["mcpServers"]["fetch"];
@@ -7450,6 +7562,12 @@ mod tests {
 
         assert!(remove_kiro_server_at(&path, "fetch").unwrap());
         assert!(!remove_kiro_server_at(&path, "fetch").unwrap());
+
+        // The registry reference was never listed as Kiro's, so the remove
+        // walk a same-named save for other agents runs leaves it in place.
+        assert!(!remove_kiro_server_at(&path, "reg").unwrap());
+        let root: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(root["mcpServers"]["reg"], json!({"type": "registry"}));
     }
 
     // Kiro's client speaks streamable HTTP only, so an SSE server is excluded
@@ -7488,6 +7606,89 @@ mod tests {
         assert_eq!(resolved["autoApprove"], json!(["t"]));
     }
 
+    // The editor shows one spec per server, so for a server Cline also holds
+    // it shows Cline's `disabled` and `autoApprove`. Saving an unrelated edit
+    // must not write those into Kiro: a server disabled only in Kiro stays
+    // disabled, and Kiro gets no approval the user gave only to Cline. A field
+    // the user did change is written.
+    #[test]
+    fn a_save_keeps_kiros_own_value_for_every_field_it_left_alone() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings").join("mcp.json");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(
+            &path,
+            json!({"mcpServers": {
+                "fs": {"command": "npx", "args": ["fs-v1"], "disabled": true, "timeout": 5000}
+            }})
+            .to_string(),
+        )
+        .unwrap();
+        let read = |path: &Path| -> Value {
+            serde_json::from_str::<Value>(&std::fs::read_to_string(path).unwrap()).unwrap()
+                ["mcpServers"]["fs"]
+                .clone()
+        };
+        // What the editor showed: Cline's projection, which won the scan.
+        let shown = json!({
+            "type": "stdio", "command": "npx", "args": ["fs-v1"],
+            "disabled": false, "autoApprove": ["write_file"], "timeout": 5000
+        });
+
+        // Only `args` changed.
+        let mut edited = shown.clone();
+        edited["args"] = json!(["fs-v2"]);
+        upsert_kiro_server_at(&path, "fs", &edited, Some(&shown)).unwrap();
+        let fs = read(&path);
+        assert_eq!(fs["args"], json!(["fs-v2"]));
+        assert_eq!(fs["disabled"], json!(true), "still disabled in Kiro");
+        assert!(fs.get("autoApprove").is_none(), "no approval Kiro never had");
+        assert_eq!(fs["timeout"], json!(5000));
+
+        // The user turns `disabled` on and sets a timeout: both are written.
+        let before = json!({
+            "type": "stdio", "command": "npx", "args": ["fs-v2"],
+            "disabled": false, "timeout": 5000
+        });
+        let mut edited = before.clone();
+        edited["disabled"] = json!(true);
+        edited["timeout"] = json!(9000);
+        upsert_kiro_server_at(&path, "fs", &edited, Some(&before)).unwrap();
+        let fs = read(&path);
+        assert_eq!(fs["disabled"], json!(true));
+        assert_eq!(fs["timeout"], json!(9000));
+
+        // Without a shown spec (an install, a newly added agent) the spec is
+        // written as given.
+        upsert_kiro_server_at(&path, "fs", &shown, None).unwrap();
+        assert_eq!(read(&path)["autoApprove"], json!(["write_file"]));
+    }
+
+    // Only an entry the Kiro reader lists is Kiro's own. One it skips (here:
+    // no command or url) was never shown, so a save that puts the server on
+    // Kiro must not revive anything it holds — a hidden approval included.
+    #[test]
+    fn a_kiro_entry_the_reader_skips_lends_nothing_to_a_save() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings").join("mcp.json");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(
+            &path,
+            json!({"mcpServers": {"fs": {"autoApprove": ["write_file"], "disabled": true}}})
+                .to_string(),
+        )
+        .unwrap();
+        assert!(read_kiro_servers_at(&path).unwrap().is_empty());
+
+        let shown = json!({"type": "stdio", "command": "npx", "args": ["fs"]});
+        upsert_kiro_server_at(&path, "fs", &shown, Some(&shown)).unwrap();
+        let root: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(
+            root["mcpServers"]["fs"],
+            json!({"command": "npx", "args": ["fs"]})
+        );
+    }
+
     #[test]
     fn all_mcp_apps_is_exhaustive() {
         // `ALL_MCP_APPS` drives BOTH write paths' "and no others" semantics:
@@ -7519,7 +7720,8 @@ mod tests {
                 | McpAppType::Qoder
                 | McpAppType::Antigravity
                 | McpAppType::Kiro
-                | McpAppType::Pi => {}
+                | McpAppType::Pi
+                | McpAppType::ZCode => {}
             }
         }
 
@@ -7575,6 +7777,7 @@ mod tests {
             (McpAppType::Antigravity, AgentType::Antigravity),
             (McpAppType::Kiro, AgentType::Kiro),
             (McpAppType::Pi, AgentType::Pi),
+            (McpAppType::ZCode, AgentType::ZCode),
         ] {
             let wire = serde_json::to_value(app).expect("serialize app type");
             assert_eq!(
@@ -8591,5 +8794,78 @@ mod tests {
             let canonical = canonicalize_spec(&spec, "expected").expect("canonical");
             assert_eq!(back, canonical, "round-trip mismatch for {spec}");
         }
+    }
+}
+
+#[cfg(test)]
+mod zcode_transport_tests {
+    use super::*;
+
+    #[test]
+    fn zcode_targets_only_validated_stdio_servers() {
+        let stdio =
+            canonicalize_spec(&json!({"command": "node", "args": ["tool.mjs"]}), "test").unwrap();
+        let http = canonicalize_spec(
+            &json!({"type": "http", "url": "http://localhost:8080/mcp"}),
+            "test",
+        )
+        .unwrap();
+        let sse = canonicalize_spec(
+            &json!({"type": "sse", "url": "http://localhost:8080/sse"}),
+            "test",
+        )
+        .unwrap();
+        assert!(app_can_host_spec(McpAppType::ZCode, &stdio));
+        assert!(!app_can_host_spec(McpAppType::ZCode, &http));
+        assert!(!app_can_host_spec(McpAppType::ZCode, &sse));
+        // Existing agents retain their remote transport choices.
+        assert!(app_can_host_spec(McpAppType::Codex, &http));
+        assert!(app_can_host_spec(McpAppType::KimiCode, &sse));
+    }
+
+    // The scan is first-writer-wins and every save is checked against the
+    // spec it picked. With pi read before ZCode, a pi HTTP entry sharing an
+    // id with ZCode's stdio one won, so the next save excluded ZCode as unable
+    // to host HTTP and deleted its entry.
+    #[test]
+    fn zcode_spec_wins_an_id_shared_with_the_scan_only_pi_source() {
+        fn zcode_stdio() -> LocalMcpReadResult {
+            Ok(BTreeMap::from([(
+                "shared".to_string(),
+                canonicalize_spec(&json!({"command": "zcode-tool"}), "test").unwrap(),
+            )]))
+        }
+        fn pi_http() -> LocalMcpReadResult {
+            Ok(BTreeMap::from([(
+                "shared".to_string(),
+                canonicalize_spec(
+                    &json!({"type": "http", "url": "https://example.test/mcp"}),
+                    "test",
+                )
+                .unwrap(),
+            )]))
+        }
+        let readers = local_mcp_readers();
+        assert_eq!(
+            readers.last().map(|reader| reader.app),
+            Some(McpAppType::Pi),
+            "pi is scan-only and must read after every assignable agent"
+        );
+        let ordered: Vec<LocalMcpReader> = readers
+            .iter()
+            .filter_map(|reader| match reader.app {
+                McpAppType::ZCode => {
+                    Some(LocalMcpReader::new(reader.source, reader.app, zcode_stdio))
+                }
+                McpAppType::Pi => Some(LocalMcpReader::new(reader.source, reader.app, pi_http)),
+                _ => None,
+            })
+            .collect();
+        let scan = scan_local_servers_from_readers(&ordered);
+        assert_eq!(scan.servers.len(), 1);
+        let shared = &scan.servers[0];
+        assert!(shared.apps.contains(&McpAppType::ZCode) && shared.apps.contains(&McpAppType::Pi));
+        assert_eq!(shared.spec["command"], "zcode-tool");
+        assert!(app_can_host_spec(McpAppType::ZCode, &shared.spec));
     }
 }
