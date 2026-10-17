@@ -3964,7 +3964,12 @@
         "submit": "Envoyer",
         "submitError": "Échec de l'envoi. Veuillez réessayer.",
         "collapse": "Replier",
-        "expand": "Déplier"
+        "expand": "Déplier",
+        "translateQuestion": "Traduire la question",
+        "showOriginal": "Afficher l'original",
+        "translateAnswer": "Traduire la réponse",
+        "restoreAnswer": "Revenir à ce que vous avez écrit",
+        "originalAnswer": "Avant traduction : {text}"
       },
       "planApproval": {
         "title": "L'agent a un plan — à vérifier",
@@ -7296,6 +7301,7 @@
     "inputChanged": "Le message a changé pendant la traduction. Traduisez-le à nouveau.",
     "inputDamaged": "La traduction a perdu une mention, une commande ou du code ; le message est resté tel quel.",
     "inputFailed": "Impossible de traduire le message : {message}",
+    "answerFailed": "Impossible de traduire la réponse : {message}",
     "errors": {
       "missingKey": "Aucune clé d'API n'est définie pour {provider}. Ajoutez-en une dans Réglages → Traduction.",
       "unsupportedLanguage": "La langue {language} n'est pas prise en charge.",
@@ -7367,16 +7373,18 @@
     },
     "output": {
       "title": "Traduction des réponses",
-      "description": "Activé, chaque réponse de l'agent est traduite en entier une fois terminée, et seule la traduction s'affiche ; pendant qu'il écrit, vous voyez l'original. Le raisonnement est traduit quand vous le dépliez, de même que les noms de session donnés par l'agent. Désactivé, traduisez une réponse avec le bouton situé dessous.",
+      "description": "Activé, chaque partie d'une réponse de l'agent est traduite en entier dès qu'il l'a terminée (quand il passe à un outil ou à la réflexion, ou en fin de tour), et seule la traduction s'affiche ; la partie en cours d'écriture reste en version originale. Le raisonnement est traduit quand vous le dépliez, de même que les noms de session donnés par l'agent. Désactivé, traduisez une réponse avec le bouton situé dessous.",
       "target": "Traduire en",
-      "followUi": "Langue de l'interface ({language})"
+      "followUi": "Langue de l'interface ({language})",
+      "questions": "Traduire les cartes de question automatiquement",
+      "questionsDescription": "Quand un agent vous pose une question, la question et ses options s'affichent traduites ; désactivé, traduisez une carte avec le bouton en haut à droite."
     },
     "input": {
       "title": "Traduction des messages",
       "description": "Traduisez la zone de saisie sur place avec son bouton de traduction, le raccourci ou le menu contextuel. Mentions, commandes, chemins et code restent tels quels, et Annuler rétablit l'original ; une fois envoyé, le bouton à côté du message réaffiche ce que vous avez écrit.",
       "target": "Traduire en",
       "onSend": "Traduire en {language} à l'envoi",
-      "onSendDescription": "Si la traduction échoue, rien n'est envoyé.",
+      "onSendDescription": "Si la traduction échoue, rien n'est envoyé. Une réponse saisie dans « Autre » sur une carte de question est aussi traduite.",
       "shortcut": "Raccourci",
       "shortcutNone": "Non défini",
       "shortcutEdit": "Modifier"

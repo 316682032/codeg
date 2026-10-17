@@ -24,12 +24,14 @@ import {
 } from "lucide-react"
 
 import { AskQuestionCard } from "@/components/chat/ask-question-card"
+import { useQuestionTranslation } from "@/components/chat/use-question-translation"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import {
   matchSelections,
   parseAskQuestionInput,
   parseAskQuestionOutcome,
+  splitRecommended,
 } from "@/lib/ask-question"
 import type { PendingQuestionState } from "@/lib/types"
 import type { ToolCallState } from "@/lib/adapters/ai-elements-adapter"
@@ -62,6 +64,18 @@ export function AskQuestionResultCard({
     () => parseAskQuestionOutcome(output, questions),
     [output, questions]
   )
+
+  // The folded summary reads the picks the way the card shows them, from the
+  // translations already at hand: opening the card is what asks for them.
+  const pickLabels = useMemo(
+    () => (outcome?.answers ?? []).flatMap((a) => a.selected).filter(Boolean),
+    [outcome]
+  )
+  const pickTexts = useMemo(
+    () => pickLabels.map((label) => splitRecommended(label).text),
+    [pickLabels]
+  )
+  const { shown } = useQuestionTranslation(pickTexts, { request: false })
 
   const isError = !!errorText?.trim()
   const isRunning = state === "input-available" || state === "input-streaming"
@@ -224,9 +238,11 @@ export function AskQuestionResultCard({
 
   // Answered / declined. Collapsed by default into a capsule that summarizes the
   // picks; expanding reveals the live card (so the layout matches exactly).
-  const picks = (outcome?.answers ?? [])
-    .flatMap((a) => a.selected)
-    .filter(Boolean)
+  // As labelled, unless a translation stands in for it.
+  const picks = pickLabels.map((label, i) => {
+    const translated = shown(pickTexts[i])
+    return translated === pickTexts[i] ? label : translated
+  })
   const summary = outcome?.declined
     ? t("declined")
     : picks.length > 0

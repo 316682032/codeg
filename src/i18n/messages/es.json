@@ -3964,7 +3964,12 @@
         "submit": "Enviar",
         "submitError": "No se pudo enviar. Inténtalo de nuevo.",
         "collapse": "Plegar",
-        "expand": "Desplegar"
+        "expand": "Desplegar",
+        "translateQuestion": "Traducir pregunta",
+        "showOriginal": "Mostrar original",
+        "translateAnswer": "Traducir respuesta",
+        "restoreAnswer": "Volver a lo que escribiste",
+        "originalAnswer": "Antes de traducir: {text}"
       },
       "planApproval": {
         "title": "El agente tiene un plan: revísalo",
@@ -7296,6 +7301,7 @@
     "inputChanged": "El mensaje cambió mientras se traducía. Vuelve a traducirlo.",
     "inputDamaged": "La traducción perdió una mención, un comando o código, así que el mensaje se dejó como estaba.",
     "inputFailed": "No se pudo traducir el mensaje: {message}",
+    "answerFailed": "No se pudo traducir la respuesta: {message}",
     "errors": {
       "missingKey": "No hay clave de API para {provider}. Añádela en Ajustes → Traducción.",
       "unsupportedLanguage": "No se admite traducir a {language}.",
@@ -7367,16 +7373,18 @@
     },
     "output": {
       "title": "Traducción de respuestas",
-      "description": "Activado, cada respuesta del agente se traduce entera cuando termina y solo se muestra la traducción; mientras escribe ves el original. El razonamiento se traduce al desplegarlo, y también los nombres de sesión que pone el agente. Desactivado, traduce una respuesta con el botón que tiene debajo.",
+      "description": "Activado, cada parte de la respuesta del agente se traduce entera en cuanto la termina (al pasar a una herramienta o a pensar, o al acabar el turno), y solo se muestra la traducción; la parte que aún escribe se ve en el original. El razonamiento se traduce al desplegarlo, y también los nombres de sesión que pone el agente. Desactivado, traduce una respuesta con el botón que tiene debajo.",
       "target": "Traducir a",
-      "followUi": "Idioma de la interfaz ({language})"
+      "followUi": "Idioma de la interfaz ({language})",
+      "questions": "Traducir tarjetas de preguntas automáticamente",
+      "questionsDescription": "Cuando un agente te pregunta algo, la pregunta y sus opciones se muestran traducidas; desactivado, tradúcela con el botón de arriba a la derecha de la tarjeta."
     },
     "input": {
       "title": "Traducción de mensajes",
       "description": "Traduce el cuadro de mensaje en el sitio con su botón de traducir, el atajo o el menú contextual. Menciones, comandos, rutas y código se quedan igual, y Deshacer recupera el original; ya enviado, el botón junto al mensaje vuelve a lo que escribiste.",
       "target": "Traducir a",
       "onSend": "Traducir al enviar ({language})",
-      "onSendDescription": "Si la traducción falla, no se envía nada.",
+      "onSendDescription": "Si la traducción falla, no se envía nada. Una respuesta escrita en «Otro» de una tarjeta de pregunta también se traduce.",
       "shortcut": "Atajo",
       "shortcutNone": "Sin asignar",
       "shortcutEdit": "Cambiar"

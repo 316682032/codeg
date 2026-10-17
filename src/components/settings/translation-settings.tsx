@@ -423,6 +423,19 @@ export function TranslationSettings() {
                 </Select>
               }
             />
+            <SettingRow
+              title={t("output.questions")}
+              description={t("output.questionsDescription")}
+              htmlFor="translation-question-auto"
+              control={
+                <Switch
+                  id="translation-question-auto"
+                  checked={view.question_auto}
+                  disabled={saving}
+                  onCheckedChange={(next) => void save({ question_auto: next })}
+                />
+              }
+            />
           </SettingCard>
         </SettingsSection>
 

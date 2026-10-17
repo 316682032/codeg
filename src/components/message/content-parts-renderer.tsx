@@ -2266,6 +2266,7 @@ const TextPart = memo(function TextPart({
   isUser = false,
   isStreaming = false,
   translatable = false,
+  settled = !isStreaming,
 }: {
   text: string
   // User messages render as plain text + inline reference badges (no Markdown),
@@ -2274,6 +2275,9 @@ const TextPart = memo(function TextPart({
   isStreaming?: boolean
   /** An assistant reply's own text, which reply translation may stand in for. */
   translatable?: boolean
+  /** This text is written to the end: the turn is over, or something came
+   *  after it (a tool call, more thinking). Translation waits for it. */
+  settled?: boolean
 }) {
   if (isUser) {
     return (
@@ -2287,6 +2291,7 @@ const TextPart = memo(function TextPart({
       text={text}
       isStreaming={isStreaming}
       translatable={translatable}
+      settled={settled}
     />
   )
 })
@@ -2303,10 +2308,12 @@ function AssistantText({
   text,
   isStreaming,
   translatable,
+  settled,
 }: {
   text: string
   isStreaming: boolean
   translatable: boolean
+  settled: boolean
 }) {
   const segments = useMemo(
     () => (hasCodexVisualizeRef(text) ? splitCodexVisualizeRefs(text) : null),
@@ -2327,6 +2334,7 @@ function AssistantText({
         text={text}
         isStreaming={isStreaming}
         translatable={translatable}
+        settled={settled}
       />
     )
   }
@@ -2346,6 +2354,7 @@ function AssistantText({
               text={segment.text}
               isStreaming={isStreaming}
               translatable={translatable}
+              settled={settled}
             />
           )
         )
@@ -2354,6 +2363,7 @@ function AssistantText({
           text={text}
           isStreaming={isStreaming}
           translatable={translatable}
+          settled={settled}
         />
       )}
       {mentions.length > 0 ? <HtmlFilePreviews paths={mentions} /> : null}
@@ -2365,18 +2375,18 @@ function MarkdownText({
   text,
   isStreaming,
   translatable = false,
+  settled = !isStreaming,
 }: {
   text: string
   isStreaming: boolean
   translatable?: boolean
+  settled?: boolean
 }) {
-  // Once the turn has finished, its prose blocks swapped for their translation
-  // when reply translation is on; the text as written otherwise (and outside a
-  // TranslationProvider). Remounted when a block flips, see `revision`.
-  const shown = useTranslatedMarkdown(text, {
-    translatable,
-    settled: !isStreaming,
-  })
+  // Once the text is written to the end, its prose blocks swapped for their
+  // translation when reply translation is on; the text as written otherwise
+  // (and outside a TranslationProvider). Remounted when a block flips, see
+  // `revision`.
+  const shown = useTranslatedMarkdown(text, { translatable, settled })
   return (
     <div className='break-words text-sm prose prose-sm dark:prose-invert max-w-none [&_ul]:list-inside [&_ol]:list-inside [&_[data-streamdown="code-block-body"]]:max-h-96 [&_[data-streamdown="code-block-body"]]:overflow-auto'>
       {/* An assistant reply's own text: the one place a ```spec fence may
@@ -3174,6 +3184,23 @@ const ProposedPlanPart = memo(function ProposedPlanPart({
 
 // ── Main renderer ─────────────────────────────────────────────────────
 
+/**
+ * The text the agent is still writing: the turn's last part while it streams,
+ * looking into a goal run it ends inside. Every other text is finished — the
+ * agent moved on to a tool call or more thinking after it — so a live turn's
+ * notes between tool calls are translated as each one ends, not when the whole
+ * task does.
+ */
+function textBeingWritten(
+  parts: AdaptedContentPart[],
+  isStreaming: boolean
+): AdaptedContentPart | null {
+  if (!isStreaming) return null
+  let last = parts[parts.length - 1]
+  while (last?.type === "goal-run") last = last.items[last.items.length - 1]
+  return last?.type === "text" ? last : null
+}
+
 interface ContentPartsRendererProps {
   parts: AdaptedContentPart[]
   role?: MessageRole
@@ -3185,6 +3212,7 @@ export const ContentPartsRenderer = memo(function ContentPartsRenderer({
   role,
   isStreaming = false,
 }: ContentPartsRendererProps) {
+  const writing = textBeingWritten(parts, isStreaming)
   const renderPart = (part: AdaptedContentPart, keyId: string): ReactNode => {
     if (part.type === "text") {
       // An empty text part renders nothing but still earns a `space-y-4` gap
@@ -3200,6 +3228,7 @@ export const ContentPartsRenderer = memo(function ContentPartsRenderer({
           isUser={role === "user"}
           isStreaming={isStreaming}
           translatable={role === "assistant"}
+          settled={part !== writing}
         />
       )
     }

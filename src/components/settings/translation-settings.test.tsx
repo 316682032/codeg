@@ -67,6 +67,7 @@ beforeEach(() => {
     fallback_enabled: true,
     output_auto: false,
     output_target: null,
+    question_auto: true,
     input_target: "en",
     input_translate_on_send: false,
     glossary: [],
@@ -135,6 +136,16 @@ describe("TranslationSettings", () => {
     await waitFor(() => expect(saved).toHaveLength(1))
     expect(saved[0].output_auto).toBe(true)
     expect(saved[0].dashscope_api_key).toBeUndefined()
+  })
+
+  it("saves the question-card switch on its own", async () => {
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole("switch", { name: t.output.questions })
+    )
+    await waitFor(() => expect(saved).toHaveLength(1))
+    expect(saved[0].question_auto).toBe(false)
+    expect(saved[0].output_auto).toBe(false)
   })
 
   it("saves a glossary row when it is left, not between its fields", async () => {

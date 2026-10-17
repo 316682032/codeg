@@ -3964,7 +3964,12 @@
         "submit": "提交",
         "submitError": "提交失败，请重试。",
         "collapse": "折叠",
-        "expand": "展开"
+        "expand": "展开",
+        "translateQuestion": "翻译提问",
+        "showOriginal": "显示原文",
+        "translateAnswer": "翻译回答",
+        "restoreAnswer": "恢复翻译前的内容",
+        "originalAnswer": "翻译前：{text}"
       },
       "planApproval": {
         "title": "智能体已给出计划——请审阅",
@@ -7296,6 +7301,7 @@
     "inputChanged": "翻译期间消息被改动了，请再翻译一次。",
     "inputDamaged": "译文丢失了提及、命令或代码，已保留原文。",
     "inputFailed": "消息翻译失败：{message}",
+    "answerFailed": "回答翻译失败：{message}",
     "errors": {
       "missingKey": "{provider} 还没有设置 API Key，请到 设置 → 翻译 里添加。",
       "unsupportedLanguage": "不支持翻译成 {language}。",
@@ -7367,16 +7373,18 @@
     },
     "output": {
       "title": "回复翻译",
-      "description": "开启后，智能体写完一条回复，整条翻译一次，只显示译文；写的过程中先显示原文。思考过程展开时也会翻译，智能体起的会话名也一起翻译。关闭时，用每条回复下方的按钮手动翻译。",
+      "description": "开启后，智能体每写完一段（接着去调用工具、思考，或整轮结束），这一段就整段翻译，只显示译文；正在写的那一段先显示原文。思考过程展开时也会翻译，智能体起的会话名也一起翻译。关闭时，用每条回复下方的按钮手动翻译。",
       "target": "翻译成",
-      "followUi": "跟随界面语言（{language}）"
+      "followUi": "跟随界面语言（{language}）",
+      "questions": "自动翻译提问卡片",
+      "questionsDescription": "智能体向你提问时，问题和选项直接显示译文；关闭时用卡片右上角的按钮手动翻译。"
     },
     "input": {
       "title": "消息翻译",
       "description": "点输入框的翻译按钮、按快捷键或用右键菜单，把消息原地翻译。提及、命令、路径和代码保持原样，撤销可恢复原文；发出后，消息旁的按钮可以切回翻译前的原文。",
       "target": "翻译成",
       "onSend": "发送时自动翻译成{language}",
-      "onSendDescription": "翻译失败时不会发送。",
+      "onSendDescription": "翻译失败时不会发送。提问卡片里在「其他」中填写的回答也会先翻译。",
       "shortcut": "快捷键",
       "shortcutNone": "未设置",
       "shortcutEdit": "修改"

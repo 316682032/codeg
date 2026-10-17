@@ -505,5 +505,7 @@ mod tests {
                 .expect("parse");
         assert_eq!(parsed.provider, TranslationProvider::Tokenhub);
         assert!(parsed.fallback_enabled, "missing fields take their defaults");
+        // Rows from before question cards were translated: on, the default.
+        assert!(parsed.question_auto);
     }
 }

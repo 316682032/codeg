@@ -3964,7 +3964,12 @@
         "submit": "제출",
         "submitError": "제출하지 못했습니다. 다시 시도해 주세요.",
         "collapse": "접기",
-        "expand": "펼치기"
+        "expand": "펼치기",
+        "translateQuestion": "질문 번역",
+        "showOriginal": "원문 보기",
+        "translateAnswer": "답변 번역",
+        "restoreAnswer": "번역 전 내용으로 되돌리기",
+        "originalAnswer": "번역 전: {text}"
       },
       "planApproval": {
         "title": "에이전트가 계획을 제시했습니다 — 검토하세요",
@@ -7296,6 +7301,7 @@
     "inputChanged": "번역하는 동안 메시지가 바뀌었습니다. 다시 번역해 주세요.",
     "inputDamaged": "번역에서 멘션, 명령 또는 코드가 사라져 원문을 그대로 두었습니다.",
     "inputFailed": "메시지를 번역하지 못했습니다: {message}",
+    "answerFailed": "답변을 번역하지 못했습니다: {message}",
     "errors": {
       "missingKey": "{provider}의 API 키가 없습니다. 설정 → 번역에서 추가하세요.",
       "unsupportedLanguage": "{language}(으)로의 번역은 지원하지 않습니다.",
@@ -7367,16 +7373,18 @@
     },
     "output": {
       "title": "답변 번역",
-      "description": "켜면 에이전트가 답변을 다 쓴 뒤 답변 전체를 한 번에 번역하고 번역문만 보여 줍니다. 쓰는 동안에는 원문을 보여 줍니다. 생각 과정은 펼칠 때 번역하고, 에이전트가 붙인 세션 이름도 번역합니다. 끄면 각 답변 아래 버튼으로 번역합니다.",
+      "description": "켜면 에이전트가 답변을 한 덩어리씩 다 쓸 때마다(도구 호출이나 생각으로 넘어가거나 턴이 끝날 때) 그 덩어리 전체를 번역하고 번역문만 보여 줍니다. 쓰고 있는 덩어리는 원문으로 보여 줍니다. 생각 과정은 펼칠 때 번역하고, 에이전트가 붙인 세션 이름도 번역합니다. 끄면 각 답변 아래 버튼으로 번역합니다.",
       "target": "번역할 언어",
-      "followUi": "인터페이스 언어({language})"
+      "followUi": "인터페이스 언어({language})",
+      "questions": "질문 카드 자동 번역",
+      "questionsDescription": "에이전트가 질문하면 질문과 선택지를 번역해 보여 줍니다. 끄면 카드 오른쪽 위 버튼으로 번역합니다."
     },
     "input": {
       "title": "메시지 번역",
       "description": "입력창의 번역 버튼, 단축키 또는 오른쪽 클릭 메뉴로 메시지를 그 자리에서 번역합니다. 멘션, 명령, 경로, 코드는 그대로 남고, 실행 취소로 원문을 되돌릴 수 있습니다. 보낸 뒤에는 메시지 옆 버튼으로 번역 전 원문을 볼 수 있습니다.",
       "target": "번역할 언어",
       "onSend": "보낼 때 자동 번역({language})",
-      "onSendDescription": "번역에 실패하면 보내지 않습니다.",
+      "onSendDescription": "번역에 실패하면 보내지 않습니다. 질문 카드의 \"기타\"에 적은 답변도 먼저 번역합니다.",
       "shortcut": "단축키",
       "shortcutNone": "설정 안 됨",
       "shortcutEdit": "변경"
