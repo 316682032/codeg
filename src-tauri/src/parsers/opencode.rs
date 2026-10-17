@@ -701,6 +701,7 @@ impl OpenCodeParser {
                             // into this stats block; there is no separate
                             // session for the card to open.
                             child_session_id: None,
+                            child_session_agent_type: None,
                         });
 
                         let has_error_field = state.and_then(|s| s.get("error")).is_some();
@@ -2385,6 +2386,7 @@ fn v2_agent_blocks(
                 // As for a 1.x `task`, the child's transcript is folded into
                 // this block rather than opened as a session of its own.
                 child_session_id: None,
+                child_session_agent_type: None,
             }),
             images: Vec::new(),
         },

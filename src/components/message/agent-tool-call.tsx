@@ -1,6 +1,7 @@
 import { memo, useMemo, useState, type ReactNode } from "react"
 import type { AdaptedContentPart } from "@/lib/adapters/ai-elements-adapter"
 import type {
+  AgentExecutionStats,
   AgentToolCall,
   AgentTranscriptEntry,
   AgentType,
@@ -183,14 +184,25 @@ function parseGrokSubagentProgress(
 
 /**
  * The child's own session, when the sub-agent ran as a standalone session on
- * disk. TWO agents do this, and for the same reason: the child is a full
- * session that streams its transcript to disk while none of it is forwarded
- * over ACP, so opening that session is the ONLY way to see the child's work.
+ * disk. THREE agents do this, and for the same reason: the child's full record
+ * is a session-shaped transcript of its own, which the card can only summarise
+ * — and, for grok and codex, none of it is forwarded over ACP, so opening that
+ * session is the ONLY way to see the child's work.
  *
  * Grok, live, arrives as `meta.grokSubagentSession.childSessionId`
  * (`connection.rs::grok_subagent_meta`, re-sent on every progress tick because
  * meta is replaced wholesale); in history it comes off the parsed
  * `agent_stats.child_session_id` (`parsers/grok.rs::subagent_stats`).
+ *
+ * Claude Code files every sub-agent under `subagents/agent-<agentId>.jsonl`,
+ * which `get_conversation` resolves by that `agentId`
+ * (`parsers/claude.rs::find_subagent_transcript_in`). Live, the backend stamps
+ * it onto the card as `meta["codeg.claudeSubagent"].agentId` the moment the
+ * sub-agent starts, foreground or background, off the raw SDK stream's
+ * `task_started` (`connection.rs::claude_subagent_session_update` — nothing
+ * claude-agent-acp itself reports carries it); in history the parser puts it
+ * on `agent_stats` alongside `child_session_agent_type`, which is how that
+ * branch tells it from grok's.
  *
  * Codex needs neither, because its child's thread id IS its rollout's id and
  * the card already carries it as `agent_id` — the badge and the session key are
@@ -201,23 +213,29 @@ function parseGrokSubagentProgress(
  *
  * The agent type is pinned per branch rather than read from the conversation:
  * the card has no conversation-level agent type of its own, and a parent's
- * child is a session of the parent's own kind in both cases. A third producer
- * of `child_session_id` is the line to revisit.
+ * child is a session of the parent's own kind in every case.
  */
 function parseChildSessionId(
   meta: Record<string, unknown> | null | undefined,
-  statsChildSessionId: string | null | undefined,
+  stats: AgentExecutionStats | null,
   codexSubagentId: string | null
 ): { sessionId: string; agentType: AgentType } | null {
-  const raw = meta?.grokSubagentSession
-  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    const live = (raw as Record<string, unknown>).childSessionId
-    if (typeof live === "string" && live.length > 0) {
-      return { sessionId: live, agentType: "grok" }
-    }
+  const stamped = (key: string, field: string): string | null => {
+    const raw = meta?.[key]
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null
+    const value = (raw as Record<string, unknown>)[field]
+    return typeof value === "string" && value.length > 0 ? value : null
   }
-  if (statsChildSessionId && statsChildSessionId.length > 0) {
-    return { sessionId: statsChildSessionId, agentType: "grok" }
+  const grokChild = stamped("grokSubagentSession", "childSessionId")
+  if (grokChild) return { sessionId: grokChild, agentType: "grok" }
+  const claudeChild = stamped("codeg.claudeSubagent", "agentId")
+  if (claudeChild) return { sessionId: claudeChild, agentType: "claude_code" }
+  if (stats?.child_session_id) {
+    return {
+      sessionId: stats.child_session_id,
+      // Stats from before the field existed came from grok, its only producer.
+      agentType: stats.child_session_agent_type ?? "grok",
+    }
   }
   return codexSubagentId
     ? { sessionId: codexSubagentId, agentType: "codex" }
@@ -550,18 +568,18 @@ export const AgentToolCallPart = memo(function AgentToolCallPart({
     [part.meta]
   )
 
-  // The child's own session, when it has one (grok, codex). Available live —
-  // from the spawn notification's meta / id — as well as in history, so a
-  // running child can be watched while it works instead of only after it
+  // The child's own session, when it has one (grok, codex, Claude Code).
+  // Available live — from the spawn's meta stamp / id — as well as in history,
+  // so a running child can be watched while it works instead of only after it
   // reports back.
   const childSession = useMemo(
     () =>
       parseChildSessionId(
         part.meta,
-        agentStats?.child_session_id,
+        agentStats,
         isCodexSubagent ? agentId : null
       ),
-    [part.meta, agentStats?.child_session_id, isCodexSubagent, agentId]
+    [part.meta, agentStats, isCodexSubagent, agentId]
   )
   const viewerHost = useSessionViewerHost()
   const [sessionOpen, setSessionOpen] = useState(false)

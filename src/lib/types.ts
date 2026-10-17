@@ -150,10 +150,14 @@ export interface AgentExecutionStats {
   recovered_result?: string
   /** The child's own session id, when the sub-agent ran as a standalone session
    *  on disk instead of as chunks folded into the parent (Grok: every
-   *  `spawn_subagent` child). Drives the Agent card's "open the sub-agent's
+   *  `spawn_subagent` child; Claude Code: the `agentId` of a sub-agent whose
+   *  transcript is on disk). Drives the Agent card's "open the sub-agent's
    *  session" action — `getConversation` resolves it even though the session is
    *  hidden from the sidebar. Absent for every other agent. */
   child_session_id?: string | null
+  /** The agent whose parser reads `child_session_id`. Absent on stats written
+   *  before Claude Code joined Grok here — read those as Grok. */
+  child_session_agent_type?: AgentType | null
 }
 
 /**

@@ -35,7 +35,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">🌐 <strong>Übersetzte Antworten und Nachrichten</strong><br/>Jeder Abschnitt einer Agentenantwort wird in deine Sprache übersetzt, sobald er fertig ist, auch Denkprozesse und Fragekarten, und eine Nachricht wird per Tastendruck ins Englische übersetzt, mit Übersetzungsmodellen von Alibaba Cloud oder Tencent Cloud in etwa einer Sekunde pro 1.000 Zeichen.</td>
-    <td width="50%" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
+    <td width="50%" valign="top">🧩 <strong>Sitzungen von Claude-Code-Subagenten</strong><br/>Subagent-Karten bekommen „Subagent-Sitzung ansehen“, das wie bei Codex die vollständige Unterhaltung öffnet; einem Subagenten lässt sich bei der Arbeit zusehen.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
   </tr>
 </table>
 
@@ -79,6 +82,17 @@
 - Bei einem Anfragelimit wird auf `qwen-mt-lite` oder die andere Engine ausgewichen; ein Glossar legt fest, wie bestimmte Begriffe übersetzt werden, und ein Eintrag ohne Übersetzung lässt seinen Begriff unverändert.
 - API-Schlüssel liegen im Schlüsselbund des Systems (auf einem Server in `tokens.json` im Datenverzeichnis), nie in der Datenbank. Übersetzungsanfragen verbinden sich direkt, ohne Proxy, und nehmen den Proxy nur, wenn das Netz keinen anderen Weg nach draußen lässt.
 - Übersetzte Antworten dienen nur der Anzeige: Der Verlauf der Unterhaltung behält den Originaltext des Agenten. Was du vor dem Übersetzen einer Nachricht geschrieben hast, wird in der lokalen Datenbank gespeichert; das Leeren des Übersetzungs-Caches löscht es nicht.
+
+</details>
+
+<details>
+<summary><strong>Sitzungen von Claude-Code-Subagenten</strong>: Details</summary>
+<br/>
+
+- Claude Code speichert die gesamte Unterhaltung jedes Subagenten (Agent- / Task-Tool) in einer eigenen Datei, `~/.claude/projects/<Projekt>/<Sitzungs-ID>/subagents/agent-<id>.jsonl`. Im offiziellen Build zeigt die Karte nur eine Zusammenfassung des Ablaufs und das Endergebnis (bei einem Subagenten im Hintergrund nicht einmal die Zusammenfassung), und die Datei lässt sich nicht öffnen.
+- Dieser Build ergänzt neben dem Kartentitel die Schaltfläche „Subagent-Sitzung ansehen“, die diese Datei in einem Seitenbereich öffnet: die Aufgabe, die der Subagent bekommen hat, seine Denkprozesse und Antworten und jeden Tool-Aufruf mit Ein- und Ausgabe. Es ist dieselbe Schaltfläche wie auf den Subagent-Karten von Codex und Grok.
+- Die Schaltfläche erscheint, sobald der Subagent startet, im Vorder- wie im Hintergrund. Wird sie geöffnet, während er noch arbeitet, aktualisiert sich der Bereich alle 2 Sekunden und zeigt den gerade laufenden Tool-Aufruf als laufend an. Nach dem Neuladen der Unterhaltung geöffnet, zeigt er die Datei im damaligen Stand; Schließen und erneutes Öffnen zeigt den aktuellen.
+- Auch frühere Unterhaltungen funktionieren, solange die Datei des Subagenten noch da ist.
 
 </details>
 

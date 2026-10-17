@@ -19084,6 +19084,77 @@ fn stash_claude_viewed_results(params: &serde_json::Value, cb_state: &mut CodeBu
     }
 }
 
+/// The `_meta` key the launching Agent card of a running Claude Code sub-agent
+/// carries the sub-agent's id under (`{"agentId": …}`) — the id its transcript
+/// is filed by, which the card opens as the child's session (frontend
+/// `parseChildSessionId`). A `codeg.` key, so the `_meta` ledger keeps it
+/// across every later report of the call.
+const CLAUDE_SUBAGENT_META_KEY: &str = "codeg.claudeSubagent";
+
+/// The Agent call a Claude Code sub-agent was launched by and the sub-agent's
+/// id, off the raw SDK stream's `system/task_started` frame.
+///
+/// That frame is the one place the id reaches codeg while the sub-agent runs.
+/// claude-agent-acp keeps it to itself: it publishes sub-agent tasks only to a
+/// client declaring native sub-agent sessions (see `build_client_capabilities`
+/// for why codeg does not), cuts an AIR client's `toolResponse` down to its
+/// status markers, and strips the `agentId: …` line off a finished foreground
+/// result. Only a sub-agent's task counts — a background shell's or a
+/// workflow's names no transcript — and the id is gated like every other one
+/// handed to `get_conversation`.
+fn claude_subagent_started(params: &serde_json::Value) -> Option<(&str, &str)> {
+    let message = params.get("message")?;
+    let field = |key: &str| {
+        message
+            .get(key)
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+    };
+    if field("type") != Some("system") || field("subtype") != Some("task_started") {
+        return None;
+    }
+    if field("task_type") != Some("local_agent") && field("subagent_type").is_none() {
+        return None;
+    }
+    let agent_id = field("task_id").filter(|id| crate::parsers::is_safe_subagent_id(id))?;
+    Some((field("tool_use_id")?, agent_id))
+}
+
+/// The update that stamps a just-started Claude Code sub-agent's id onto the
+/// Agent card that launched it, with the card's whole merged `_meta` (an update
+/// replaces it), and the id of that card. `None` for any other frame, and for a
+/// launch this connection never announced.
+fn claude_subagent_session_update(
+    params: &serde_json::Value,
+    cb_state: &mut CodeBuddyLiveState,
+) -> Option<(String, AcpEvent)> {
+    let (tool_use_id, agent_id) = claude_subagent_started(params)?;
+    cb_state.air_tool_call_meta.claude_tool_name(tool_use_id)?;
+    let mut stamp = serde_json::Map::new();
+    stamp.insert(
+        CLAUDE_SUBAGENT_META_KEY.to_string(),
+        serde_json::json!({ "agentId": agent_id }),
+    );
+    let meta = cb_state
+        .air_tool_call_meta
+        .update(AgentType::ClaudeCode, tool_use_id, Some(stamp))?;
+    Some((
+        tool_use_id.to_string(),
+        AcpEvent::ToolCallUpdate {
+            tool_call_id: tool_use_id.to_string(),
+            title: None,
+            status: None,
+            content: None,
+            raw_input: None,
+            raw_output: None,
+            raw_output_append: None,
+            locations: None,
+            meta: Some(serde_json::Value::Object(meta)),
+            images: None,
+        },
+    ))
+}
+
 /// The plugins a claude `system/init` frame reports it could not load
 /// (`plugin_errors`, CLI 2.1.283+), read off the raw SDK stream.
 ///
@@ -19222,6 +19293,17 @@ async fn maybe_emit_ext_notification(
         stash_claude_viewed_results(notification.params(), cb_state);
         if let Some(failures) = take_new_claude_plugin_failures(notification.params(), cb_state) {
             emit_with_state(state, emitter, AcpEvent::PluginLoadFailures { failures }).await;
+        }
+        // Gated on the card still being part of the live turn: an update naming
+        // a call the turn no longer holds would materialize a ghost card (see
+        // `settle_codex_subagent_launch`).
+        if let Some((launch_id, update)) =
+            claude_subagent_session_update(notification.params(), cb_state)
+        {
+            emit_with_state_gated(state, emitter, update, |s| {
+                s.active_tool_calls.contains_key(&launch_id)
+            })
+            .await;
         }
     }
     // A grok `subagent_spawned` can yield TWO events (the card's session stamp
@@ -24953,6 +25035,83 @@ mod tests {
         )
         .is_none());
         assert!(stash.is_empty());
+    }
+
+    fn claude_task_started(fields: serde_json::Value) -> serde_json::Value {
+        let mut message = serde_json::json!({"type": "system", "subtype": "task_started"});
+        for (key, value) in fields.as_object().unwrap() {
+            message[key] = value.clone();
+        }
+        serde_json::json!({"sessionId": "s", "message": message})
+    }
+
+    #[test]
+    fn a_started_claude_sub_agent_stamps_its_id_onto_the_launching_card() {
+        let mut cb = CodeBuddyLiveState::default();
+        cb.air_tool_call_meta.open(
+            AgentType::ClaudeCode,
+            "toolu_agent",
+            Some(meta_map(serde_json::json!({
+                "claudeCode": {"toolName": "Agent"},
+                "jetbrains": {"air": {"subagent": true, "version": 1}}
+            }))),
+        );
+        let params = claude_task_started(serde_json::json!({
+            "task_id": "a04a6ca8e303c783a",
+            "tool_use_id": "toolu_agent",
+            "task_type": "local_agent",
+            "subagent_type": "general-purpose",
+            "description": "Run sleep and echo output"
+        }));
+        let (launch_id, event) =
+            claude_subagent_session_update(&params, &mut cb).expect("a sub-agent launch");
+        assert_eq!(launch_id, "toolu_agent");
+        let AcpEvent::ToolCallUpdate { tool_call_id, meta: Some(meta), status: None, .. } = event
+        else {
+            panic!("a meta-only update of the launching card");
+        };
+        assert_eq!(tool_call_id, "toolu_agent");
+        assert_eq!(meta[CLAUDE_SUBAGENT_META_KEY]["agentId"], "a04a6ca8e303c783a");
+        // The update replaces the card's meta, so it carries the rest of it too:
+        // the marker that makes the card a sub-agent card is still there.
+        assert_eq!(meta["claudeCode"]["subagent"], true);
+
+        // …and so does every later report of the call.
+        let later = cb
+            .air_tool_call_meta
+            .update(
+                AgentType::ClaudeCode,
+                "toolu_agent",
+                Some(meta_map(serde_json::json!({"claudeCode": {"toolResponse": {"status": "completed"}}}))),
+            )
+            .unwrap();
+        assert_eq!(later[CLAUDE_SUBAGENT_META_KEY]["agentId"], "a04a6ca8e303c783a");
+    }
+
+    #[test]
+    fn only_a_sub_agent_task_of_an_announced_call_with_a_safe_id_is_stamped() {
+        let mut cb = CodeBuddyLiveState::default();
+        cb.air_tool_call_meta
+            .open(AgentType::ClaudeCode, "toolu_a", Some(claude_meta("Agent")));
+        let started = |fields: serde_json::Value| {
+            let mut fields = fields;
+            fields["tool_use_id"] = "toolu_a".into();
+            claude_task_started(fields)
+        };
+        // A background shell is a task too, but names no transcript.
+        let shell = started(serde_json::json!({"task_id": "b7k2", "task_type": "local_bash"}));
+        assert!(claude_subagent_session_update(&shell, &mut cb).is_none());
+        let traversal = started(serde_json::json!({"task_id": "../x", "task_type": "local_agent"}));
+        assert!(claude_subagent_session_update(&traversal, &mut cb).is_none());
+        let unannounced = claude_task_started(serde_json::json!({
+            "task_id": "a1", "tool_use_id": "toolu_unseen", "task_type": "local_agent"
+        }));
+        assert!(claude_subagent_session_update(&unannounced, &mut cb).is_none());
+        let other_frame = serde_json::json!({"sessionId": "s", "message": {"type": "system", "subtype": "init"}});
+        assert!(claude_subagent_session_update(&other_frame, &mut cb).is_none());
+        // A frame that names the sub-agent type alone still counts.
+        let typed = started(serde_json::json!({"task_id": "a2", "subagent_type": "Explore"}));
+        assert!(claude_subagent_session_update(&typed, &mut cb).is_some());
     }
 
     #[test]
