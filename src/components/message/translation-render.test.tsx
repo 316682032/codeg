@@ -36,6 +36,7 @@ const SETTINGS: TranslationSettingsView = {
   fallback_enabled: true,
   output_auto: true,
   output_target: "en",
+  question_auto: true,
   input_target: "en",
   input_translate_on_send: false,
   glossary: [],
@@ -169,5 +170,37 @@ describe("translated thinking", () => {
 
     act(() => setBlockOverrides(["先读配置。"], "original"))
     expect(container.textContent).toContain("先读配置。")
+  })
+})
+
+describe("a reply still being written", () => {
+  function renderTurn(isStreaming: boolean) {
+    return (
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        <TranslationProvider>
+          <ContentPartsRenderer
+            parts={[
+              { type: "text", text: "说明。" },
+              { type: "reasoning", content: "", isStreaming: false },
+              { type: "text", text: "文件" },
+            ]}
+            role="assistant"
+            isStreaming={isStreaming}
+          />
+        </TranslationProvider>
+      </NextIntlClientProvider>
+    )
+  }
+
+  it("translates a note as soon as the agent moves on, not the one it is writing", async () => {
+    const { container, rerender } = render(renderTurn(true))
+    await waitFor(() => expect(container.textContent).toContain("Notes."))
+    expect(container.textContent).toContain("文件")
+    expect(mocks.translateTexts.mock.calls).toEqual([[["说明。"], "en"]])
+
+    // The turn ends: the last note is finished too.
+    rerender(renderTurn(false))
+    await waitFor(() => expect(container.textContent).toContain("File"))
+    expect(mocks.translateTexts.mock.calls[1]).toEqual([["文件"], "en"])
   })
 })

@@ -65,6 +65,7 @@ function view(overrides: Partial<TranslationSettingsView> = {}) {
     fallback_enabled: true,
     output_auto: true,
     output_target: "zh-CN",
+    question_auto: true,
     input_target: "en",
     input_translate_on_send: false,
     glossary: [],

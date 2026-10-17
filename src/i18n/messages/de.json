@@ -3964,7 +3964,12 @@
         "submit": "Senden",
         "submitError": "Senden fehlgeschlagen. Bitte versuche es erneut.",
         "collapse": "Einklappen",
-        "expand": "Ausklappen"
+        "expand": "Ausklappen",
+        "translateQuestion": "Frage übersetzen",
+        "showOriginal": "Original anzeigen",
+        "translateAnswer": "Antwort übersetzen",
+        "restoreAnswer": "Zurück zu deinem Text",
+        "originalAnswer": "Vor der Übersetzung: {text}"
       },
       "planApproval": {
         "title": "Der Agent hat einen Plan – bitte prüfen",
@@ -7296,6 +7301,7 @@
     "inputChanged": "Die Nachricht wurde während der Übersetzung geändert. Bitte erneut übersetzen.",
     "inputDamaged": "Bei der Übersetzung ging eine Erwähnung, ein Befehl oder Code verloren, daher bleibt die Nachricht unverändert.",
     "inputFailed": "Die Nachricht konnte nicht übersetzt werden: {message}",
+    "answerFailed": "Die Antwort konnte nicht übersetzt werden: {message}",
     "errors": {
       "missingKey": "Für {provider} ist kein API-Schlüssel hinterlegt. Füge ihn unter Einstellungen → Übersetzung hinzu.",
       "unsupportedLanguage": "Die Sprache {language} wird nicht unterstützt.",
@@ -7367,16 +7373,18 @@
     },
     "output": {
       "title": "Antworten übersetzen",
-      "description": "Wenn an, wird jede Antwort des Agenten als Ganzes übersetzt, sobald sie fertig ist, und nur die Übersetzung angezeigt; solange er schreibt, siehst du das Original. Denkprozesse werden beim Aufklappen übersetzt, ebenso die Sitzungsnamen, die der Agent vergibt. Wenn aus, übersetze eine Antwort über die Schaltfläche darunter.",
+      "description": "Wenn an, wird jeder Abschnitt einer Agentenantwort als Ganzes übersetzt, sobald der Agent ihn fertig hat (zu einem Tool-Aufruf oder Denkprozess übergeht oder die Runde endet), und nur die Übersetzung angezeigt; der Abschnitt, an dem er noch schreibt, erscheint im Original. Denkprozesse werden beim Aufklappen übersetzt, ebenso die Sitzungsnamen, die der Agent vergibt. Wenn aus, übersetze eine Antwort über die Schaltfläche darunter.",
       "target": "Übersetzen in",
-      "followUi": "Sprache der Oberfläche ({language})"
+      "followUi": "Sprache der Oberfläche ({language})",
+      "questions": "Fragekarten automatisch übersetzen",
+      "questionsDescription": "Stellt dir ein Agent eine Frage, erscheinen Frage und Optionen übersetzt; wenn aus, übersetze eine Karte über die Schaltfläche oben rechts."
     },
     "input": {
       "title": "Nachrichten übersetzen",
       "description": "Übersetze das Eingabefeld an Ort und Stelle über seine Übersetzen-Schaltfläche, das Tastenkürzel oder das Kontextmenü. Erwähnungen, Befehle, Pfade und Code bleiben unverändert, und Rückgängig stellt das Original wieder her; nach dem Senden zeigt die Schaltfläche neben der Nachricht wieder, was du geschrieben hast.",
       "target": "Übersetzen in",
       "onSend": "Beim Senden übersetzen ({language})",
-      "onSendDescription": "Schlägt die Übersetzung fehl, wird nichts gesendet.",
+      "onSendDescription": "Schlägt die Übersetzung fehl, wird nichts gesendet. Eine unter „Andere“ auf einer Fragekarte getippte Antwort wird ebenfalls übersetzt.",
       "shortcut": "Tastenkürzel",
       "shortcutNone": "Nicht festgelegt",
       "shortcutEdit": "Ändern"

@@ -3964,7 +3964,12 @@
         "submit": "提交",
         "submitError": "提交失敗，請重試。",
         "collapse": "摺疊",
-        "expand": "展開"
+        "expand": "展開",
+        "translateQuestion": "翻譯提問",
+        "showOriginal": "顯示原文",
+        "translateAnswer": "翻譯回答",
+        "restoreAnswer": "還原翻譯前的內容",
+        "originalAnswer": "翻譯前：{text}"
       },
       "planApproval": {
         "title": "智慧代理已提出計畫——請審閱",
@@ -7296,6 +7301,7 @@
     "inputChanged": "翻譯期間訊息被改動了，請再翻譯一次。",
     "inputDamaged": "譯文遺失了提及、指令或程式碼，已保留原文。",
     "inputFailed": "訊息翻譯失敗：{message}",
+    "answerFailed": "回答翻譯失敗：{message}",
     "errors": {
       "missingKey": "{provider} 還沒有設定 API Key，請到 設定 → 翻譯 裡新增。",
       "unsupportedLanguage": "不支援翻譯成 {language}。",
@@ -7367,16 +7373,18 @@
     },
     "output": {
       "title": "回覆翻譯",
-      "description": "開啟後，智慧體寫完一則回覆，整則翻譯一次，只顯示譯文；寫的過程中先顯示原文。思考過程展開時也會翻譯，智慧體取的會話名稱也一併翻譯。關閉時，用每則回覆下方的按鈕手動翻譯。",
+      "description": "開啟後，智慧體每寫完一段（接著去呼叫工具、思考，或整輪結束），這一段就整段翻譯，只顯示譯文；正在寫的那一段先顯示原文。思考過程展開時也會翻譯，智慧體取的會話名稱也一併翻譯。關閉時，用每則回覆下方的按鈕手動翻譯。",
       "target": "翻譯成",
-      "followUi": "跟隨介面語言（{language}）"
+      "followUi": "跟隨介面語言（{language}）",
+      "questions": "自動翻譯提問卡片",
+      "questionsDescription": "智慧體向你提問時，問題和選項直接顯示譯文；關閉時用卡片右上角的按鈕手動翻譯。"
     },
     "input": {
       "title": "訊息翻譯",
       "description": "點輸入框的翻譯按鈕、按快速鍵或用右鍵選單，把訊息就地翻譯。提及、指令、路徑和程式碼保持原樣，復原可以找回原文；送出後，訊息旁的按鈕可以切回翻譯前的原文。",
       "target": "翻譯成",
       "onSend": "送出時自動翻譯成{language}",
-      "onSendDescription": "翻譯失敗時不會送出。",
+      "onSendDescription": "翻譯失敗時不會送出。提問卡片裡在「其他」中填寫的回答也會先翻譯。",
       "shortcut": "快速鍵",
       "shortcutNone": "未設定",
       "shortcutEdit": "修改"

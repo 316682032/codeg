@@ -3964,7 +3964,12 @@
         "submit": "Submit",
         "submitError": "Couldn't submit. Please try again.",
         "collapse": "Collapse",
-        "expand": "Expand"
+        "expand": "Expand",
+        "translateQuestion": "Translate question",
+        "showOriginal": "Show original",
+        "translateAnswer": "Translate answer",
+        "restoreAnswer": "Put back what you wrote",
+        "originalAnswer": "Before translation: {text}"
       },
       "planApproval": {
         "title": "The agent has a plan — review it",
@@ -7296,6 +7301,7 @@
     "inputChanged": "The message changed while it was being translated. Translate it again.",
     "inputDamaged": "The translation lost a mention, command or code span, so the message was left as written.",
     "inputFailed": "Could not translate the message: {message}",
+    "answerFailed": "Could not translate the answer: {message}",
     "errors": {
       "missingKey": "No API key is set for {provider}. Add one in Settings → Translation.",
       "unsupportedLanguage": "Translation into {language} is not supported.",
@@ -7367,16 +7373,18 @@
     },
     "output": {
       "title": "Reply translation",
-      "description": "When on, each agent reply is translated as a whole once it is finished, and only the translation is shown; while the agent writes you see the original. Thinking is translated when you expand it, and session names the agent gives are translated too. When off, translate a reply with the button under it.",
+      "description": "When on, each part of an agent's reply is translated as a whole once the agent has finished it (it moves on to a tool call or more thinking, or the turn ends), and only the translation is shown; the part still being written shows as written. Thinking is translated when you expand it, and session names the agent gives are translated too. When off, translate a reply with the button under it.",
       "target": "Translate into",
-      "followUi": "Interface language ({language})"
+      "followUi": "Interface language ({language})",
+      "questions": "Translate question cards automatically",
+      "questionsDescription": "When an agent asks you something, the question and its options show translated; when off, translate a card with the button at its top right."
     },
     "input": {
       "title": "Message translation",
       "description": "Translate the message box in place with its translate button, the shortcut or the right-click menu. Mentions, commands, paths and code stay as written, and Undo brings back the original; once sent, the button beside the message switches back to what you wrote.",
       "target": "Translate into",
       "onSend": "Translate into {language} when sending",
-      "onSendDescription": "If the translation fails, nothing is sent.",
+      "onSendDescription": "If the translation fails, nothing is sent. An answer typed under \"Other\" on a question card is translated too.",
       "shortcut": "Shortcut",
       "shortcutNone": "Not set",
       "shortcutEdit": "Change"

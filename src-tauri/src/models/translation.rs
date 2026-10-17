@@ -53,6 +53,10 @@ pub struct TranslationSettings {
     pub output_auto: bool,
     /// Language replies are translated into. `None` follows the UI language.
     pub output_target: Option<String>,
+    /// Show an agent's question cards (the question, its options) translated
+    /// without being asked. On by default: a question blocks the agent until
+    /// it is answered, so it is the one thing that must be understood.
+    pub question_auto: bool,
     /// Language the composer is translated into.
     pub input_target: String,
     /// Translate the composer automatically when a message is sent.
@@ -71,6 +75,7 @@ impl Default for TranslationSettings {
             fallback_enabled: true,
             output_auto: false,
             output_target: None,
+            question_auto: true,
             input_target: "en".to_string(),
             input_translate_on_send: false,
             glossary: Vec::new(),

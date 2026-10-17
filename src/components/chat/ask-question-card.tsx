@@ -7,9 +7,12 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  Languages,
   Loader2,
   MessageCircleQuestionMark,
+  Undo2,
 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -19,6 +22,15 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { splitRecommended } from "@/lib/ask-question"
+import { useSentOriginal } from "@/components/message/translation-context"
+import { useShortcutSettings } from "@/hooks/use-shortcut-settings"
+import { matchShortcutEvent } from "@/lib/keyboard-shortcuts"
+import { describeTranslationError } from "@/lib/translation/errors"
+import { rememberSentOriginal } from "@/lib/translation/sent-originals"
+import {
+  useAnswerTranslator,
+  useQuestionTranslation,
+} from "./use-question-translation"
 import type {
   PendingQuestionState,
   QuestionAnswer,
@@ -76,6 +88,12 @@ function initialState(
   return out
 }
 
+/** A typed answer the card translated, and what was typed before that. */
+interface OtherSource {
+  original: string
+  translated: string
+}
+
 /** A question is answered once it has a real option or non-empty "Other" text. */
 function isAnswered(s: QState | undefined): boolean {
   if (!s) return false
@@ -92,10 +110,37 @@ export function AskQuestionCard({
   subtitle,
 }: AskQuestionCardProps) {
   const t = useTranslations("Folder.chat.askQuestion")
+  const tTranslation = useTranslations("Translation")
   const questions = question.questions
   const [state, setState] = useState<Record<string, QState>>(() =>
     initialState(questions, initialSelections)
   )
+  // Read after an await, where `state` is the render's and may be stale.
+  const stateRef = useRef(state)
+  stateRef.current = state
+
+  // The card in the reader's language: every text it shows, as one group.
+  const cardTexts = useMemo(
+    () =>
+      questions.flatMap((q) => [
+        q.question,
+        q.header,
+        ...q.options.flatMap((o) => [
+          splitRecommended(o.label).text,
+          o.description,
+        ]),
+      ]),
+    [questions]
+  )
+  const translation = useQuestionTranslation(cardTexts)
+  const { shown } = translation
+  // A typed "Other" answer in the agent's language.
+  const answerTranslator = useAnswerTranslator()
+  const { shortcuts } = useShortcutSettings()
+  const [otherSources, setOtherSources] = useState<Record<string, OtherSource>>(
+    {}
+  )
+  const [translatingOther, setTranslatingOther] = useState(false)
   // Active tab in the multi-question layout.
   const [activeId, setActiveId] = useState(() => questions[0]?.id ?? "")
   const [submitting, setSubmitting] = useState(false)
@@ -138,6 +183,7 @@ export function AskQuestionCard({
     setActiveId(questions[0]?.id ?? "")
     setSubmitting(false)
     setError(false)
+    setOtherSources({})
     // Collapsed too, and this one is not housekeeping. A replacement set is a
     // NEW blocking request; left collapsed it renders as the same header row
     // the user already dismissed from view — identical title, and an
@@ -253,9 +299,113 @@ export function AskQuestionCard({
     }
   }
 
-  const submit = () => {
+  // A typed answer that may go to the engine: never a secret (an API key, a
+  // password), which must not leave the machine for a translation.
+  const typedAnswer = (q: QuestionSpec, s: QState | undefined): string =>
+    !q.is_secret && s?.otherActive ? s.otherText.trim() : ""
+
+  const translateOther = async (q: QuestionSpec) => {
+    const text = typedAnswer(q, stateRef.current[q.id])
+    if (!text || translatingOther) return
+    setTranslatingOther(true)
+    try {
+      const [translated] = await answerTranslator.translate([text])
+      if (translated == null) {
+        toast.error(tTranslation("inputDamaged"))
+        return
+      }
+      if (translated === text) return
+      // Typed on while the engine worked: the translation is of older text.
+      if (typedAnswer(q, stateRef.current[q.id]) !== text) {
+        toast.info(tTranslation("inputChanged"))
+        return
+      }
+      setOtherText(q, translated)
+      setOtherSources((prev) => ({
+        ...prev,
+        [q.id]: { original: text, translated },
+      }))
+    } catch (err) {
+      toast.error(
+        tTranslation("answerFailed", {
+          message: describeTranslationError(err, tTranslation),
+        })
+      )
+    } finally {
+      setTranslatingOther(false)
+    }
+  }
+
+  const restoreOther = (q: QuestionSpec) => {
+    const source = otherSources[q.id]
+    if (!source) return
+    setOtherText(q, source.original)
+    setOtherSources((prev) => {
+      const next = { ...prev }
+      delete next[q.id]
+      return next
+    })
+  }
+
+  const submit = async () => {
+    if (inFlight.current) return
+    let answered = state
+    const sources = { ...otherSources }
+    // With "translate when sending" on, typed answers go out in the agent's
+    // language too; one that was translated already is left as it is.
+    const untranslated = answerTranslator.onSend
+      ? questions.filter((q) => {
+          const text = typedAnswer(q, answered[q.id])
+          return text && text !== sources[q.id]?.translated
+        })
+      : []
+    if (untranslated.length > 0) {
+      inFlight.current = true
+      setSubmitting(true)
+      setError(false)
+      try {
+        const texts = untranslated.map((q) => typedAnswer(q, answered[q.id]))
+        const translations = await answerTranslator.translate(texts)
+        if (translations.some((text) => text == null)) {
+          throw new Error("damaged")
+        }
+        untranslated.forEach((q, i) => {
+          const original = texts[i]
+          const translated = translations[i] as string
+          if (translated === original) return
+          sources[q.id] = { original, translated }
+          answered = {
+            ...answered,
+            [q.id]: { ...answered[q.id], otherText: translated },
+          }
+        })
+        setState(answered)
+        setOtherSources(sources)
+      } catch (err) {
+        // Nothing is sent: the answer stays as typed for another try.
+        toast.error(
+          err instanceof Error && err.message === "damaged"
+            ? tTranslation("inputDamaged")
+            : tTranslation("answerFailed", {
+                message: describeTranslationError(err, tTranslation),
+              })
+        )
+        setSubmitting(false)
+        inFlight.current = false
+        return
+      }
+      inFlight.current = false
+    }
+    // What the user typed before a translation, so the answered record can
+    // show it next to what the agent got.
+    for (const q of questions) {
+      const source = sources[q.id]
+      if (source && typedAnswer(q, answered[q.id]) === source.translated) {
+        rememberSentOriginal([source.translated], source.original)
+      }
+    }
     const answers = questions.map((q) => {
-      const s = state[q.id]
+      const s = answered[q.id]
       const labels = [...(s?.chosen ?? [])]
       if (s?.otherActive && s.otherText.trim()) labels.push(s.otherText.trim())
       return { questionId: q.id, labels }
@@ -300,7 +450,7 @@ export function AskQuestionCard({
   ) => (
     <span className="min-w-0 flex-1">
       <span className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
-        {text}
+        {shown(text)}
         {recommended && (
           <Badge variant="secondary" className="text-3xs">
             {t("recommended")}
@@ -309,7 +459,7 @@ export function AskQuestionCard({
       </span>
       {description && (
         <span className="mt-0.5 block text-xs text-muted-foreground">
-          {description}
+          {shown(description)}
         </span>
       )}
     </span>
@@ -326,38 +476,99 @@ export function AskQuestionCard({
     const inputClass =
       "w-full rounded-md border border-border/60 bg-background px-2.5 py-1.5 text-sm outline-none focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
 
+    // Translating the typed answer by hand: the button, or the composer's
+    // translate shortcut while the field has focus. Once translated, the same
+    // button puts back what was typed, for as long as the text is untouched.
+    const source = otherSources[q.id]
+    const restorable =
+      source !== undefined && (s?.otherText.trim() ?? "") === source.translated
+    const canTranslate =
+      answerTranslator.available &&
+      !readOnly &&
+      !q.is_secret &&
+      (restorable || typedAnswer(q, s).length > 0)
+    const translateBinding = shortcuts.translate_input
+    const onOtherKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (
+        canTranslate &&
+        !restorable &&
+        translateBinding &&
+        matchShortcutEvent(e, translateBinding)
+      ) {
+        e.preventDefault()
+        void translateOther(q)
+      }
+    }
+    const withTranslate = (input: React.ReactNode) => (
+      <div className="space-y-1">
+        <div className="flex items-center gap-1.5">
+          {input}
+          {canTranslate && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="shrink-0"
+              disabled={locked || translatingOther}
+              aria-label={
+                restorable ? t("restoreAnswer") : t("translateAnswer")
+              }
+              title={restorable ? t("restoreAnswer") : t("translateAnswer")}
+              onClick={() =>
+                restorable ? restoreOther(q) : void translateOther(q)
+              }
+            >
+              {translatingOther ? (
+                <Loader2 className="animate-spin" />
+              ) : restorable ? (
+                <Undo2 />
+              ) : (
+                <Languages />
+              )}
+            </Button>
+          )}
+        </div>
+        {readOnly && !q.is_secret && s?.otherText.trim() && (
+          <OtherAnswerOriginal sent={s.otherText.trim()} />
+        )}
+      </div>
+    )
+
     // Free-text question (no options — codex elicitation and MCP-server forms
     // ask open questions this way): the text input IS the answer field, always
     // visible, with no "Other" toggle to click through first. Typing marks the
     // question answered (`setOtherText` activates the free-text state).
     if (q.options.length === 0) {
-      return (
+      return withTranslate(
         <input
           id={otherId}
           type={inputType}
           aria-label={q.question}
-          disabled={locked}
+          disabled={locked || translatingOther}
           value={s?.otherText ?? ""}
           onChange={(e) => setOtherText(q, e.target.value)}
+          onKeyDown={onOtherKeyDown}
           placeholder={t("otherPlaceholder")}
           className={inputClass}
         />
       )
     }
 
-    const otherInput = s?.otherActive ? (
-      <input
-        id={otherId}
-        type={inputType}
-        autoFocus
-        aria-label={t("other")}
-        disabled={locked}
-        value={s.otherText}
-        onChange={(e) => setOtherText(q, e.target.value)}
-        placeholder={t("otherPlaceholder")}
-        className={inputClass}
-      />
-    ) : null
+    const otherInput = s?.otherActive
+      ? withTranslate(
+          <input
+            id={otherId}
+            type={inputType}
+            autoFocus
+            aria-label={t("other")}
+            disabled={locked || translatingOther}
+            value={s.otherText}
+            onChange={(e) => setOtherText(q, e.target.value)}
+            onKeyDown={onOtherKeyDown}
+            placeholder={t("otherPlaceholder")}
+            className={inputClass}
+          />
+        )
+      : null
 
     if (q.multi_select) {
       return (
@@ -444,7 +655,7 @@ export function AskQuestionCard({
       <Badge variant="outline" className="shrink-0 text-3xs">
         {q.multi_select ? t("multiSelect") : t("singleSelect")}
       </Badge>
-      <p className="text-sm text-foreground/90">{q.question}</p>
+      <p className="text-sm text-foreground/90">{shown(q.question)}</p>
     </div>
   )
 
@@ -503,6 +714,34 @@ export function AskQuestionCard({
               {`${answeredCount}/${questions.length}`}
             </span>
           )}
+          {translation.offered && !collapsed && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className={cn(
+                "shrink-0 self-center",
+                translation.translated && "text-foreground"
+              )}
+              aria-label={
+                translation.translated
+                  ? t("showOriginal")
+                  : t("translateQuestion")
+              }
+              aria-pressed={translation.translated}
+              title={
+                translation.translated
+                  ? t("showOriginal")
+                  : t("translateQuestion")
+              }
+              onClick={translation.toggle}
+            >
+              {translation.pending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Languages className="size-3.5" />
+              )}
+            </Button>
+          )}
           {/* Live card only: the read-only/answered record has its own
               expand/collapse capsule (`AskQuestionResultCard`), so a second
               chevron here would fight it. */}
@@ -550,7 +789,7 @@ export function AskQuestionCard({
                           {i + 1}
                         </span>
                       )}
-                      <span className="truncate">{q.header}</span>
+                      <span className="truncate">{shown(q.header)}</span>
                     </TabsTrigger>
                   )
                 })}
@@ -608,8 +847,8 @@ export function AskQuestionCard({
               )}
               <Button
                 size="sm"
-                disabled={!complete || submitting}
-                onClick={submit}
+                disabled={!complete || submitting || translatingOther}
+                onClick={() => void submit()}
               >
                 {submitting && (
                   <Loader2 className="mr-1.5 size-3.5 animate-spin" />
@@ -624,5 +863,20 @@ export function AskQuestionCard({
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Under an answered record's typed answer the composer translated before it
+ * went out: what the user wrote, beside what the agent got.
+ */
+function OtherAnswerOriginal({ sent }: { sent: string }) {
+  const t = useTranslations("Folder.chat.askQuestion")
+  const { original } = useSentOriginal(sent)
+  if (!original) return null
+  return (
+    <p className="text-xs text-muted-foreground">
+      {t("originalAnswer", { text: original })}
+    </p>
   )
 }
