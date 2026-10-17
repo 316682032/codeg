@@ -537,7 +537,8 @@ jobs:
           releaseDraft: true
           prerelease: ${{ needs.create-draft-release.outputs.prerelease }}
           tauriScript: pnpm tauri
-          args: --target ${{ matrix.target }} --bundles deb,rpm
+          # The RPM is bundled apart, see "Bundle, sign and upload the RPM".
+          args: --target ${{ matrix.target }} --bundles deb
           includeUpdaterJson: false
           retryAttempts: 2
 
@@ -584,9 +585,45 @@ jobs:
           releaseDraft: true
           prerelease: ${{ needs.create-draft-release.outputs.prerelease }}
           tauriScript: pnpm tauri
-          args: --target ${{ matrix.target }}
+          # The RPM is bundled apart, see "Bundle, sign and upload the RPM".
+          args: --target ${{ matrix.target }} --bundles deb,appimage
           includeUpdaterJson: true
           retryAttempts: 2
+
+      # An RPM version cannot contain "-", and Tauri's bundler hands the app
+      # version to the rpm crate as is, so a fork version such as 0.36.0-1
+      # fails there. The RPM is bundled on its own from the binary built
+      # above (`tauri bundle` does not recompile it), as RPM version 0.36.0
+      # release 1, and signed for the app version that binary and latest.json
+      # carry, which the updater checks. publish-release adds the x64 RPM to
+      # latest.json, which tauri-action writes without it.
+      - name: Bundle, sign and upload the RPM (Linux)
+        if: contains(matrix.target, 'linux')
+        env:
+          CODEG_SKIP_SIDECAR: "1"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          rpm_version="${version%%-*}"
+          rpm_release=1
+          if [ "$rpm_version" != "$version" ]; then
+            rpm_release="${version#*-}"
+          fi
+          pnpm tauri bundle --target "${{ matrix.target }}" --bundles rpm --no-sign \
+            --config "{\"version\":\"${rpm_version}\",\"bundle\":{\"linux\":{\"rpm\":{\"release\":\"${rpm_release}\"}}}}"
+          shopt -s nullglob
+          rpms=(src-tauri/target/${{ matrix.target }}/release/bundle/rpm/*.rpm)
+          if [ "${#rpms[@]}" -ne 1 ]; then
+            echo "FATAL: expected one RPM, found: ${rpms[*]:-none}"
+            exit 1
+          fi
+          rpm="${rpms[0]}"
+          pnpm tauri signer sign --app-version "$version" "$rpm"
+          test -f "$rpm.sig"
+          gh release upload "${{ github.ref_name }}" "$rpm" "$rpm.sig" --clobber
 
       - name: Build, sign, and upload to draft release (macOS)
         if: contains(matrix.target, 'apple-darwin') && env.CODEG_MACOS_SIGNED == 'true'
@@ -1095,6 +1132,38 @@ jobs:
     permissions:
       contents: write
     steps:
+      # The x64 RPM is bundled apart from tauri-action (see "Bundle, sign and
+      # upload the RPM"), so the latest.json tauri-action writes has no entry
+      # for it. Added here, after every build has written its own entries.
+      - name: Add the Linux x64 RPM to latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag="${{ github.ref_name }}"
+          dir=$(mktemp -d)
+          gh release download "$tag" -p latest.json -p '*.x86_64.rpm.sig' -D "$dir"
+          sigs=("$dir"/*.x86_64.rpm.sig)
+          if [ "${#sigs[@]}" -ne 1 ] || [ ! -f "${sigs[0]}" ]; then
+            echo "FATAL: expected one x64 RPM signature on the release"
+            exit 1
+          fi
+          rpm=$(basename "${sigs[0]%.sig}")
+          python3 - "$dir/latest.json" "${sigs[0]}" \
+            "https://github.com/${GH_REPO}/releases/download/${tag}/${rpm}" <<'EOF'
+          import json, sys
+          path, sig, url = sys.argv[1:]
+          with open(path) as f:
+              manifest = json.load(f)
+          with open(sig) as f:
+              signature = f.read().strip()
+          manifest["platforms"]["linux-x86_64-rpm"] = {"signature": signature, "url": url}
+          with open(path, "w") as f:
+              json.dump(manifest, f, indent=2)
+          EOF
+          gh release upload "$tag" "$dir/latest.json" --clobber
+
       - name: Publish draft release
         uses: actions/github-script@v7
         env:
