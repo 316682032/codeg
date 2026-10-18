@@ -2870,6 +2870,7 @@ describe("MessageInput translate on send", () => {
       output_auto: false,
       output_target: null,
       question_auto: true,
+      plan_auto: true,
       input_target: "en",
       input_translate_on_send: true,
       glossary: [],

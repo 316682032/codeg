@@ -3533,6 +3533,8 @@
         "title": "Agent Plan",
         "collapsePlanAria": "Collapse plan",
         "collapsedSummary": "Plan {completed}/{total}",
+        "translatePlan": "Translate plan",
+        "showOriginal": "Show original",
         "status": {
           "completed": "Completed",
           "inProgress": "In Progress",
@@ -7431,7 +7433,9 @@
       "target": "Translate into",
       "followUi": "Interface language ({language})",
       "questions": "Translate question cards automatically",
-      "questionsDescription": "When an agent asks you something, the question and its options show translated; when off, translate a card with the button at its top right."
+      "questionsDescription": "When an agent asks you something, the question and its options show translated; when off, translate a card with the button at its top right.",
+      "plans": "Translate todo lists automatically",
+      "plansDescription": "When an agent lists its todo steps, each step shows translated; when off, translate a list with the button at its top right."
     },
     "input": {
       "title": "Message translation",

@@ -3,13 +3,19 @@
 import { memo } from "react"
 import { useTranslations } from "next-intl"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  usePlanTranslation,
+  type CardTranslation,
+} from "@/hooks/use-card-translation"
 import type { PlanEntryInfo } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import {
   CheckCircle2Icon,
   CircleDashedIcon,
   CircleDotIcon,
+  LanguagesIcon,
   ListTodoIcon,
   Loader2Icon,
 } from "lucide-react"
@@ -92,16 +98,57 @@ function StatusIcon({
   )
 }
 
+const AS_WRITTEN = (text: string) => text
+
+/**
+ * A plan's translate button, in the header of every plan surface that has
+ * one: shows the steps in the reader's language, or back as the agent wrote
+ * them. Nothing when there is nothing to translate.
+ */
+export function PlanTranslateButton({
+  translation,
+}: {
+  translation: CardTranslation
+}) {
+  const t = useTranslations("Folder.chat.agentPlanOverlay")
+  if (!translation.offered) return null
+  const label = translation.translated ? t("showOriginal") : t("translatePlan")
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-xs"
+      className={cn(
+        "shrink-0 text-muted-foreground",
+        translation.translated && "text-foreground"
+      )}
+      aria-label={label}
+      aria-pressed={translation.translated}
+      title={label}
+      onClick={translation.toggle}
+    >
+      {translation.pending ? (
+        <Loader2Icon className="size-3.5 animate-spin" />
+      ) : (
+        <LanguagesIcon className="size-3.5" />
+      )}
+    </Button>
+  )
+}
+
 /**
  * The plan entry rows (checklist body). Shared by <PlanCard> and the
  * historical TodoWrite fallback so every plan surface renders identically.
+ * `shown` gives each step as it reads — its translation, when one shows.
  */
 export const PlanEntriesList = memo(function PlanEntriesList({
   entries,
   isStreaming = false,
+  shown = AS_WRITTEN,
 }: {
   entries: PlanEntryInfo[]
   isStreaming?: boolean
+  shown?: (text: string) => string
 }) {
   const t = useTranslations("Folder.chat.agentPlanOverlay")
 
@@ -125,7 +172,7 @@ export const PlanEntriesList = memo(function PlanEntriesList({
                 : "text-foreground"
             )}
           >
-            {entry.content}
+            {shown(entry.content)}
           </span>
           <Badge
             variant="outline"
@@ -154,6 +201,7 @@ export const PlanCard = memo(function PlanCard({
   isStreaming?: boolean
 }) {
   const t = useTranslations("Folder.chat.agentPlanOverlay")
+  const translation = usePlanTranslation(entries)
 
   if (entries.length === 0) return null
 
@@ -168,12 +216,17 @@ export const PlanCard = memo(function PlanCard({
         <span className="min-w-0 flex-1 truncate text-sm font-medium">
           {t("title")}
         </span>
+        <PlanTranslateButton translation={translation} />
         <Badge variant="secondary" className="h-5 shrink-0">
           {completedCount}/{entries.length}
         </Badge>
       </div>
       <ScrollArea className="max-h-72 px-2 py-2">
-        <PlanEntriesList entries={entries} isStreaming={isStreaming} />
+        <PlanEntriesList
+          entries={entries}
+          isStreaming={isStreaming}
+          shown={translation.shown}
+        />
       </ScrollArea>
     </div>
   )

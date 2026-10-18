@@ -3533,6 +3533,8 @@
         "title": "Agentenplan",
         "collapsePlanAria": "Plan einklappen",
         "collapsedSummary": "Arbeitsplan {completed}/{total}",
+        "translatePlan": "Plan übersetzen",
+        "showOriginal": "Original anzeigen",
         "status": {
           "completed": "Abgeschlossen",
           "inProgress": "In Bearbeitung",
@@ -7431,7 +7433,9 @@
       "target": "Übersetzen in",
       "followUi": "Sprache der Oberfläche ({language})",
       "questions": "Fragekarten automatisch übersetzen",
-      "questionsDescription": "Stellt dir ein Agent eine Frage, erscheinen Frage und Optionen übersetzt; wenn aus, übersetze eine Karte über die Schaltfläche oben rechts."
+      "questionsDescription": "Stellt dir ein Agent eine Frage, erscheinen Frage und Optionen übersetzt; wenn aus, übersetze eine Karte über die Schaltfläche oben rechts.",
+      "plans": "Aufgabenlisten automatisch übersetzen",
+      "plansDescription": "Listet ein Agent seine Aufgaben auf, erscheint jeder Schritt übersetzt; wenn aus, übersetze eine Liste über die Schaltfläche oben rechts."
     },
     "input": {
       "title": "Nachrichten übersetzen",

@@ -3533,6 +3533,8 @@
         "title": "에이전트 계획",
         "collapsePlanAria": "계획 접기",
         "collapsedSummary": "계획 {completed}/{total}",
+        "translatePlan": "계획 번역",
+        "showOriginal": "원문 보기",
         "status": {
           "completed": "완료",
           "inProgress": "진행 중",
@@ -7431,7 +7433,9 @@
       "target": "번역할 언어",
       "followUi": "인터페이스 언어({language})",
       "questions": "질문 카드 자동 번역",
-      "questionsDescription": "에이전트가 질문하면 질문과 선택지를 번역해 보여 줍니다. 끄면 카드 오른쪽 위 버튼으로 번역합니다."
+      "questionsDescription": "에이전트가 질문하면 질문과 선택지를 번역해 보여 줍니다. 끄면 카드 오른쪽 위 버튼으로 번역합니다.",
+      "plans": "할 일 목록 자동 번역",
+      "plansDescription": "에이전트가 할 일 목록을 만들면 각 단계를 번역해 보여 줍니다. 끄면 목록 오른쪽 위 버튼으로 번역합니다."
     },
     "input": {
       "title": "메시지 번역",

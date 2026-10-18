@@ -87,6 +87,7 @@ import { BackgroundTaskCard } from "./background-task-card"
 import { GeneratedImagesBlock } from "./generated-images-block"
 import { GoalRunPart, GoalToolCallPart } from "./goal-tool-call"
 import { PlanCard, PlanEntriesList } from "./plan-card"
+import { usePlanTranslation } from "@/hooks/use-card-translation"
 import { PlanMarkdownCard, PlanModeCard } from "./plan-mode-card"
 import { PlainTextWithBadges } from "./plain-text-with-badges"
 import { useTranslatedMarkdown } from "./translation-context"
@@ -1796,7 +1797,14 @@ function TodoWriteToolInput({ input }: { input: Record<string, unknown> }) {
     ]
   })
 
-  return <PlanEntriesList entries={entries} />
+  return <TodoWriteEntries entries={entries} />
+}
+
+/** The fallback's checklist, translated like the plan card it stands in for
+ *  (its own button lives on that card). */
+function TodoWriteEntries({ entries }: { entries: PlanEntryInfo[] }) {
+  const { shown } = usePlanTranslation(entries)
+  return <PlanEntriesList entries={entries} shown={shown} />
 }
 
 /**
