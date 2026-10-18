@@ -6,6 +6,7 @@ import { Check, ChevronDown, Loader2 } from "lucide-react"
 
 import { MessageNavList } from "@/components/message/conversation-message-nav"
 import { getPriorityKey, getStatusKey } from "@/components/message/plan-card"
+import { usePlanTranslation } from "@/hooks/use-card-translation"
 import { SessionViewerHost } from "@/components/message/session-viewer-host"
 import { useSessionDetailsSectionOpen } from "@/lib/session-details-prefs"
 import type { PlanEntryInfo } from "@/lib/types"
@@ -185,6 +186,8 @@ function PlanSteps({
   streaming: boolean
 }) {
   const t = useTranslations("Folder.chat.agentPlanOverlay")
+  // Translated as the plan card is (its button lives on that card).
+  const { shown } = usePlanTranslation(entries)
   return (
     <ul className="space-y-px">
       {entries.map((entry, index) => {
@@ -193,7 +196,7 @@ function PlanSteps({
         return (
           <li
             key={`${entry.content}-${index}`}
-            title={`${entry.content}\n${status} · ${priority}`}
+            title={`${shown(entry.content)}\n${status} · ${priority}`}
             className={cn(
               "-mx-1.5 flex h-7 min-w-0 items-center gap-2 rounded-md px-1.5",
               entry.status === "in_progress" && "bg-blue-500/[0.08]"
@@ -215,7 +218,7 @@ function PlanSteps({
                     : "text-foreground/85"
               )}
             >
-              {entry.content}
+              {shown(entry.content)}
             </span>
             <span className="sr-only">{status}</span>
           </li>

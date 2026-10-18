@@ -7,7 +7,9 @@ import {
   getPriorityClassName,
   getPriorityKey,
   getStatusKey,
+  PlanTranslateButton,
 } from "@/components/message/plan-card"
+import { usePlanTranslation } from "@/hooks/use-card-translation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { LiveMessage } from "@/contexts/acp-connections-context"
@@ -85,6 +87,7 @@ export const AgentPlanOverlay = memo(function AgentPlanOverlay({
     [liveEntries, entries]
   )
   const hasPlan = visible && resolvedEntries.length > 0
+  const translation = usePlanTranslation(resolvedEntries)
   const fallbackPlanKey = useMemo(() => {
     if (resolvedEntries.length === 0) return null
     return resolvedEntries
@@ -175,25 +178,29 @@ export const AgentPlanOverlay = memo(function AgentPlanOverlay({
               {completedCount}/{resolvedEntries.length}
             </Badge>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            aria-label={t("collapsePlanAria")}
-            onClick={() =>
-              setCollapsedByPlanKey((prev) => ({
-                ...prev,
-                [currentPlanStateKey]: true,
-              }))
-            }
-          >
-            <ChevronDownIcon className="h-4 w-4" />
-          </Button>
+          <div className="flex shrink-0 items-center gap-0.5">
+            <PlanTranslateButton translation={translation} />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label={t("collapsePlanAria")}
+              onClick={() =>
+                setCollapsedByPlanKey((prev) => ({
+                  ...prev,
+                  [currentPlanStateKey]: true,
+                }))
+              }
+            >
+              <ChevronDownIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <AgentPlanEntryList
           entries={resolvedEntries}
           isStreaming={isStreaming}
+          shown={translation.shown}
           className="max-h-96 overflow-y-auto p-3"
         />
       </div>
@@ -208,11 +215,14 @@ export const AgentPlanOverlay = memo(function AgentPlanOverlay({
 function AgentPlanEntryList({
   entries,
   isStreaming,
+  shown,
   className,
 }: {
   entries: readonly PlanEntryInfo[]
   /** The agent is replying: an in-progress entry spins. */
   isStreaming: boolean
+  /** Each step as it reads: its translation, when one shows. */
+  shown: (text: string) => string
   className?: string
 }) {
   const t = useTranslations("Folder.chat.agentPlanOverlay")
@@ -233,7 +243,7 @@ function AgentPlanEntryList({
                   : "text-foreground"
               )}
             >
-              {entry.content}
+              {shown(entry.content)}
             </p>
           </div>
           <div className="mt-2 flex items-center gap-1.5 ps-5">

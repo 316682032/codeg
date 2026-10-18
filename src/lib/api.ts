@@ -6385,6 +6385,8 @@ export interface TranslationSettings {
   output_auto: boolean
   /** Show question cards translated without being asked. */
   question_auto: boolean
+  /** Show todo lists translated without being asked. */
+  plan_auto: boolean
   /** `null` follows the UI language. */
   output_target: string | null
   input_target: string

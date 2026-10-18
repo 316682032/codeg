@@ -37,6 +37,7 @@ const SETTINGS: TranslationSettingsView = {
   output_auto: true,
   output_target: "en",
   question_auto: true,
+  plan_auto: true,
   input_target: "en",
   input_translate_on_send: false,
   glossary: [],

@@ -3533,6 +3533,8 @@
         "title": "计划任务",
         "collapsePlanAria": "折叠计划",
         "collapsedSummary": "计划 {completed}/{total}",
+        "translatePlan": "翻译计划",
+        "showOriginal": "显示原文",
         "status": {
           "completed": "已完成",
           "inProgress": "进行中",
@@ -7431,7 +7433,9 @@
       "target": "翻译成",
       "followUi": "跟随界面语言（{language}）",
       "questions": "自动翻译提问卡片",
-      "questionsDescription": "智能体向你提问时，问题和选项直接显示译文；关闭时用卡片右上角的按钮手动翻译。"
+      "questionsDescription": "智能体向你提问时，问题和选项直接显示译文；关闭时用卡片右上角的按钮手动翻译。",
+      "plans": "自动翻译待办任务",
+      "plansDescription": "智能体列出待办任务时，每一步直接显示译文；关闭时用待办卡片右上角的按钮手动翻译。"
     },
     "input": {
       "title": "消息翻译",

@@ -3533,6 +3533,8 @@
         "title": "Plan del agente",
         "collapsePlanAria": "Contraer plan",
         "collapsedSummary": "Plan de trabajo {completed}/{total}",
+        "translatePlan": "Traducir plan",
+        "showOriginal": "Mostrar original",
         "status": {
           "completed": "Completado",
           "inProgress": "En progreso",
@@ -7431,7 +7433,9 @@
       "target": "Traducir a",
       "followUi": "Idioma de la interfaz ({language})",
       "questions": "Traducir tarjetas de preguntas automáticamente",
-      "questionsDescription": "Cuando un agente te pregunta algo, la pregunta y sus opciones se muestran traducidas; desactivado, tradúcela con el botón de arriba a la derecha de la tarjeta."
+      "questionsDescription": "Cuando un agente te pregunta algo, la pregunta y sus opciones se muestran traducidas; desactivado, tradúcela con el botón de arriba a la derecha de la tarjeta.",
+      "plans": "Traducir listas de tareas automáticamente",
+      "plansDescription": "Cuando un agente enumera sus tareas, cada paso se muestra traducido; desactivado, traduce una lista con el botón de arriba a la derecha."
     },
     "input": {
       "title": "Traducción de mensajes",

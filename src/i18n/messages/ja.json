@@ -3533,6 +3533,8 @@
         "title": "エージェントプラン",
         "collapsePlanAria": "プランを折りたたむ",
         "collapsedSummary": "計画 {completed}/{total}",
+        "translatePlan": "計画を翻訳",
+        "showOriginal": "原文を表示",
         "status": {
           "completed": "完了",
           "inProgress": "進行中",
@@ -7431,7 +7433,9 @@
       "target": "翻訳先",
       "followUi": "表示言語に合わせる（{language}）",
       "questions": "質問カードを自動で翻訳",
-      "questionsDescription": "エージェントが質問すると、質問と選択肢を訳文で表示します。オフの場合はカード右上のボタンで翻訳します。"
+      "questionsDescription": "エージェントが質問すると、質問と選択肢を訳文で表示します。オフの場合はカード右上のボタンで翻訳します。",
+      "plans": "ToDo リストを自動で翻訳",
+      "plansDescription": "エージェントが ToDo を並べると、各ステップを訳文で表示します。オフの場合はリスト右上のボタンで翻訳します。"
     },
     "input": {
       "title": "メッセージの翻訳",

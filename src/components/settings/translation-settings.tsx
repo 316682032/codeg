@@ -436,6 +436,19 @@ export function TranslationSettings() {
                 />
               }
             />
+            <SettingRow
+              title={t("output.plans")}
+              description={t("output.plansDescription")}
+              htmlFor="translation-plan-auto"
+              control={
+                <Switch
+                  id="translation-plan-auto"
+                  checked={view.plan_auto}
+                  disabled={saving}
+                  onCheckedChange={(next) => void save({ plan_auto: next })}
+                />
+              }
+            />
           </SettingCard>
         </SettingsSection>
 

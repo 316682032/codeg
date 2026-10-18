@@ -507,5 +507,6 @@ mod tests {
         assert!(parsed.fallback_enabled, "missing fields take their defaults");
         // Rows from before question cards were translated: on, the default.
         assert!(parsed.question_auto);
+        assert!(parsed.plan_auto);
     }
 }

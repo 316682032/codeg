@@ -3533,6 +3533,8 @@
         "title": "計畫任務",
         "collapsePlanAria": "摺疊計畫",
         "collapsedSummary": "計畫 {completed}/{total}",
+        "translatePlan": "翻譯計畫",
+        "showOriginal": "顯示原文",
         "status": {
           "completed": "已完成",
           "inProgress": "進行中",
@@ -7431,7 +7433,9 @@
       "target": "翻譯成",
       "followUi": "跟隨介面語言（{language}）",
       "questions": "自動翻譯提問卡片",
-      "questionsDescription": "智慧體向你提問時，問題和選項直接顯示譯文；關閉時用卡片右上角的按鈕手動翻譯。"
+      "questionsDescription": "智慧體向你提問時，問題和選項直接顯示譯文；關閉時用卡片右上角的按鈕手動翻譯。",
+      "plans": "自動翻譯待辦任務",
+      "plansDescription": "智慧體列出待辦任務時，每一步直接顯示譯文；關閉時用待辦卡片右上角的按鈕手動翻譯。"
     },
     "input": {
       "title": "訊息翻譯",

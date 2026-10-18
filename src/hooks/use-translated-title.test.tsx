@@ -42,6 +42,7 @@ function view(overrides: Partial<TranslationSettingsView> = {}) {
     output_auto: true,
     output_target: null,
     question_auto: true,
+    plan_auto: true,
     input_target: "ja",
     input_translate_on_send: true,
     glossary: [],
