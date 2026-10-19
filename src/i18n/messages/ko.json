@@ -2468,6 +2468,15 @@
       "tileDisplay": "타일 표시",
       "untileDisplay": "타일 해제"
     },
+    "openSessions": {
+      "title": "열린 대화",
+      "trigger": "열린 대화 전환 ({count}개)",
+      "othersNeedInput": "다른 대화가 응답을 기다리고 있습니다",
+      "needsInput": "응답 필요",
+      "draft": "보내지 않음",
+      "viewing": "보는 중",
+      "allConversations": "모든 대화 (기록 포함)"
+    },
     "fileWorkspace": {
       "files": "파일",
       "newTab": "새 탭",

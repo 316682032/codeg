@@ -38,7 +38,8 @@
     <td width="50%" valign="top">🧩 <strong>Sessões dos subagentes do Claude Code</strong><br/>Os cartões de subagente ganham "Ver a sessão do subagente", que abre a conversa completa dele como já acontece com o Codex; um subagente pode ser acompanhado enquanto trabalha.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Acompanha o original</strong><br/>O projeto original é mesclado regularmente; o que não está listado aqui funciona como na versão oficial. O Kiro CLI integrado, a primeira coisa que esta versão adicionou, faz parte da versão oficial desde a 0.36.0.</td>
+    <td width="50%" valign="top">📱 <strong>Alternar entre conversas abertas no celular</strong><br/>No celular, toque no título da conversa para ver todas as conversas abertas e o andamento de cada uma, e toque em uma para ir até ela; o título avisa quando outra está esperando por você.</td>
+    <td width="50%" valign="top">🔄 <strong>Acompanha o original</strong><br/>O projeto original é mesclado regularmente; o que não está listado aqui funciona como na versão oficial. O Kiro CLI integrado, a primeira coisa que esta versão adicionou, faz parte da versão oficial desde a 0.36.0.</td>
   </tr>
 </table>
 
@@ -94,6 +95,19 @@
 - Esta versão adiciona ao lado do título do cartão o botão "Ver a sessão do subagente", que abre esse registro em um painel lateral: a tarefa recebida, o raciocínio e as respostas, e cada chamada de ferramenta com entrada e saída. É o mesmo botão dos cartões de subagente do Codex e do Grok.
 - O botão aparece assim que o subagente começa, em primeiro ou em segundo plano. Aberto enquanto ele ainda trabalha, o painel se atualiza a cada 2 segundos e mostra como "Em execução" a chamada de ferramenta que está rodando. Aberto depois de recarregar a conversa, mostra o registro como estava naquele momento; feche e abra de novo para ver o mais recente.
 - Conversas anteriores também funcionam, desde que o arquivo do subagente ainda exista.
+
+</details>
+
+<details>
+<summary><strong>Alternar entre conversas abertas no celular</strong>: detalhes</summary>
+<br/>
+
+- Com menos de 768 px de largura (um celular ou uma janela de navegador bem estreita), a versão oficial não mostra a barra de abas de conversa. Para chegar a outra conversa aberta é preciso procurá-la em todo o histórico da barra lateral, e uma conversa concluída, que a barra lateral oculta por padrão, não tem como ser alcançada.
+- Esta versão transforma o título da conversa em um botão: depois do título vêm ⌄ e o número de conversas abertas, com um ponto laranja sobre o número enquanto outra conversa espera sua aprovação ou resposta. Ao tocar, abre-se de baixo "Conversas abertas": todas as conversas abertas na ordem das abas, cada uma com seu estado (Precisa de você, Em andamento, Revisão, Concluído, Cancelado, Não enviado). Toque em uma para ir até ela e em × para fechá-la; também dá para começar uma conversa nova ou abrir a barra lateral em "Todas as conversas (com histórico)". Fecha tocando fora, arrastando para baixo ou com o gesto de voltar.
+- "Precisa de você" só é conhecido enquanto este dispositivo está conectado à conversa: aparece nas conversas abertas pelo menos uma vez neste dispositivo, e as outras mostram o estado salvo.
+- Com "Sincronizar abas de conversa entre janelas" ativada (padrão), uma conversa fechada no celular também fecha no computador, como fechar a aba dela lá.
+- Com 768 px de largura ou mais (computadores, tablets) nada muda: a barra de abas continua.
+- Solicitado em [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
 
 </details>
 

@@ -2468,6 +2468,15 @@
       "tileDisplay": "タイル表示",
       "untileDisplay": "タイル解除"
     },
+    "openSessions": {
+      "title": "開いている会話",
+      "trigger": "開いている会話を切り替え（{count} 件）",
+      "othersNeedInput": "ほかの会話があなたの対応を待っています",
+      "needsInput": "対応待ち",
+      "draft": "未送信",
+      "viewing": "表示中",
+      "allConversations": "すべての会話（履歴を含む）"
+    },
     "fileWorkspace": {
       "files": "ファイル",
       "newTab": "新しいタブ",

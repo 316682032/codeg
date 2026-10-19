@@ -38,7 +38,8 @@
     <td width="50%" valign="top">🧩 <strong>Claude Code sub-agent sessions</strong><br/>Sub-agent cards get "View sub-agent session", which opens the sub-agent's full conversation the way it already does for Codex; a sub-agent can be watched while it runs.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
+    <td width="50%" valign="top">📱 <strong>Switch open conversations on a phone</strong><br/>On a phone, tap the conversation title to see every open conversation and how far each has got, then tap one to switch; the title lights up when another one is waiting for you.</td>
+    <td width="50%" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
   </tr>
 </table>
 
@@ -94,6 +95,19 @@
 - This build adds a "View sub-agent session" button beside the card's title that opens the file in a side panel: the task the sub-agent was given, its thinking and replies, and every tool call with its input and output. It's the same button Codex and Grok sub-agent cards have.
 - The button appears as soon as the sub-agent starts, in the foreground or the background. Opened while the sub-agent is still running, the panel refreshes every 2 seconds and shows the tool call in progress as running. Opened after the conversation is reloaded, it shows the file as it was then; close and reopen it to see the latest.
 - Earlier conversations work too, as long as the sub-agent's file is still there.
+
+</details>
+
+<details>
+<summary><strong>Switch open conversations on a phone</strong>: details</summary>
+<br/>
+
+- Below 768 px wide (a phone, or a very narrow browser window) the official build shows no conversation tab strip. Reaching another open conversation means finding it in the sidebar's full history, and a completed one, which the sidebar hides by default, can't be reached at all.
+- This build turns the conversation title into a button: after the title come a ⌄ and the number of open conversations, with an amber dot on the number while another conversation waits for your approval or answer. It opens "Open conversations" from the bottom: every open conversation in tab order, each with its status (Needs you, In Progress, Review, Completed, Cancelled, Not sent). Tap one to switch to it, × to close it; you can also start a new conversation, or open the sidebar with "All conversations (incl. history)". Tap outside, drag it down or use the back gesture to close it.
+- "Needs you" is only known while this device is connected to that conversation: it shows for conversations opened at least once on this device, and the others show their saved status.
+- With "Sync open conversation tabs across windows" on (the default), a conversation closed on the phone closes on the computer too, just as closing its tab there would.
+- At 768 px and wider (computers, tablets) nothing changes: the tab strip stays.
+- Requested in [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
 
 </details>
 

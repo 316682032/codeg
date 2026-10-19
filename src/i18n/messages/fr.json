@@ -2468,6 +2468,15 @@
       "tileDisplay": "Affichage en mosaïque",
       "untileDisplay": "Quitter la mosaïque"
     },
+    "openSessions": {
+      "title": "Conversations ouvertes",
+      "trigger": "Changer de conversation ouverte ({count} ouvertes)",
+      "othersNeedInput": "Une autre conversation vous attend",
+      "needsInput": "Vous attend",
+      "draft": "Non envoyé",
+      "viewing": "Affichée",
+      "allConversations": "Toutes les conversations (historique compris)"
+    },
     "fileWorkspace": {
       "files": "Fichiers",
       "newTab": "Nouvel onglet",

@@ -2468,6 +2468,15 @@
       "tileDisplay": "平鋪顯示",
       "untileDisplay": "取消平鋪"
     },
+    "openSessions": {
+      "title": "已開啟的會話",
+      "trigger": "切換已開啟的會話（共 {count} 個）",
+      "othersNeedInput": "有其他會話在等你處理",
+      "needsInput": "需要處理",
+      "draft": "未送出",
+      "viewing": "正在看",
+      "allConversations": "全部會話（含歷史）"
+    },
     "fileWorkspace": {
       "files": "檔案",
       "newTab": "新增分頁",

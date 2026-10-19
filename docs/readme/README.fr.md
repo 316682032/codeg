@@ -38,7 +38,8 @@
     <td width="50%" valign="top">🧩 <strong>Sessions des sous-agents de Claude Code</strong><br/>Les cartes de sous-agent gagnent « Voir la session du sous-agent », qui ouvre sa conversation complète comme c'est déjà le cas pour Codex ; un sous-agent se suit pendant qu'il travaille.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Au plus près de l'original</strong><br/>Le projet d'origine est fusionné régulièrement ; ce qui n'est pas listé ici fonctionne comme dans la version officielle. Kiro CLI intégré, le premier ajout de cette version, fait partie de la version officielle depuis la 0.36.0.</td>
+    <td width="50%" valign="top">📱 <strong>Changer de conversation ouverte sur téléphone</strong><br/>Sur téléphone, touchez le titre de la conversation pour voir toutes les conversations ouvertes et où en est chacune, puis touchez-en une pour y passer ; le titre vous prévient quand une autre vous attend.</td>
+    <td width="50%" valign="top">🔄 <strong>Au plus près de l'original</strong><br/>Le projet d'origine est fusionné régulièrement ; ce qui n'est pas listé ici fonctionne comme dans la version officielle. Kiro CLI intégré, le premier ajout de cette version, fait partie de la version officielle depuis la 0.36.0.</td>
   </tr>
 </table>
 
@@ -94,6 +95,19 @@
 - Cette version ajoute à côté du titre de la carte un bouton « Voir la session du sous-agent » qui ouvre ce fichier dans un panneau latéral : la tâche reçue, son raisonnement et ses réponses, et chaque appel d'outil avec son entrée et sa sortie. C'est le même bouton que sur les cartes de sous-agent de Codex et de Grok.
 - Le bouton apparaît dès le lancement du sous-agent, au premier plan comme en arrière-plan. Ouvert pendant qu'il travaille encore, le panneau se rafraîchit toutes les 2 secondes et affiche comme en cours l'appel d'outil qui s'exécute. Ouvert après un rechargement de la conversation, il montre le fichier tel qu'il était alors ; fermez-le et rouvrez-le pour voir la suite.
 - Les conversations plus anciennes en profitent aussi, tant que le fichier du sous-agent existe encore.
+
+</details>
+
+<details>
+<summary><strong>Changer de conversation ouverte sur téléphone</strong> : détails</summary>
+<br/>
+
+- Sous 768 px de large (un téléphone ou une fenêtre de navigateur très étroite), la version officielle n'affiche pas la barre d'onglets de conversation. Pour atteindre une autre conversation ouverte, il faut la chercher dans tout l'historique de la barre latérale, et une conversation terminée, que la barre latérale masque par défaut, est inaccessible.
+- Cette version fait du titre de la conversation un bouton : après le titre viennent ⌄ et le nombre de conversations ouvertes, avec un point orange sur le nombre tant qu'une autre conversation attend votre accord ou votre réponse. Il ouvre par le bas « Conversations ouvertes » : toutes les conversations ouvertes dans l'ordre des onglets, chacune avec son état (Vous attend, En cours, Revue, Terminé, Annulé, Non envoyé). Touchez-en une pour y passer, × pour la fermer ; vous pouvez aussi démarrer une nouvelle conversation ou ouvrir la barre latérale avec « Toutes les conversations (historique compris) ». On le ferme en touchant à côté, en le tirant vers le bas ou avec le geste retour.
+- « Vous attend » n'est connu que si cet appareil est connecté à la conversation : il s'affiche pour les conversations ouvertes au moins une fois sur cet appareil, les autres montrent leur état enregistré.
+- Avec « Synchroniser les onglets de conversation entre les fenêtres » activé (par défaut), une conversation fermée sur le téléphone se ferme aussi sur l'ordinateur, comme si l'on fermait son onglet là-bas.
+- À partir de 768 px de large (ordinateurs, tablettes), rien ne change : la barre d'onglets reste.
+- Demandé dans [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
 
 </details>
 

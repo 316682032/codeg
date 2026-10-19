@@ -2468,6 +2468,15 @@
       "tileDisplay": "Kachelansicht",
       "untileDisplay": "Kachel beenden"
     },
+    "openSessions": {
+      "title": "Offene Konversationen",
+      "trigger": "Zwischen offenen Konversationen wechseln ({count} offen)",
+      "othersNeedInput": "Eine andere Konversation wartet auf dich",
+      "needsInput": "Wartet auf dich",
+      "draft": "Nicht gesendet",
+      "viewing": "Angezeigt",
+      "allConversations": "Alle Konversationen (mit Verlauf)"
+    },
     "fileWorkspace": {
       "files": "Dateien",
       "newTab": "Neuer Tab",
