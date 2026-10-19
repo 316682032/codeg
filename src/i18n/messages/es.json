@@ -2468,6 +2468,15 @@
       "tileDisplay": "Vista en mosaico",
       "untileDisplay": "Salir de mosaico"
     },
+    "openSessions": {
+      "title": "Conversaciones abiertas",
+      "trigger": "Cambiar entre conversaciones abiertas ({count} abiertas)",
+      "othersNeedInput": "Otra conversación te está esperando",
+      "needsInput": "Te necesita",
+      "draft": "Sin enviar",
+      "viewing": "Viendo",
+      "allConversations": "Todas las conversaciones (con historial)"
+    },
     "fileWorkspace": {
       "files": "Archivos",
       "newTab": "Nueva pestaña",

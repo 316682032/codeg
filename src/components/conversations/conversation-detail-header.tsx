@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useCallback, useState } from "react"
+import { lazy, memo, Suspense, useCallback, useState } from "react"
 import {
   ChevronRight,
   Circle,
@@ -68,6 +68,15 @@ import {
 import { SessionDetailsDialog } from "./session-details-dialog"
 import { ConversationHeaderTags } from "./conversation-tag-picker"
 import { useIsMobile } from "@/hooks/use-mobile"
+
+// Phones only (fork-only, keh4l/codeg#10). Loaded on demand: desktop never
+// renders it, and it reads the ACP connection store, which the header itself
+// does not depend on.
+const OpenSessionsSwitcher = lazy(() =>
+  import("./open-sessions-switcher").then((m) => ({
+    default: m.OpenSessionsSwitcher,
+  }))
+)
 
 interface ConversationDetailHeaderProps {
   tabId: string
@@ -269,6 +278,15 @@ export const ConversationDetailHeader = memo(function ConversationDetailHeader({
     setDetails(resolved)
   }, [conversationId, runtimeConversationId, runtimeId])
 
+  const plainTitle = (
+    <span
+      className="min-w-0 max-w-max flex-1 truncate text-sm text-foreground/90"
+      title={title}
+    >
+      {displayTitle}
+    </span>
+  )
+
   return (
     // Transparent (no surface class): the title header reads as part of the
     // message canvas below it rather than as a frosted chrome band. With a
@@ -285,13 +303,17 @@ export const ConversationDetailHeader = memo(function ConversationDetailHeader({
         />
         {/* The title takes the ellipsis, so the folder crumb on the left stays
             fully visible — but grows only as far as its own text
-            (`max-w-max`), so the tags follow it instead of the far edge. */}
-        <span
-          className="min-w-0 max-w-max flex-1 truncate text-sm text-foreground/90"
-          title={title}
-        >
-          {displayTitle}
-        </span>
+            (`max-w-max`), so the tags follow it instead of the far edge.
+            Phones have no tab strip, so there it is the open-tab switcher
+            (fork-only, keh4l/codeg#10), with the plain title standing in
+            while its chunk loads. */}
+        {isMobile ? (
+          <Suspense fallback={plainTitle}>
+            <OpenSessionsSwitcher title={displayTitle} />
+          </Suspense>
+        ) : (
+          plainTitle
+        )}
         {/* Capped at half the row so a long tag list squeezes its own chips
             (they truncate) before it squeezes the title. */}
         {taggable && conversationId != null ? (

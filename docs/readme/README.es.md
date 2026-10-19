@@ -38,7 +38,8 @@
     <td width="50%" valign="top">🧩 <strong>Sesiones de los subagentes de Claude Code</strong><br/>Las tarjetas de subagente tienen «Ver la sesión del subagente», que abre su conversación completa como ya pasa con Codex; un subagente se puede ver mientras trabaja.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Al día con el original</strong><br/>Los cambios del proyecto original se incorporan con regularidad; lo que no aparece aquí funciona igual que en la versión oficial. Kiro CLI integrado, lo primero que añadió esta versión, forma parte de la versión oficial desde la 0.36.0.</td>
+    <td width="50%" valign="top">📱 <strong>Cambiar entre conversaciones abiertas en el móvil</strong><br/>En el móvil, toca el título de la conversación para ver todas las conversaciones abiertas y cómo va cada una, y toca una para cambiar a ella; el título avisa cuando otra te está esperando.</td>
+    <td width="50%" valign="top">🔄 <strong>Al día con el original</strong><br/>Los cambios del proyecto original se incorporan con regularidad; lo que no aparece aquí funciona igual que en la versión oficial. Kiro CLI integrado, lo primero que añadió esta versión, forma parte de la versión oficial desde la 0.36.0.</td>
   </tr>
 </table>
 
@@ -94,6 +95,19 @@
 - Esta versión añade junto al título de la tarjeta el botón «Ver la sesión del subagente», que abre ese registro en un panel lateral: la tarea que recibió, su razonamiento y sus respuestas, y cada llamada a herramienta con su entrada y su salida. Es el mismo botón que tienen las tarjetas de subagente de Codex y Grok.
 - El botón aparece en cuanto arranca el subagente, en primer o en segundo plano. Si lo abres mientras sigue trabajando, el panel se actualiza cada 2 segundos y muestra como «En ejecución» la llamada a herramienta que se está ejecutando. Abierto después de recargar la conversación, muestra el registro tal como estaba entonces; ciérralo y vuelve a abrirlo para ver lo último.
 - También funciona en conversaciones anteriores, mientras el archivo del subagente siga ahí.
+
+</details>
+
+<details>
+<summary><strong>Cambiar entre conversaciones abiertas en el móvil</strong>: detalles</summary>
+<br/>
+
+- Con menos de 768 px de ancho (un móvil o una ventana del navegador muy estrecha), la versión oficial no muestra la barra de pestañas de conversación. Para llegar a otra conversación abierta hay que buscarla en el historial completo de la barra lateral, y una conversación completada, que la barra lateral oculta por defecto, no se puede alcanzar.
+- Esta versión convierte el título de la conversación en un botón: tras el título aparecen ⌄ y el número de conversaciones abiertas, con un punto ámbar sobre el número mientras otra conversación espera tu aprobación o respuesta. Al tocarlo se abre desde abajo «Conversaciones abiertas»: todas las conversaciones abiertas en el orden de las pestañas, cada una con su estado (Te necesita, En progreso, Revisión, Completado, Cancelado, Sin enviar). Toca una para cambiar a ella y × para cerrarla; también puedes empezar una conversación nueva o abrir la barra lateral con «Todas las conversaciones (con historial)». Se cierra tocando fuera, arrastrándola hacia abajo o con el gesto de volver.
+- «Te necesita» solo se sabe mientras este dispositivo está conectado a esa conversación: aparece en las conversaciones abiertas al menos una vez en este dispositivo, y las demás muestran su estado guardado.
+- Con «Sincronizar pestañas de conversación entre ventanas» activado (por defecto), una conversación cerrada en el móvil también se cierra en el ordenador, igual que al cerrar allí su pestaña.
+- Con 768 px o más de ancho (ordenadores, tabletas) no cambia nada: sigue la barra de pestañas.
+- Solicitado en [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
 
 </details>
 

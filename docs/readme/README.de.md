@@ -38,7 +38,8 @@
     <td width="50%" valign="top">🧩 <strong>Sitzungen von Claude-Code-Subagenten</strong><br/>Subagent-Karten bekommen „Subagent-Sitzung ansehen“, das wie bei Codex die vollständige Unterhaltung öffnet; einem Subagenten lässt sich bei der Arbeit zusehen.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
+    <td width="50%" valign="top">📱 <strong>Offene Konversationen auf dem Handy wechseln</strong><br/>Auf dem Handy zeigt ein Tipp auf den Konversationstitel alle offenen Konversationen und wie weit jede ist; ein Tipp auf eine wechselt dorthin. Der Titel meldet sich, wenn eine andere auf dich wartet.</td>
+    <td width="50%" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
   </tr>
 </table>
 
@@ -94,6 +95,19 @@
 - Dieser Build ergänzt neben dem Kartentitel die Schaltfläche „Subagent-Sitzung ansehen“, die diese Datei in einem Seitenbereich öffnet: die Aufgabe, die der Subagent bekommen hat, seine Denkprozesse und Antworten und jeden Tool-Aufruf mit Ein- und Ausgabe. Es ist dieselbe Schaltfläche wie auf den Subagent-Karten von Codex und Grok.
 - Die Schaltfläche erscheint, sobald der Subagent startet, im Vorder- wie im Hintergrund. Wird sie geöffnet, während er noch arbeitet, aktualisiert sich der Bereich alle 2 Sekunden und zeigt den gerade laufenden Tool-Aufruf als laufend an. Nach dem Neuladen der Unterhaltung geöffnet, zeigt er die Datei im damaligen Stand; Schließen und erneutes Öffnen zeigt den aktuellen.
 - Auch frühere Unterhaltungen funktionieren, solange die Datei des Subagenten noch da ist.
+
+</details>
+
+<details>
+<summary><strong>Offene Konversationen auf dem Handy wechseln</strong> – Details</summary>
+<br/>
+
+- Unter 768 px Breite (Handy oder sehr schmales Browserfenster) zeigt der offizielle Build keine Tableiste für Konversationen. Eine andere offene Konversation findet man nur im gesamten Verlauf der Seitenleiste, und eine abgeschlossene, die die Seitenleiste standardmäßig ausblendet, ist gar nicht erreichbar.
+- Dieser Build macht den Konversationstitel zu einer Schaltfläche: Hinter dem Titel stehen ⌄ und die Zahl der offenen Konversationen, mit einem orangen Punkt auf der Zahl, solange eine andere Konversation auf deine Freigabe oder Antwort wartet. Ein Tipp öffnet von unten „Offene Konversationen“: alle offenen Konversationen in Tab-Reihenfolge, jede mit ihrem Status (Wartet auf dich, In Bearbeitung, Prüfung, Abgeschlossen, Abgebrochen, Nicht gesendet). Ein Tipp wechselt dorthin, × schließt sie; außerdem lässt sich eine neue Konversation starten oder über „Alle Konversationen (mit Verlauf)“ die Seitenleiste öffnen. Schließen per Tipp daneben, Herunterziehen oder Zurück-Geste.
+- „Wartet auf dich“ ist nur bekannt, solange dieses Gerät mit der Konversation verbunden ist: Es erscheint bei Konversationen, die auf diesem Gerät mindestens einmal geöffnet wurden; die anderen zeigen ihren gespeicherten Status.
+- Mit „Konversationstabs fensterübergreifend synchronisieren“ an (Standard) wird eine auf dem Handy geschlossene Konversation auch am Computer geschlossen, genau wie beim Schließen ihres Tabs dort.
+- Ab 768 px Breite (Computer, Tablets) ändert sich nichts: Die Tableiste bleibt.
+- Angefragt in [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
 
 </details>
 

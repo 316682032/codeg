@@ -2468,6 +2468,15 @@
       "tileDisplay": "Tile Display",
       "untileDisplay": "Exit Tile"
     },
+    "openSessions": {
+      "title": "Open conversations",
+      "trigger": "Switch open conversations ({count} open)",
+      "othersNeedInput": "Another conversation is waiting for you",
+      "needsInput": "Needs you",
+      "draft": "Not sent",
+      "viewing": "Viewing",
+      "allConversations": "All conversations (incl. history)"
+    },
     "fileWorkspace": {
       "files": "Files",
       "newTab": "New tab",

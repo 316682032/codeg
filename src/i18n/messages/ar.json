@@ -2468,6 +2468,15 @@
       "tileDisplay": "عرض متجانب",
       "untileDisplay": "إلغاء التجانب"
     },
+    "openSessions": {
+      "title": "المحادثات المفتوحة",
+      "trigger": "التبديل بين المحادثات المفتوحة ({count} مفتوحة)",
+      "othersNeedInput": "محادثة أخرى بانتظارك",
+      "needsInput": "بانتظارك",
+      "draft": "لم تُرسل",
+      "viewing": "قيد العرض",
+      "allConversations": "كل المحادثات (مع السجل)"
+    },
     "fileWorkspace": {
       "files": "الملفات",
       "newTab": "علامة تبويب جديدة",
