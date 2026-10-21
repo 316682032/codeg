@@ -4,6 +4,7 @@ import {
   Code2,
   Globe,
   HelpCircle,
+  ImagePlus,
   ListTodo,
   MessageSquare,
   MessageSquarePlus,
@@ -45,6 +46,7 @@ type AgentToolCopy =
   | "computer"
   | "automations"
   | "taskboard"
+  | "image"
 
 /** Spelled as a union of literal keys rather than `string`, because that is
  *  what `useTranslations` checks against: a widened `string` compiles here
@@ -132,6 +134,13 @@ export const AGENT_TOOL_GROUPS: Record<
     short: "taskboard.short",
     hint: "taskboard.hint",
     icon: ListTodo,
+  },
+  // keh4l build: images made with the services in Settings → Image generation.
+  image: {
+    label: "image.label",
+    short: "image.short",
+    hint: "image.hint",
+    icon: ImagePlus,
   },
 }
 

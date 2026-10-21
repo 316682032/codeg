@@ -5,6 +5,10 @@ import {
 import { CODEX_SCRIPT_TOOL_NAME } from "@/lib/codex-code-mode"
 import { COLLAB_AGENT_TOOL_NAME, isCodexCollabInput } from "@/lib/collab-tool"
 import { WAIT_TOOL_NAME, WRITE_STDIN_TOOL_NAME } from "@/lib/shell-session-tool"
+import {
+  COLLECT_TOOL_NAMES,
+  collectToolCanonicalName,
+} from "@/lib/image-gen/tool-names"
 
 const EXACT_TOOL_NAME_ALIASES: Record<string, string> = {
   shell_command: "bash",
@@ -607,6 +611,12 @@ export function normalizeToolName(toolName: string): string {
   if (/[^a-z0-9]check_user_feedback$/.test(canonical))
     return "check_user_feedback"
 
+  // keh4l build: the image tools and `get_question_answer`, same host-prefix
+  // story. Ahead of the freeform matcher, which would read `image_generate`
+  // as something else.
+  const collect = collectToolCanonicalName(canonical)
+  if (collect) return collect
+
   const freeform = inferFromFreeformName(trimmed)
   if (freeform) return freeform
 
@@ -691,6 +701,7 @@ export function inferLiveToolName(params: {
     if (!candidate) continue
     const normalizedMeta = normalizeToolName(candidate)
     if (DELEGATION_COMPANION_TOOLS.has(normalizedMeta)) return normalizedMeta
+    if (COLLECT_TOOL_NAMES.has(normalizedMeta)) return normalizedMeta
   }
 
   // The delegation broker stamps `meta["codeg.delegation"]` onto the parent's
@@ -719,6 +730,8 @@ export function inferLiveToolName(params: {
   // everything else.
   const titleCompanion = normalizeToolName(params.title ?? "")
   if (DELEGATION_COMPANION_TOOLS.has(titleCompanion)) return titleCompanion
+  // The image tools' `{output_path, …}` input would read as a file write.
+  if (COLLECT_TOOL_NAMES.has(titleCompanion)) return titleCompanion
 
   // claude-agent-acp ≥0.63 marks Agent/Task launches with the authoritative
   // `_meta.claudeCode.subagent: true` (its stated purpose: clients should not

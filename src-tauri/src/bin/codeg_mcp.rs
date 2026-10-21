@@ -41,6 +41,7 @@ use codeg_lib::acp::delegation::companion::{
     dispatch_line, drain_and_cancel_all, CompanionContext, CompanionFeatures, InflightCalls,
     JsonRpcResponse, LineAction, SpawnResult,
 };
+use codeg_lib::acp::delegation::fork_tools::{NotificationSink, Notifier};
 use codeg_lib::acp::delegation::parent_watcher::{wait_for_parent_exit, DEFAULT_POLL_INTERVAL};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Stdout};
 use tokio::sync::Mutex;
@@ -70,6 +71,10 @@ struct Args {
     /// only launchable targets are advertised. Omitted when nothing is
     /// disabled (disabled customs are simply left out of `--custom-agents`).
     disabled_agents: Option<String>,
+    /// How long one tool call may block before it answers "still waiting":
+    /// the agent's own tool-call deadline minus a margin. Omitted for agents
+    /// that wait long enough (see `codeg_lib::acp::tool_wait_cap`).
+    wait_cap_ms: Option<u64>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -80,6 +85,7 @@ fn parse_args() -> Result<Args, String> {
     let mut features = None;
     let mut custom_agents = None;
     let mut disabled_agents = None;
+    let mut wait_cap_ms = None;
 
     let mut iter = std::env::args().skip(1);
     while let Some(arg) = iter.next() {
@@ -129,9 +135,18 @@ fn parse_args() -> Result<Args, String> {
                         .ok_or_else(|| "--disabled-agents requires a value".to_string())?,
                 );
             }
+            "--wait-cap-ms" => {
+                let raw = iter
+                    .next()
+                    .ok_or_else(|| "--wait-cap-ms requires a value".to_string())?;
+                wait_cap_ms = Some(
+                    raw.parse::<u64>()
+                        .map_err(|e| format!("--wait-cap-ms must be a u64: {e}"))?,
+                );
+            }
             "--help" | "-h" => {
                 println!(
-                    "codeg-mcp --parent-connection-id <uuid> --socket-path <path> --token <secret> [--parent-pid <pid>] [--features delegation,feedback,ask,sessions,tasks,result] [--custom-agents custom:<id>,...] [--disabled-agents <agent>,...]"
+                    "codeg-mcp --parent-connection-id <uuid> --socket-path <path> --token <secret> [--parent-pid <pid>] [--features delegation,feedback,ask,sessions,tasks,result] [--custom-agents custom:<id>,...] [--disabled-agents <agent>,...] [--wait-cap-ms <ms>]"
                 );
                 std::process::exit(0);
             }
@@ -147,6 +162,7 @@ fn parse_args() -> Result<Args, String> {
         features,
         custom_agents,
         disabled_agents,
+        wait_cap_ms,
     })
 }
 
@@ -164,6 +180,23 @@ fn parse_csv(raw: Option<&str>) -> Vec<String> {
 
 /// Serialize a `JsonRpcResponse` and append a newline; small enough to keep
 /// inline so the write-mutex critical section stays tight.
+/// Writes `notifications/progress` to the agent through the same lock as the
+/// responses, so lines never interleave.
+struct StdoutSink(Arc<Mutex<Stdout>>);
+
+#[async_trait::async_trait]
+impl NotificationSink for StdoutSink {
+    async fn send(&self, message: serde_json::Value) {
+        let Ok(serialized) = serde_json::to_string(&message) else {
+            return;
+        };
+        let mut guard = self.0.lock().await;
+        let _ = guard.write_all(serialized.as_bytes()).await;
+        let _ = guard.write_all(b"\n").await;
+        let _ = guard.flush().await;
+    }
+}
+
 async fn write_response(
     stdout: &Arc<Mutex<Stdout>>,
     resp: &JsonRpcResponse,
@@ -191,6 +224,7 @@ async fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
+    let stdout = Arc::new(Mutex::new(tokio::io::stdout()));
     let ctx = CompanionContext {
         parent_connection_id: args.parent_connection_id,
         socket_path: args.socket_path,
@@ -200,10 +234,11 @@ async fn main() -> ExitCode {
         disabled_agents: parse_csv(args.disabled_agents.as_deref()),
         assistant_support: Default::default(),
         result_schema: Default::default(),
+        wait_cap_ms: args.wait_cap_ms,
+        notifier: Notifier::new(Arc::new(StdoutSink(stdout.clone()))),
     };
 
     let stdin = tokio::io::stdin();
-    let stdout = Arc::new(Mutex::new(tokio::io::stdout()));
     let inflight = Arc::new(InflightCalls::new());
     let mut lines = BufReader::new(stdin).lines();
 

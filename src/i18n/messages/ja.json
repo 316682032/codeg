@@ -57,7 +57,8 @@
       "computer_use": "コンピューター操作",
       "quick_messages": "クイックメッセージ",
       "logs": "実行ログ",
-      "translation": "翻訳"
+      "translation": "翻訳",
+      "image_generation": "画像生成"
     }
   },
   "AppearanceSettings": {
@@ -5404,7 +5405,8 @@
     "saving": "保存中…",
     "saved": "ツール設定を保存しました",
     "saveFailed": "ツール設定の保存に失敗しました",
-    "loadFailed": "読み込みに失敗しました: {detail}"
+    "loadFailed": "読み込みに失敗しました: {detail}",
+    "configureImage": "サービスを設定"
   },
   "AgentTools": {
     "delegation": {
@@ -5451,6 +5453,11 @@
       "label": "ToDo タスクを作成",
       "short": "作業タスクを作成・管理します。",
       "hint": "会話から ToDo ボードにカードを追加します。既定はオフ — アプリの状態を書き換えます。"
+    },
+    "image": {
+      "label": "画像を生成",
+      "short": "設定したサービスで画像を生成・編集します。",
+      "hint": "「設定 → 画像生成」で設定したサービスを使って、エージェントが画像を生成・編集し、ファイルとして保存できるようにします。呼び出しは Codeg が行うので、エージェントに API キーは見えません。既定はオフ。"
     }
   },
   "DesktopNotificationSettings": {
@@ -7497,5 +7504,91 @@
       "description": "翻訳結果は 30 日間保存され、会話を開き直すとすぐに表示されます。モデルを変えたときなど、すべて翻訳し直すにはキャッシュを削除してください。",
       "clear": "キャッシュを削除"
     }
+  },
+  "ImageGenerationSettings": {
+    "title": "画像生成",
+    "description": "Codeg を通してエージェントが画像を生成・編集できるようにします。API キーは Codeg の中にだけ保存され、エージェントには見えません。MCP に対応したエージェントならどれでも使えます。",
+    "loading": "読み込み中…",
+    "loadFailed": "読み込みに失敗しました：{message}",
+    "saveFailed": "保存に失敗しました：{message}",
+    "keySaved": "API キーを保存しました",
+    "keyRemoved": "API キーを削除しました",
+    "enable": {
+      "title": "エージェントに画像生成を許可",
+      "description": "オンにすると、これ以降に起動するエージェントに画像生成ツールが加わります。オフはすぐに反映されます。「コラボレーション → 会話内ツール」のスイッチと同じものです。"
+    },
+    "services": {
+      "title": "サービス",
+      "description": "公式サービスも中継サーバーもここに追加します。複数追加できます。",
+      "add": "サービスを追加",
+      "empty": "サービスがまだありません。「サービスを追加」から追加してください。"
+    },
+    "kind": {
+      "openai": "OpenAI API",
+      "gemini": "Gemini API"
+    },
+    "service": {
+      "official": "公式アドレス",
+      "modelCount": "{count, plural, =0 {モデルなし} other {# 個のモデル}}",
+      "configured": "設定済み",
+      "needsKey": "キー未設定",
+      "name": "名前",
+      "kind": "API の種類",
+      "kindHint": "Grok と大半の中継サーバーは OpenAI API を使います。",
+      "baseUrl": "API アドレス",
+      "baseUrlHintOpenai": "空欄なら OpenAI 公式のアドレスです。Grok は https://api.x.ai/v1、中継サーバーはそこが案内するアドレスを入力します。",
+      "baseUrlHintGemini": "空欄なら Google 公式のアドレスです。中継サーバーはそこが案内するアドレスを入力します。",
+      "models": "モデル",
+      "modelsHint": "エージェントはこの中から選べます。指定がないときは下の「既定のモデル」を使います。",
+      "noModels": "モデルがまだありません",
+      "removeModel": "{model} を削除",
+      "addModelPlaceholder": "モデル名を入力して Enter（中継サーバーではそこでの名前を使います）",
+      "addModel": "モデルを追加",
+      "suggested": "よく使うもの：",
+      "remove": "このサービスを削除",
+      "removeConfirmTitle": "「{name}」を削除しますか？",
+      "removeConfirmDescription": "API キーも一緒に削除されます。",
+      "cancel": "キャンセル",
+      "removeConfirm": "削除"
+    },
+    "key": {
+      "title": "API キー",
+      "needsKeyFirst": "先に API キーを保存してください",
+      "placeholder": "API キーを貼り付け",
+      "label": "{service} の API キー",
+      "hide": "隠す",
+      "show": "表示",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "saved": "保存済み",
+      "replace": "変更",
+      "remove": "キーを削除"
+    },
+    "test": {
+      "needsModel": "先にモデルを追加してください",
+      "description": "{model} で低画質の小さな画像を 1 枚生成します（サービス側で課金されます）",
+      "running": "テスト中…",
+      "run": "テスト",
+      "ok": "使えます · {model} で {seconds} 秒",
+      "cost": "テストのたびに画像を 1 枚生成し、サービス側で課金されます。"
+    },
+    "generation": {
+      "title": "生成",
+      "defaultModel": "既定のモデル",
+      "defaultModelHint": "エージェントがモデルを指定しないときに使います。",
+      "defaultModelAuto": "最初に使えるモデル",
+      "noKey": "（キー未設定）",
+      "saveDir": "保存先の指定がないときの保存場所",
+      "saveDirHint": "エージェントは呼び出し時に保存先を指定できます。相対パスは会話の作業フォルダーから解決されます。指定がなければここに、日付ごとのフォルダーで保存されます。",
+      "sendPreview": "プレビューをエージェントに送る",
+      "sendPreviewHint": "幅約 512 ピクセルの縮小版を添付し、エージェントが結果を見てから手直しするか決められるようにします。エージェントのコンテキストを少し使います。エージェントのモデルが画像を読めない場合はオフにしてください。"
+    }
+  },
+  "ImageGeneration": {
+    "generating": "生成中… {seconds} 秒経過",
+    "loading": "画像を読み込み中…",
+    "took": "{seconds} 秒",
+    "fileMissing": "画像ファイルを読み込めません。移動または削除された可能性があります。",
+    "statusLost": "生成中に Codeg が再起動したため、結果はわかりません。"
   }
 }

@@ -65,6 +65,7 @@ import {
   setBrowserToolsSettings,
   setChatAuthoringSettings,
   setFeedbackSettings,
+  setCodegMcpToolGroup,
   setQuestionSettings,
   setSessionInfoSettings,
   type BrowserToolsSettings,
@@ -72,6 +73,12 @@ import {
 } from "@/lib/api"
 import { toErrorMessage } from "@/lib/app-error"
 import { primeFeedbackEnabled } from "@/hooks/use-feedback-enabled"
+import {
+  getImageGenSettings,
+  IMAGE_GEN_SETTINGS_CHANGED_EVENT,
+  type ImageGenSettingsView,
+} from "@/lib/image-gen/api"
+import { ConfigureImageServicesLink } from "@/components/settings/image-generation-settings"
 
 /** One field per switch, flattened across the five backend groups. */
 interface AgentToolValues {
@@ -83,6 +90,7 @@ interface AgentToolValues {
   computer: boolean
   automations: boolean
   workTasks: boolean
+  image: boolean
 }
 
 /**
@@ -100,6 +108,7 @@ const DEFAULTS: AgentToolValues = {
   computer: false,
   automations: false,
   workTasks: false,
+  image: false,
 }
 
 /** The rows, in the order they read: what an agent may say to you, what it may
@@ -120,6 +129,7 @@ const TOOL_ROWS = [
   { key: "computer", slug: "computer", id: "agent-tools-computer" },
   { key: "automations", slug: "automations", id: "agent-tools-automations" },
   { key: "workTasks", slug: "taskboard", id: "agent-tools-work-tasks" },
+  { key: "image", slug: "image", id: "agent-tools-image" },
 ] as const satisfies ReadonlyArray<{
   key: keyof AgentToolValues
   slug: string
@@ -155,21 +165,29 @@ export function AgentToolsSettingsSection() {
    * while they were in flight, yields that record's fields to the broadcast —
    * that read is older than it. A broadcast about one record says nothing
    * about another's read. */
-  const remoteGenRef = useRef({ chat: 0, browser: 0, computer: 0 })
+  const remoteGenRef = useRef({ chat: 0, browser: 0, computer: 0, image: 0 })
 
   useEffect(() => {
     let cancelled = false
     void (async () => {
       const gen = { ...remoteGenRef.current }
-      const [feedback, question, sessionInfo, browserTools, computer, chat] =
-        await Promise.allSettled([
-          getFeedbackSettings(),
-          getQuestionSettings(),
-          getSessionInfoSettings(),
-          getBrowserToolsSettings(),
-          getComputerToolsSettings(),
-          getChatAuthoringSettings(),
-        ])
+      const [
+        feedback,
+        question,
+        sessionInfo,
+        browserTools,
+        computer,
+        chat,
+        image,
+      ] = await Promise.allSettled([
+        getFeedbackSettings(),
+        getQuestionSettings(),
+        getSessionInfoSettings(),
+        getBrowserToolsSettings(),
+        getComputerToolsSettings(),
+        getChatAuthoringSettings(),
+        getImageGenSettings(),
+      ])
       if (cancelled) return
 
       // One endpoint being down shouldn't blank the other four switches, so
@@ -196,6 +214,8 @@ export function AgentToolsSettingsSection() {
         next.automations = chat.value.automations_enabled
         next.workTasks = chat.value.work_tasks_enabled
       } else failures.push(toErrorMessage(chat.reason))
+      if (image.status === "fulfilled") next.image = image.value.enabled
+      else failures.push(toErrorMessage(image.reason))
 
       const moved = remoteGenRef.current
       // `prev` already holds the broadcast's value for the fields a broadcast
@@ -211,6 +231,7 @@ export function AgentToolsSettingsSection() {
           ? { browserTools: prev.browserTools, browserEval: prev.browserEval }
           : {}),
         ...(moved.computer !== gen.computer ? { computer: prev.computer } : {}),
+        ...(moved.image !== gen.image ? { image: prev.image } : {}),
       })
       setValues(keepBroadcast)
       setBaseline(keepBroadcast)
@@ -348,6 +369,38 @@ export function AgentToolsSettingsSection() {
     }
   }, [])
 
+  /**
+   * And for the image-generation switch, which its own settings page and the
+   * popover write too.
+   */
+  useEffect(() => {
+    let disposed = false
+    let unsubscribe: (() => void) | undefined
+    void subscribe<ImageGenSettingsView>(
+      IMAGE_GEN_SETTINGS_CHANGED_EVENT,
+      (remote) => {
+        remoteGenRef.current.image += 1
+        const current = valuesRef.current
+        const base = baselineRef.current
+        setValues((prev) =>
+          current.image === base.image
+            ? { ...prev, image: remote.enabled }
+            : prev
+        )
+        setBaseline((prev) => ({ ...prev, image: remote.enabled }))
+      }
+    )
+      .then((fn) => {
+        if (disposed) fn()
+        else unsubscribe = fn
+      })
+      .catch(() => {})
+    return () => {
+      disposed = true
+      unsubscribe?.()
+    }
+  }, [])
+
   const dirty =
     values.feedback !== baseline.feedback ||
     values.question !== baseline.question ||
@@ -356,7 +409,8 @@ export function AgentToolsSettingsSection() {
     values.browserEval !== baseline.browserEval ||
     values.computer !== baseline.computer ||
     values.automations !== baseline.automations ||
-    values.workTasks !== baseline.workTasks
+    values.workTasks !== baseline.workTasks ||
+    values.image !== baseline.image
 
   const save = useCallback(async () => {
     setSaving(true)
@@ -428,6 +482,15 @@ export function AgentToolsSettingsSection() {
         )
       }
 
+      if (values.image !== baseline.image) {
+        // The switch alone, through the same writer as the popover: the
+        // services and the rest live on the Image generation page.
+        const image = values.image
+        writes.push(
+          setCodegMcpToolGroup("image", image).then(() => ({ image }))
+        )
+      }
+
       const results = await Promise.allSettled(writes)
       // Mirror what each endpoint actually persisted (it may clamp or filter)
       // and promote it to the new baseline; a group that failed keeps its old
@@ -479,7 +542,16 @@ export function AgentToolsSettingsSection() {
               key={row.key}
               icon={meta.icon}
               title={tools(meta.label)}
-              description={tools(meta.hint)}
+              description={
+                row.key === "image" ? (
+                  <>
+                    {tools(meta.hint)}{" "}
+                    <ConfigureImageServicesLink label={t("configureImage")} />
+                  </>
+                ) : (
+                  tools(meta.hint)
+                )
+              }
               htmlFor={row.id}
               control={
                 <Switch

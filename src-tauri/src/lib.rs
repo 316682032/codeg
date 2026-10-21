@@ -40,6 +40,7 @@ pub mod folder_links;
 pub mod forge;
 pub mod git_credential;
 pub mod git_repo;
+pub mod image_gen;
 pub mod intern;
 pub mod keyring_store;
 pub mod logging;
@@ -1248,6 +1249,10 @@ mod tauri_app {
                             &computer_tools_for_init,
                         )
                         .await;
+                        crate::commands::image_gen::apply_persisted_image_gen_settings(
+                            &db_for_init,
+                        )
+                        .await;
                         // The generative-UI skill's central copy, and the move
                         // from 0.35.0's `json-render`: here, before any command
                         // runs, so the move can never undo a change made on
@@ -1867,6 +1872,11 @@ mod tauri_app {
                 translation_commands::clear_translation_cache,
                 translation_commands::save_sent_original,
                 translation_commands::get_sent_originals,
+                crate::commands::image_gen::get_image_gen_settings,
+                crate::commands::image_gen::save_image_gen_settings,
+                crate::commands::image_gen::test_image_gen_service,
+                crate::commands::image_gen::image_gen_job_status,
+                crate::commands::image_gen::image_gen_load_image,
                 conversations::delete_conversation,
                 folders::load_folder_history,
                 folders::get_folder,

@@ -16,6 +16,7 @@ import {
   FileSpreadsheet,
   GitBranch,
   Globe,
+  ImagePlus,
   Keyboard,
   Languages,
   Menu,
@@ -51,6 +52,7 @@ interface SettingsNavItem {
     | "agents"
     | "model_providers"
     | "translation"
+    | "image_generation"
     | "mcp"
     | "skills"
     | "skill_packs"
@@ -112,6 +114,11 @@ const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
     href: "/settings/translation",
     labelKey: "translation",
     icon: Languages,
+  },
+  {
+    href: "/settings/image-generation",
+    labelKey: "image_generation",
+    icon: ImagePlus,
   },
   {
     href: "/settings/quick-messages",

@@ -182,6 +182,24 @@ pub trait SessionQuestionAccess: Send + Sync {
     /// rather than lingering until the companion's ask socket happens to close.
     /// No-op when the connection has no pending ask.
     async fn cancel_questions_by_parent(&self, parent_connection_id: &str);
+
+    /// The question already waiting for an answer on this connection, if any:
+    /// a second `ask_user_question` while one is up is pointed at it.
+    async fn pending_question_id(&self, _parent_connection_id: &str) -> Option<String> {
+        None
+    }
+
+    /// `get_question_answer`: wait up to `wait` (`None`: until answered) for
+    /// the answer to a question whose `ask_user_question` call already
+    /// returned `pending`. See [`crate::acp::question_collect`].
+    async fn collect_answer(
+        &self,
+        _parent_connection_id: &str,
+        _question_id: &str,
+        _wait: Option<std::time::Duration>,
+    ) -> crate::acp::question_collect::CollectedAnswer {
+        crate::acp::question_collect::CollectedAnswer::Gone
+    }
 }
 
 /// Validate + parse the MCP `ask_user_question` arguments into typed

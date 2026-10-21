@@ -213,6 +213,9 @@ pub struct CompanionFeatures {
     /// `computer_clipboard_read` / `computer_clipboard_write`, on the
     /// person's own switch on top of `computer`, as `computer_launch` is.
     pub computer_clipboard: bool,
+    /// `image_generate` / `image_get_result`: images made with the services
+    /// the person configured in Codeg (see `crate::image_gen`).
+    pub image: bool,
 }
 
 impl CompanionFeatures {
@@ -238,6 +241,7 @@ impl CompanionFeatures {
                 computer: false,
                 computer_launch: false,
                 computer_clipboard: false,
+                image: false,
             };
         };
         let mut f = Self {
@@ -254,6 +258,7 @@ impl CompanionFeatures {
             computer: false,
             computer_launch: false,
             computer_clipboard: false,
+            image: false,
         };
         for tok in s.split(',').map(str::trim).filter(|t| !t.is_empty()) {
             match tok {
@@ -270,6 +275,7 @@ impl CompanionFeatures {
                 "computer" => f.computer = true,
                 "computer_launch" => f.computer_launch = true,
                 "computer_clipboard" => f.computer_clipboard = true,
+                "image" => f.image = true,
                 _ => {}
             }
         }
@@ -318,6 +324,10 @@ impl CompanionFeatures {
             | "get_delegation_status"
             | "cancel_delegation"
             | "resume_delegation" => self.delegation,
+            // Collects the answer to an `ask_user_question` that returned
+            // before the user answered (see `crate::acp::tool_wait_cap`).
+            "get_question_answer" => self.ask,
+            "image_generate" | "image_get_result" => self.image,
             _ => false,
         }
     }
@@ -354,6 +364,13 @@ pub struct CompanionContext {
     /// The schema `submit_result` takes, asked of the parent once (see
     /// [`ResultSchemaProbe`]).
     pub result_schema: ResultSchemaProbe,
+    /// How long one tool call may block before it answers "still waiting"
+    /// (`--wait-cap-ms`, from the agent's own tool-call deadline). `None`
+    /// blocks until the result is in. See [`crate::acp::tool_wait_cap`].
+    pub wait_cap_ms: Option<u64>,
+    /// Where `notifications/progress` go while a call waits. Unset in tests
+    /// and wherever there is no stdout to write them to.
+    pub notifier: super::fork_tools::Notifier,
 }
 
 /// Upper bound on asking the parent for `submit_result`'s schema.
@@ -683,6 +700,7 @@ pub async fn dispatch_line(
                     list.push(submit_result_tool(schema));
                 }
             }
+            super::fork_tools::extend_tool_list(ctx, &mut tools).await;
             LineAction::Respond(ok(id, json!({ "tools": tools })))
         }
         "tools/call" => build_tools_call_spawn(ctx.clone(), inflight, id, req.params).await,
@@ -879,6 +897,16 @@ async fn build_tools_call_spawn(
     id: Value,
     params: Value,
 ) -> LineAction {
+    let action = build_tools_call_spawn_inner(ctx.clone(), inflight, id, params.clone()).await;
+    super::fork_tools::with_progress(action, &ctx, &params)
+}
+
+async fn build_tools_call_spawn_inner(
+    ctx: CompanionContext,
+    inflight: Arc<InflightCalls>,
+    id: Value,
+    params: Value,
+) -> LineAction {
     let name = params
         .get("name")
         .and_then(|v| v.as_str())
@@ -977,7 +1005,10 @@ async fn build_tools_call_spawn(
                 }
                 Err(msg) => return LineAction::Respond(err(id, -32602, msg)),
             };
-            let wait_ms = arguments.get("wait_ms").and_then(|v| v.as_u64());
+            let wait_ms = super::fork_tools::cap_status_wait(
+                arguments.get("wait_ms").and_then(|v| v.as_u64()),
+                ctx.wait_cap_ms,
+            );
             let req = BrokerStatusRequest {
                 token: ctx.token.clone(),
                 task_ids,
@@ -1073,13 +1104,23 @@ async fn build_tools_call_spawn(
             let req = BrokerAskRequest {
                 token: ctx.token.clone(),
                 questions,
+                // Past the agent's own deadline the answer would be lost to
+                // it; answer "still waiting" first (see `get_question_answer`).
+                wait_ms: ctx.wait_cap_ms,
             };
             // No external_handle: canceling a blocking ask only suppresses its
             // response. The companion dropping the round-trip future closes the
             // socket, which the listener observes (peer-close) to tear the
             // pending question down — no broker-side cancel to dispatch.
             let round_trip = Box::pin(async move { client_ask_round_trip(&socket, &req).await });
-            register_and_spawn(inflight, id, None, round_trip, render_ask_result).await
+            register_and_spawn(
+                inflight,
+                id,
+                None,
+                round_trip,
+                super::fork_tools::render_ask_outcome,
+            )
+            .await
         }
         "get_session_info" => {
             // `session_id` is the codeg conversation id the agent read out of a
@@ -1476,6 +1517,9 @@ async fn build_tools_call_spawn(
                 Box::pin(async move { client_create_work_task_round_trip(&socket, &req).await });
             register_and_spawn(inflight, id, None, round_trip, render_authoring_result).await
         }
+        "get_question_answer" | "image_generate" | "image_get_result" => {
+            super::fork_tools::build_spawn(&ctx, inflight, id, &name, arguments).await
+        }
         other => LineAction::Respond(err(id, -32602, format!("unknown tool: {other}"))),
     }
 }
@@ -1490,7 +1534,7 @@ async fn build_tools_call_spawn(
 /// result body: `delegate_to_agent` / `cancel_delegation` pass
 /// [`render_task_report`] (a single report); `get_delegation_status` passes
 /// [`render_status_result`] (always a `{tasks:[..]}` envelope, one entry per id).
-async fn register_and_spawn(
+pub(super) async fn register_and_spawn(
     inflight: Arc<InflightCalls>,
     id: Value,
     external_handle: Option<String>,
@@ -4456,6 +4500,7 @@ mod tests {
             computer: false,
             computer_launch: false,
             computer_clipboard: false,
+            image: false,
         })
     }
 
@@ -4469,6 +4514,8 @@ mod tests {
             disabled_agents: Vec::new(),
             assistant_support: AssistantSupportProbe::default(),
             result_schema: Default::default(),
+            wait_cap_ms: None,
+            notifier: Default::default(),
         }
     }
 
@@ -5073,6 +5120,7 @@ mod tests {
         computer: false,
         computer_launch: false,
         computer_clipboard: false,
+        image: false,
     };
     const BOTH: CompanionFeatures = CompanionFeatures {
         delegation: true,
@@ -5088,6 +5136,7 @@ mod tests {
         computer: false,
         computer_launch: false,
         computer_clipboard: false,
+        image: false,
     };
     const ASK_ONLY: CompanionFeatures = CompanionFeatures {
         delegation: false,
@@ -5103,6 +5152,7 @@ mod tests {
         computer: false,
         computer_launch: false,
         computer_clipboard: false,
+        image: false,
     };
     const SESSIONS_ONLY: CompanionFeatures = CompanionFeatures {
         delegation: false,
@@ -5118,6 +5168,7 @@ mod tests {
         computer: false,
         computer_launch: false,
         computer_clipboard: false,
+        image: false,
     };
 
     fn list_tool_names(action: LineAction) -> Vec<String> {
@@ -5609,6 +5660,7 @@ mod tests {
         computer: false,
         computer_launch: false,
         computer_clipboard: false,
+        image: false,
     };
     const TASKBOARD_ONLY: CompanionFeatures = CompanionFeatures {
         delegation: false,
@@ -5624,6 +5676,7 @@ mod tests {
         computer: false,
         computer_launch: false,
         computer_clipboard: false,
+        image: false,
     };
 
     /// The two authoring groups gate independently: enabling one must not
@@ -6299,6 +6352,8 @@ mod tests {
             disabled_agents: Vec::new(),
             assistant_support: AssistantSupportProbe::default(),
             result_schema: Default::default(),
+            wait_cap_ms: None,
+            notifier: Default::default(),
         };
         let inflight = Arc::new(InflightCalls::new());
         // tools/call → Spawn (registers the inflight entry).
@@ -6386,6 +6441,8 @@ mod tests {
             disabled_agents: Vec::new(),
             assistant_support: AssistantSupportProbe::default(),
             result_schema: Default::default(),
+            wait_cap_ms: None,
+            notifier: Default::default(),
         };
         let inflight = Arc::new(InflightCalls::new());
         let mut texts = Vec::new();
@@ -6448,6 +6505,7 @@ mod tests {
         computer: false,
         computer_launch: false,
         computer_clipboard: false,
+        image: false,
     };
 
     /// The browser group with `browser_eval` on top, which is the only way

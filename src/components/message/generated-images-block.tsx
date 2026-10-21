@@ -43,6 +43,13 @@ interface GeneratedImagesBlockProps {
    * definition such blocks always carry a present `image`.
    */
   status?: ToolCallStatus | null
+  /** Replaces the placeholder's "Generating image…" (e.g. with the time
+   *  spent so far). */
+  pendingText?: string | null
+  /** Replaces the failure slot's "Image generation failed". */
+  failedText?: string | null
+  /** A line under the card: where the image was saved, how it was made. */
+  footer?: React.ReactNode
   className?: string
 }
 
@@ -69,6 +76,9 @@ export const GeneratedImagesBlock = memo(function GeneratedImagesBlock({
   revisedPrompt,
   image,
   status,
+  pendingText,
+  failedText,
+  footer,
   className,
 }: GeneratedImagesBlockProps) {
   const t = useTranslations("Folder.chat.messageList")
@@ -150,7 +160,9 @@ export const GeneratedImagesBlock = memo(function GeneratedImagesBlock({
           >
             <div className="flex flex-col items-center gap-1.5">
               <AlertCircle className="h-6 w-6 opacity-80" />
-              <span>{t("imageGenerationFailed")}</span>
+              <span className="px-3 text-center">
+                {failedText || t("imageGenerationFailed")}
+              </span>
             </div>
           </div>
         ) : (
@@ -161,11 +173,13 @@ export const GeneratedImagesBlock = memo(function GeneratedImagesBlock({
           >
             <div className="flex flex-col items-center gap-1.5">
               <ImagePlus className="h-6 w-6 opacity-60" />
-              <span>{t("imageGenerationPending")}</span>
+              <span>{pendingText || t("imageGenerationPending")}</span>
             </div>
           </div>
         )}
       </div>
+
+      {footer ? <div className="mt-2">{footer}</div> : null}
 
       <ImagePreviewDialog
         src={image ? `data:${image.mime_type};base64,${image.data}` : ""}

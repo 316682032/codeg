@@ -113,6 +113,7 @@ import {
   TimerIcon,
   UsersIcon,
 } from "lucide-react"
+import { ImageJobCard } from "./image-job-card"
 
 // ── helpers ────────────────────────────────────────────────────────────
 
@@ -2888,7 +2889,9 @@ const ToolCallPart = memo(function ToolCallPart({
   // selection as a dedicated read-only card instead of the generic tool shell.
   // The live interactive answering is handled separately by the pinned
   // AskQuestionCard; this is the in-stream record (historical + in-flight).
-  if (toolNameLower === "question") {
+  // keh4l build: a collected answer whose question is not in view (the
+  // folding in `foldCollectCalls` keeps only answers).
+  if (toolNameLower === "question" || toolNameLower === "get_question_answer") {
     return (
       <AskQuestionResultCard
         input={part.input ?? null}
@@ -3297,6 +3300,10 @@ export const ContentPartsRenderer = memo(function ContentPartsRenderer({
 
     if (part.type === "proposed-plan") {
       return <ProposedPlanPart key={`proposed-plan-${keyId}`} part={part} />
+    }
+
+    if (part.type === "image-job") {
+      return <ImageJobCard key={`imgjob-${keyId}`} part={part} />
     }
 
     if (part.type === "generated-image") {

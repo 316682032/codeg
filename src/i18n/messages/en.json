@@ -57,7 +57,8 @@
       "computer_use": "Computer Use",
       "quick_messages": "Quick Messages",
       "logs": "Runtime Logs",
-      "translation": "Translation"
+      "translation": "Translation",
+      "image_generation": "Image generation"
     }
   },
   "AppearanceSettings": {
@@ -5404,7 +5405,8 @@
     "saving": "Saving…",
     "saved": "Tool settings saved",
     "saveFailed": "Failed to save tool settings",
-    "loadFailed": "Failed to load: {detail}"
+    "loadFailed": "Failed to load: {detail}",
+    "configureImage": "Set up services"
   },
   "AgentTools": {
     "delegation": {
@@ -5451,6 +5453,11 @@
       "label": "Create to-do tasks",
       "short": "Create and manage work tasks.",
       "hint": "Queue a card on the to-do board from the conversation. Off by default — it writes app state."
+    },
+    "image": {
+      "label": "Generate images",
+      "short": "Generate and edit images with the services you set up.",
+      "hint": "Lets agents generate and edit images with the services you set up in Settings → Image generation, saved as files. Codeg makes the call, so agents never see the API key. Off by default."
     }
   },
   "DesktopNotificationSettings": {
@@ -7497,5 +7504,91 @@
       "description": "Finished translations are kept for 30 days, so a reopened conversation shows them at once. Clear the cache to translate everything again, for example after switching models.",
       "clear": "Clear cache"
     }
+  },
+  "ImageGenerationSettings": {
+    "title": "Image generation",
+    "description": "Let agents generate and edit images through Codeg. API keys stay in Codeg and agents never see them. Every agent that supports MCP can use it.",
+    "loading": "Loading…",
+    "loadFailed": "Failed to load: {message}",
+    "saveFailed": "Failed to save: {message}",
+    "keySaved": "API key saved",
+    "keyRemoved": "API key removed",
+    "enable": {
+      "title": "Let agents generate images",
+      "description": "Agents started from now on get the image tools; turning it off takes effect at once. This is the same switch as in Collaboration → In-conversation tools."
+    },
+    "services": {
+      "title": "Services",
+      "description": "Add official services and relays here. You can add more than one.",
+      "add": "Add service",
+      "empty": "No services yet. Use Add service to set one up."
+    },
+    "kind": {
+      "openai": "OpenAI API",
+      "gemini": "Gemini API"
+    },
+    "service": {
+      "official": "Official address",
+      "modelCount": "{count, plural, =0 {No models} one {# model} other {# models}}",
+      "configured": "Configured",
+      "needsKey": "No key",
+      "name": "Name",
+      "kind": "API type",
+      "kindHint": "Grok and most relays use the OpenAI API.",
+      "baseUrl": "API address",
+      "baseUrlHintOpenai": "Leave empty for OpenAI's own address. For Grok, enter https://api.x.ai/v1; for a relay, the address it gives you.",
+      "baseUrlHintGemini": "Leave empty for Google's own address. For a relay, enter the address it gives you.",
+      "models": "Models",
+      "modelsHint": "Agents can pick any of these. When they don't, the default model below is used.",
+      "noModels": "No models yet",
+      "removeModel": "Remove {model}",
+      "addModelPlaceholder": "Type a model name and press Enter (use the relay's own name for it)",
+      "addModel": "Add a model",
+      "suggested": "Common:",
+      "remove": "Remove this service",
+      "removeConfirmTitle": "Remove {name}?",
+      "removeConfirmDescription": "Its API key is deleted too.",
+      "cancel": "Cancel",
+      "removeConfirm": "Remove"
+    },
+    "key": {
+      "title": "API key",
+      "needsKeyFirst": "Save an API key first",
+      "placeholder": "Paste the API key",
+      "label": "API key for {service}",
+      "hide": "Hide",
+      "show": "Show",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Saved",
+      "replace": "Replace",
+      "remove": "Remove key"
+    },
+    "test": {
+      "needsModel": "Add a model first",
+      "description": "Generate one small, low-quality image with {model} (billed by the service)",
+      "running": "Testing…",
+      "run": "Test",
+      "ok": "Works · {model} took {seconds} s",
+      "cost": "Each test generates one image, billed by the service."
+    },
+    "generation": {
+      "title": "Generation",
+      "defaultModel": "Default model",
+      "defaultModelHint": "Used when the agent doesn't name a model.",
+      "defaultModelAuto": "First available model",
+      "noKey": "(no key)",
+      "saveDir": "Save to, when the agent gives no path",
+      "saveDirHint": "Agents can pass their own path when they call the tool; a relative path is resolved against the conversation's working folder. Without one, images go here, in a folder per day.",
+      "sendPreview": "Send a preview to the agent",
+      "sendPreviewHint": "Attaches a copy about 512 pixels wide so the agent can see the result before deciding whether to change it. It uses some of the agent's context. Turn it off if the agent's model can't read images."
+    }
+  },
+  "ImageGeneration": {
+    "generating": "Generating… {seconds} s so far",
+    "loading": "Loading the image…",
+    "took": "took {seconds} s",
+    "fileMissing": "The image file can't be read. It may have been moved or deleted.",
+    "statusLost": "Codeg restarted while this was generating, so the result is unknown."
   }
 }

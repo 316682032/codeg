@@ -448,6 +448,8 @@ async fn async_main() -> ExitCode {
         &state.computer_tools_config,
     )
     .await;
+    // Image generation: the services agents may use, before any agent starts.
+    codeg_lib::commands::image_gen::apply_persisted_image_gen_settings(&state.db.conn).await;
     // The generative-UI skill's central copy, and the move from 0.35.0's
     // `json-render`: before the server takes a request, so the move can never
     // undo a change made on the settings page.

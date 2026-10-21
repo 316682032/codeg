@@ -45,6 +45,8 @@ pub mod folders;
 pub mod forge;
 /// The `ui-render` skill and the agents it is enabled for (Skill Packs > UI).
 pub mod generative_ui;
+/// Image generation for agents (keh4l build); see `crate::image_gen`.
+pub mod image_gen;
 pub mod logging;
 pub mod mcp;
 pub mod mcp_service;

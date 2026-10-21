@@ -123,6 +123,7 @@ import { unescapeComposerText } from "@/lib/composer-copy-text"
 import { useStickToBottomContext } from "use-stick-to-bottom"
 import { useAppWorkspaceStore } from "@/stores/app-workspace-store"
 import { MarkdownImageProvider } from "@/components/ai-elements/markdown-local-image"
+import { foldCollectCalls } from "@/lib/image-gen/tool-calls"
 
 interface MessageListViewProps {
   conversationId: number
@@ -926,7 +927,10 @@ export function mergeConsecutiveAssistantTurns(
       // round is its own turn) into one merged card.
       const mergedParts = groupGoalRuns(
         mergeAdjacentBackgroundTaskGroups(
-          mergeAdjacentDelegationStatusGroups(mergeAdjacentToolGroups(allParts))
+          mergeAdjacentDelegationStatusGroups(
+            // keh4l build: collect calls in later sub-turns join their card.
+            mergeAdjacentToolGroups(foldCollectCalls(allParts))
+          )
         ),
         mergedStreaming
       )

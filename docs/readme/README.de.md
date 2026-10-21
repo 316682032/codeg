@@ -39,6 +39,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">📱 <strong>Offene Konversationen auf dem Handy wechseln</strong><br/>Auf dem Handy zeigt ein Tipp auf den Konversationstitel alle offenen Konversationen und wie weit jede ist; ein Tipp auf eine wechselt dorthin. Der Titel meldet sich, wenn eine andere auf dich wartet.</td>
+    <td width="50%" valign="top">🎨 <strong>Agenten erzeugen Bilder</strong><br/>Adresse, Schlüssel und Modelle von OpenAI, Grok, Gemini oder einem Relay eintragen, und jeder Agent mit MCP-Unterstützung kann Bilder erzeugen und bearbeiten und dort speichern, wo er es angibt; das Bild erscheint in der Konversation, und der Schlüssel geht nie durch den Agenten.</td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">⏳ <strong>Ergebnisse auch bei Agenten mit kurzem Timeout</strong><br/>Manche Agenten warten nur 30 bis 60 Sekunden auf einen Tool-Aufruf. Dieser Build begrenzt jedes Warten je Agent, antwortet rechtzeitig und holt den Rest beim nächsten Aufruf ab, sodass eine langsame Antwort auf eine Frage nicht mehr als keine Antwort zählt.</td>
     <td width="50%" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
   </tr>
 </table>
@@ -108,6 +112,32 @@
 - Mit „Konversationstabs fensterübergreifend synchronisieren“ an (Standard) wird eine auf dem Handy geschlossene Konversation auch am Computer geschlossen, genau wie beim Schließen ihres Tabs dort.
 - Ab 768 px Breite (Computer, Tablets) ändert sich nichts: Die Tableiste bleibt.
 - Angefragt in [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
+
+</details>
+
+<details>
+<summary><strong>Agenten erzeugen Bilder</strong> – Details</summary>
+<br/>
+
+- Unter Einstellungen → Bildgenerierung einen Dienst hinzufügen: OpenAI-API (OpenAI selbst, Grok und die meisten Relays) oder Gemini-API (Google selbst oder ein Relay) wählen, die Adresse für die offizielle leer lassen, dann den Schlüssel und Modellnamen wie `gpt-image-2`, `grok-imagine-image-2.0` oder `gemini-3-pro-image` eintragen. Es können mehrere sein. „Testen“ erzeugt ein kleines Bild in niedriger Qualität, um zu prüfen, ob es geht; der Dienst berechnet es.
+- Ist der Schalter oben auf der Seite an (derselbe wie „Bilder erzeugen“ unter Einstellungen → Zusammenarbeit → Tools in der Unterhaltung, standardmäßig aus) und hat mindestens ein Dienst Schlüssel und Modell, bekommen Agenten, die danach starten, zwei Tools: `image_generate` und `image_get_result`. Ein Agent kann Modell, Seitenverhältnis, Auflösung und transparenten Hintergrund wählen und Referenzbilder übergeben, um ein vorhandenes Bild zu bearbeiten; ohne Modell gilt das Standardmodell aus den Einstellungen.
+- Wo das Bild gespeichert wird, bestimmt der Agent; ein relativer Pfad gilt ab dem Arbeitsordner der Konversation. Ohne Pfad landen Bilder in `~/.codeg/generated-images/<Datum>/`, einem Ordner, den man in den Einstellungen ändern kann.
+- Jedes Bild bekommt eine Karte in der Konversation: während der Erzeugung die bisherigen Sekunden, danach das Bild, wo es gespeichert wurde (Klick öffnet es), Dienst und Modell, Größe und Dauer. Das Bild wird aus der Datei gelesen, nach dem Neuladen der Konversation ist es also zu sehen, solange die Datei da ist.
+- Standardmäßig bekommt der Agent zusätzlich eine etwa 512 Pixel breite Kopie, damit er das Ergebnis sieht, bevor er entscheidet, ob er es ändert; das belegt etwas von seinem Kontext. In den Einstellungen ausschalten, wenn das Modell des Agenten keine Bilder lesen kann.
+- Ein Bild dauert oft zwischen einigen zehn Sekunden und zwei Minuten. Ist das länger, als der Agent auf einen Tool-Aufruf warten kann, bekommt er zuerst eine Job-ID und holt das Bild mit `image_get_result` ab; siehe nächster Abschnitt.
+- Den Aufruf macht Codeg selbst; der Agent bekommt nur die Bilddatei. API-Schlüssel liegen im Schlüsselbund des Systems (im Server-Build in `tokens.json` im Datenordner), nicht in der Datenbank, und gehören nicht zur Konfigurationssynchronisierung.
+
+</details>
+
+<details>
+<summary><strong>Ergebnisse auch bei Agenten mit kurzem Timeout</strong> – Details</summary>
+<br/>
+
+- Wie lange ein Agent auf einen MCP-Tool-Aufruf wartet, ist verschieden: ZCode 30 Sekunden; Cursor, Kimi, DeepSeek und OpenCode 60 Sekunden; Codex 5 Minuten; Claude Code, Qoder, CodeBuddy und Grok praktisch unbegrenzt. Im offiziellen Build kann `get_delegation_status` (Warten auf das Ergebnis einer delegierten Aufgabe) in einem Aufruf lange warten, und `ask_user_question` (eine Frage an dich) wartet, bis du antwortest; nach Ablauf der Frist wertet der Agent den Aufruf als fehlgeschlagen und macht weiter, die Frage gilt also als unbeantwortet.
+- Dieser Build gibt diesen Tools je Agent eine Obergrenze unterhalb seiner Frist: etwa 20 Sekunden bei ZCode, 45 Sekunden bei OpenCode, 4 Minuten bei Codex; Agenten ohne Frist bekommen keine, wie im offiziellen Build. Ist die Grenze ohne Ergebnis erreicht, kehrt der Aufruf zurück und sagt dem Agenten, wie er weiter wartet.
+- Fragen: Hast du bis dahin nicht geantwortet, bleibt die Fragekarte stehen, und der Agent wartet mit einem neuen Tool weiter, `get_question_answer`; sobald du antwortest, steht die Antwort in der ursprünglichen Fragekarte.
+- Delegierte Aufgaben: Ein Aufruf von `get_delegation_status` wartet höchstens bis zur Grenze und liefert dann den aktuellen Stand der Aufgaben. Bei der Bildgenerierung ist es genauso; siehe vorheriger Abschnitt.
+- Während des Wartens bekommt der Agent alle 10 Sekunden eine Fortschrittsmeldung, sodass Agenten, die ihre Frist bei Fortschritt verlängern, etwa OpenCode, länger warten können.
 
 </details>
 
