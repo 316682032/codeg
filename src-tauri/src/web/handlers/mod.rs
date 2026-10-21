@@ -28,6 +28,7 @@ pub mod folders;
 pub mod forge;
 pub mod generative_ui;
 pub mod git;
+pub mod image_gen;
 pub mod logging;
 pub mod mcp;
 pub mod mcp_service;

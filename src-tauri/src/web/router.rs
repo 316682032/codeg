@@ -432,6 +432,26 @@ pub fn build_router(
             post(handlers::translation::get_sent_originals),
         )
         .route(
+            "/get_image_gen_settings",
+            post(handlers::image_gen::get_image_gen_settings),
+        )
+        .route(
+            "/save_image_gen_settings",
+            post(handlers::image_gen::save_image_gen_settings),
+        )
+        .route(
+            "/test_image_gen_service",
+            post(handlers::image_gen::test_image_gen_service),
+        )
+        .route(
+            "/image_gen_job_status",
+            post(handlers::image_gen::image_gen_job_status),
+        )
+        .route(
+            "/image_gen_load_image",
+            post(handlers::image_gen::image_gen_load_image),
+        )
+        .route(
             "/update_folder_color",
             post(handlers::folders::update_folder_color),
         )

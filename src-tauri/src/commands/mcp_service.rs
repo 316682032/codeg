@@ -192,6 +192,7 @@ pub async fn codeg_mcp_service_status_core(
             browser_cfg.enabled && browser_cfg.eval,
         ),
         CodegMcpToolGroup::group("computer", sources.computer.is_enabled().await),
+        CodegMcpToolGroup::group("image", crate::image_gen::runtime_settings().enabled),
     ];
     // Only the groups proper. A dependent switch cannot be on with its group
     // off, so counting them changes nothing today — but "is anything live"
@@ -340,6 +341,9 @@ pub async fn set_codeg_mcp_tool_group_core(
                 enabled,
             )
             .await?;
+        }
+        "image" => {
+            crate::commands::image_gen::set_image_gen_enabled_core(conn, emitter, enabled).await?;
         }
         // A slug the backend never reports. Refusing beats writing nothing and
         // returning success, which would leave the popover's switch stuck in a

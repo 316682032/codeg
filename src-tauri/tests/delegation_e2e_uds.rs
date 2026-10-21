@@ -555,6 +555,7 @@ async fn end_to_end_uds_ask_question_round_trip() {
                 ],
                 is_secret: false,
             }],
+            wait_ms: None,
         };
         client_ask_round_trip(&socket_str, &req).await
     });
@@ -698,6 +699,7 @@ async fn end_to_end_uds_ask_revoked_after_register_declines() {
             ],
             is_secret: false,
         }],
+        wait_ms: None,
     };
     let resp = client_ask_round_trip(&socket.to_string_lossy(), &req)
         .await
@@ -838,6 +840,8 @@ async fn end_to_end_uds_assistant_delegation() {
         disabled_agents: Vec::new(),
         assistant_support: Default::default(),
         result_schema: Default::default(),
+        wait_cap_ms: None,
+        notifier: Default::default(),
     };
     let inflight = Arc::new(InflightCalls::new());
 

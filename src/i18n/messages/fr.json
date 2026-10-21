@@ -57,7 +57,8 @@
       "computer_use": "Utilisation de l'ordinateur",
       "quick_messages": "Messages rapides",
       "logs": "Journaux d'exécution",
-      "translation": "Traduction"
+      "translation": "Traduction",
+      "image_generation": "Génération d'images"
     }
   },
   "AppearanceSettings": {
@@ -5404,7 +5405,8 @@
     "saving": "Enregistrement…",
     "saved": "Paramètres des outils enregistrés",
     "saveFailed": "Échec de l'enregistrement des paramètres des outils",
-    "loadFailed": "Échec du chargement : {detail}"
+    "loadFailed": "Échec du chargement : {detail}",
+    "configureImage": "Configurer les services"
   },
   "AgentTools": {
     "delegation": {
@@ -5451,6 +5453,11 @@
       "label": "Créer des tâches à faire",
       "short": "Crée et gère des tâches de travail.",
       "hint": "Ajoute une carte au tableau des tâches depuis la conversation. Désactivé par défaut : écrit l'état de l'application."
+    },
+    "image": {
+      "label": "Générer des images",
+      "short": "Génère et modifie des images avec les services configurés.",
+      "hint": "Permet aux agents de générer et modifier des images avec les services configurés dans Réglages → Génération d'images, enregistrées comme fichiers. C'est Codeg qui fait l'appel : les agents ne voient jamais la clé d'API. Désactivé par défaut."
     }
   },
   "DesktopNotificationSettings": {
@@ -7497,5 +7504,91 @@
       "description": "Les traductions sont conservées 30 jours, si bien qu'une conversation rouverte les affiche aussitôt. Videz le cache pour tout retraduire, par exemple après un changement de modèle.",
       "clear": "Vider le cache"
     }
+  },
+  "ImageGenerationSettings": {
+    "title": "Génération d'images",
+    "description": "Permet aux agents de générer et modifier des images via Codeg. Les clés d'API restent dans Codeg et les agents ne les voient jamais. Tout agent compatible MCP peut l'utiliser.",
+    "loading": "Chargement…",
+    "loadFailed": "Échec du chargement : {message}",
+    "saveFailed": "Échec de l'enregistrement : {message}",
+    "keySaved": "Clé d'API enregistrée",
+    "keyRemoved": "Clé d'API supprimée",
+    "enable": {
+      "title": "Autoriser les agents à générer des images",
+      "description": "Les agents lancés à partir de maintenant reçoivent les outils d'image ; la désactivation prend effet tout de suite. C'est le même interrupteur que dans Collaboration → Outils dans la conversation."
+    },
+    "services": {
+      "title": "Services",
+      "description": "Ajoutez ici les services officiels et les relais. Vous pouvez en ajouter plusieurs.",
+      "add": "Ajouter un service",
+      "empty": "Aucun service pour l'instant. Utilisez Ajouter un service pour en configurer un."
+    },
+    "kind": {
+      "openai": "API OpenAI",
+      "gemini": "API Gemini"
+    },
+    "service": {
+      "official": "Adresse officielle",
+      "modelCount": "{count, plural, =0 {Aucun modèle} one {# modèle} other {# modèles}}",
+      "configured": "Configuré",
+      "needsKey": "Pas de clé",
+      "name": "Nom",
+      "kind": "Type d'API",
+      "kindHint": "Grok et la plupart des relais utilisent l'API OpenAI.",
+      "baseUrl": "Adresse de l'API",
+      "baseUrlHintOpenai": "Laissez vide pour l'adresse officielle d'OpenAI. Pour Grok, saisissez https://api.x.ai/v1 ; pour un relais, l'adresse qu'il vous donne.",
+      "baseUrlHintGemini": "Laissez vide pour l'adresse officielle de Google. Pour un relais, saisissez l'adresse qu'il vous donne.",
+      "models": "Modèles",
+      "modelsHint": "Les agents peuvent choisir n'importe lequel. Sinon, le modèle par défaut ci-dessous est utilisé.",
+      "noModels": "Aucun modèle pour l'instant",
+      "removeModel": "Retirer {model}",
+      "addModelPlaceholder": "Saisissez un nom de modèle puis Entrée (pour un relais, le nom qu'il utilise)",
+      "addModel": "Ajouter un modèle",
+      "suggested": "Courants :",
+      "remove": "Supprimer ce service",
+      "removeConfirmTitle": "Supprimer {name} ?",
+      "removeConfirmDescription": "Sa clé d'API est supprimée aussi.",
+      "cancel": "Annuler",
+      "removeConfirm": "Supprimer"
+    },
+    "key": {
+      "title": "Clé d'API",
+      "needsKeyFirst": "Enregistrez d'abord une clé d'API",
+      "placeholder": "Collez la clé d'API",
+      "label": "Clé d'API de {service}",
+      "hide": "Masquer",
+      "show": "Afficher",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "saved": "Enregistrée",
+      "replace": "Remplacer",
+      "remove": "Supprimer la clé"
+    },
+    "test": {
+      "needsModel": "Ajoutez d'abord un modèle",
+      "description": "Génère une petite image de faible qualité avec {model} (facturée par le service)",
+      "running": "Test en cours…",
+      "run": "Tester",
+      "ok": "Fonctionne · {model} a pris {seconds} s",
+      "cost": "Chaque test génère une image, facturée par le service."
+    },
+    "generation": {
+      "title": "Génération",
+      "defaultModel": "Modèle par défaut",
+      "defaultModelHint": "Utilisé quand l'agent n'indique pas de modèle.",
+      "defaultModelAuto": "Premier modèle disponible",
+      "noKey": "(pas de clé)",
+      "saveDir": "Enregistrer dans, si l'agent ne donne pas de chemin",
+      "saveDirHint": "Les agents peuvent donner leur propre chemin en appelant l'outil ; un chemin relatif part du dossier de travail de la conversation. Sans chemin, les images vont ici, dans un dossier par jour.",
+      "sendPreview": "Envoyer un aperçu à l'agent",
+      "sendPreviewHint": "Joint une copie d'environ 512 pixels de large pour que l'agent voie le résultat avant de décider s'il le modifie. Cela consomme un peu de son contexte. Désactivez-le si le modèle de l'agent ne sait pas lire les images."
+    }
+  },
+  "ImageGeneration": {
+    "generating": "Génération… {seconds} s",
+    "loading": "Chargement de l'image…",
+    "took": "a pris {seconds} s",
+    "fileMissing": "Impossible de lire le fichier image. Il a peut-être été déplacé ou supprimé.",
+    "statusLost": "Codeg a redémarré pendant la génération, le résultat est donc inconnu."
   }
 }

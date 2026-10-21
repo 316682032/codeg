@@ -1,5 +1,6 @@
 import { COLLAB_AGENT_TOOL_NAME } from "@/lib/collab-tool"
 import { isShellSessionToolName } from "@/lib/shell-session-tool"
+import { collectToolCanonicalName } from "@/lib/image-gen/tool-names"
 
 export type ToolKindLabel =
   | "search"
@@ -116,6 +117,8 @@ export function isAgentLikeToolName(toolName: string): boolean {
   if (CHECK_USER_FEEDBACK_SUFFIX_RE.test(name)) return true
   if (CODEG_MCP_WORKBENCH_NAMES.has(name)) return true
   if (CODEG_MCP_WORKBENCH_SUFFIX_RE.test(name)) return true
+  // keh4l build: the image cards and the folded question answers.
+  if (collectToolCanonicalName(name)) return true
   return false
 }
 

@@ -6840,6 +6840,9 @@ struct CompanionFeatureFlags {
     computer_launch: bool,
     /// `computer_clipboard_read` / `computer_clipboard_write`, the same.
     computer_clipboard: bool,
+    /// `image_generate` / `image_get_result`: switched on, with a usable
+    /// image service (see `crate::image_gen`).
+    image: bool,
 }
 
 /// The `--features` value for a companion launch, or `None` when no group is
@@ -6892,6 +6895,9 @@ fn companion_features_arg(flags: CompanionFeatureFlags) -> Option<String> {
     if flags.computer && flags.computer_clipboard {
         features.push("computer_clipboard");
     }
+    if flags.image {
+        features.push("image");
+    }
     if features.is_empty() {
         return None;
     }
@@ -6918,6 +6924,10 @@ struct LaunchGroups {
     tasks: bool,
     /// `submit_result`: the root of a `codeg-cli` run given `--output-schema`.
     result: bool,
+    /// How long one tool call may block for this agent before it must answer
+    /// (`--wait-cap-ms`); `None` blocks until the result is in. See
+    /// [`crate::acp::tool_wait_cap`].
+    wait_cap: Option<std::time::Duration>,
 }
 
 async fn inject_codeg_mcp(
@@ -7019,6 +7029,7 @@ where
             && injection.computer.is_launch_enabled().await,
         computer_clipboard: injection.computer.is_served()
             && injection.computer.is_clipboard_enabled().await,
+        image: crate::image_gen::is_ready(),
     };
     // `None` (no feature enabled) short-circuits BEFORE the binary lookup, the
     // token registration and the server append: there is no companion to launch,
@@ -7077,6 +7088,12 @@ where
     if !disabled_builtins.is_empty() {
         args.push("--disabled-agents".to_string());
         args.push(disabled_builtins.join(","));
+    }
+    // Omitted when the agent waits long enough, so an older codeg-mcp binary
+    // (one that rejects unknown flags) keeps working for those agents.
+    if let Some(cap) = groups.wait_cap {
+        args.push("--wait-cap-ms".to_string());
+        args.push(cap.as_millis().to_string());
     }
     server = server.args(args);
     servers.push(McpServer::Stdio(server));
@@ -7996,6 +8013,7 @@ async fn run_connection(
                         LaunchGroups {
                             tasks: s.owner_window_label == "work_task",
                             result: s.cli_output_schema.is_some(),
+                            wait_cap: crate::acp::tool_wait_cap::codeg_mcp_wait_cap(agent_type),
                         }
                     };
                     inject_codeg_mcp(
@@ -9027,7 +9045,11 @@ async fn handle_grok_ask_user_question(
 /// outlives this turn and this connection, so it stays theirs to make. With no
 /// such option (an agent that offers only "always"), `None` keeps today's card.
 fn codeg_ask_auto_allow_option(req: &RequestPermissionRequest) -> Option<String> {
-    codeg_tool_auto_allow_option(req, crate::acp::question::is_codeg_ask_tool_name)
+    // keh4l build: `get_question_answer` too (see `question_collect`).
+    codeg_tool_auto_allow_option(
+        req,
+        crate::acp::question_collect::is_codeg_ask_or_collect_tool_name,
+    )
 }
 
 /// The `allow_once` option of a request gating the codeg-mcp tool `is_tool`
@@ -21206,6 +21228,21 @@ async fn emit_conversation_update(
                 tcu.fields.status.as_ref(),
                 content.is_some() || tcu.fields.raw_output.is_some(),
             );
+            // keh4l build: Cursor never sends a codeg-mcp image call's result
+            // text; show the answer codeg gave it (see `image_gen::cursor`).
+            let cursor_image_answer = if matches!(agent_type, AgentType::Cursor) {
+                let st = state.read().await;
+                crate::image_gen::cursor::live_output(
+                    &st.connection_id,
+                    &tool_call_id,
+                    st.active_tool_calls
+                        .get(&tool_call_id)
+                        .and_then(|t| t.input.as_ref()),
+                    &tcu.fields.raw_output,
+                )
+            } else {
+                None
+            };
             let raw_output_text = if hosted_shell {
                 // The `_meta` bridge below owns this call's output channel
                 // entirely. A codex that does not honour the advertised
@@ -21236,6 +21273,9 @@ async fn emit_conversation_update(
             } else if matches!(agent_type, AgentType::Kiro) {
                 // Kiro delivers every result on the completion update.
                 kiro_live_tool_output(&tcu.fields.raw_output, kiro_tool.as_ref())
+            } else if let Some(text) = cursor_image_answer {
+                // keh4l build: Cursor sends `{"success":true}` for the result.
+                Some(text)
             } else if let Some(answers) = qoder_ask_live_output(
                 cb_state.qoder_ask_questions.get(&tool_call_id),
                 qoder_ask_reply.as_ref(),
@@ -35852,6 +35892,45 @@ mod tests {
         );
     }
 
+    /// An agent with a short tool-call deadline gets `--wait-cap-ms`; one that
+    /// waits long enough gets no flag, so an older companion binary still runs.
+    #[tokio::test]
+    async fn the_wait_cap_rides_on_the_launch_args_only_when_set() {
+        let injection = test_delegation_injection(
+            Arc::new(TestAllAgentsAvailable) as Arc<dyn AgentAvailabilityLookup>
+        );
+        for (cap, expected) in [
+            (Some(std::time::Duration::from_secs(20)), Some("20000")),
+            (None, None),
+        ] {
+            let mut servers: Vec<McpServer> = Vec::new();
+            inject_codeg_mcp_with_binary_locator(
+                &mut servers,
+                &injection,
+                "capped",
+                std::path::Path::new("/tmp"),
+                LaunchGroups {
+                    tasks: false,
+                    result: true,
+                    wait_cap: cap,
+                },
+                HostToolsPolicy::Agent,
+                || Some(PathBuf::from("/opt/codeg/codeg-mcp")),
+            )
+            .await
+            .expect("a companion");
+            let McpServer::Stdio(server) = &servers[0] else {
+                panic!("a stdio server: {servers:?}");
+            };
+            let value = server
+                .args
+                .iter()
+                .position(|a| a == "--wait-cap-ms")
+                .map(|i| server.args[i + 1].as_str());
+            assert_eq!(value, expected);
+        }
+    }
+
     /// The root of a `codeg-cli` run given `--output-schema` gets a companion
     /// carrying `submit_result` with every setting off, as a task launch gets
     /// its reporting tools.
@@ -35869,6 +35948,7 @@ mod tests {
             LaunchGroups {
                 tasks: false,
                 result: true,
+                wait_cap: None,
             },
             HostToolsPolicy::Agent,
             || Some(PathBuf::from("/opt/codeg/codeg-mcp")),
@@ -36049,6 +36129,7 @@ mod tests {
                 computer: true,
                 computer_launch: true,
                 computer_clipboard: true,
+                image: false,
             }),
             Some(
                 "delegation,feedback,ask,sessions,tasks,result,automations,taskboard,browser,\

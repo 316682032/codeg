@@ -39,6 +39,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">📱 <strong>Alternar entre conversas abertas no celular</strong><br/>No celular, toque no título da conversa para ver todas as conversas abertas e o andamento de cada uma, e toque em uma para ir até ela; o título avisa quando outra está esperando por você.</td>
+    <td width="50%" valign="top">🎨 <strong>Os agentes geram imagens</strong><br/>Configure o endereço, a chave e os modelos da OpenAI, do Grok, do Gemini ou de um relay, e qualquer agente compatível com MCP cria e edita imagens e as salva onde indicar; a imagem aparece na conversa, e a chave nunca passa pelo agente.</td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">⏳ <strong>Resultados para agentes com tempo limite curto</strong><br/>Alguns agentes esperam só de 30 a 60 segundos por uma chamada de ferramenta. Esta versão limita cada espera por agente, responde a tempo e busca o resto na chamada seguinte, então uma resposta demorada a uma pergunta não conta mais como sem resposta.</td>
     <td width="50%" valign="top">🔄 <strong>Acompanha o original</strong><br/>O projeto original é mesclado regularmente; o que não está listado aqui funciona como na versão oficial. O Kiro CLI integrado, a primeira coisa que esta versão adicionou, faz parte da versão oficial desde a 0.36.0.</td>
   </tr>
 </table>
@@ -108,6 +112,32 @@
 - Com "Sincronizar abas de conversa entre janelas" ativada (padrão), uma conversa fechada no celular também fecha no computador, como fechar a aba dela lá.
 - Com 768 px de largura ou mais (computadores, tablets) nada muda: a barra de abas continua.
 - Solicitado em [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
+
+</details>
+
+<details>
+<summary><strong>Os agentes geram imagens</strong>: detalhes</summary>
+<br/>
+
+- Em Configurações → Geração de imagens, adicione um serviço: escolha API da OpenAI (a própria OpenAI, o Grok e a maioria dos relays) ou API do Gemini (o próprio Google ou um relay), deixe o endereço vazio para usar o oficial e adicione a chave e nomes de modelo como `gpt-image-2`, `grok-imagine-image-2.0` ou `gemini-3-pro-image`. Dá para adicionar vários. Testar gera uma imagem pequena de baixa qualidade para conferir se funciona; ela é cobrada pelo serviço.
+- Com o interruptor do topo da página ligado (o mesmo de "Gerar imagens" em Configurações → Colaboração → Ferramentas na conversa, desligado por padrão) e pelo menos um serviço com chave e modelo, os agentes iniciados a partir daí ganham duas ferramentas, `image_generate` e `image_get_result`. O agente pode escolher o modelo, a proporção, a resolução e um fundo transparente, e passar imagens de referência para editar uma imagem existente; sem modelo, vale o padrão das configurações.
+- O agente decide onde a imagem é salva; um caminho relativo parte da pasta de trabalho da conversa. Sem caminho, as imagens vão para `~/.codeg/generated-images/<data>/`, pasta que pode ser trocada nas configurações.
+- Cada imagem ganha um cartão na conversa: enquanto é gerada, os segundos até agora; depois, a imagem, onde foi salva (clique para abrir), o serviço e o modelo, o tamanho e o tempo que levou. A imagem é lida do arquivo, então depois de recarregar a conversa ela continua visível enquanto o arquivo existir.
+- Por padrão o agente também recebe uma cópia com cerca de 512 pixels de largura, para ver o resultado antes de decidir se muda algo; isso ocupa parte do contexto dele. Desative nas configurações se o modelo do agente não consegue ler imagens.
+- Uma imagem costuma levar de dezenas de segundos a dois minutos. Quando isso passa do que o agente consegue esperar por uma chamada de ferramenta, ele recebe primeiro um id de tarefa e busca a imagem com `image_get_result`; veja a próxima seção.
+- Quem faz a chamada é o próprio Codeg; o agente recebe só o arquivo de imagem. As chaves de API ficam no chaveiro do sistema (na versão de servidor, em `tokens.json` na pasta de dados), não no banco de dados, e não fazem parte da sincronização de configurações.
+
+</details>
+
+<details>
+<summary><strong>Resultados para agentes com tempo limite curto</strong>: detalhes</summary>
+<br/>
+
+- Quanto um agente espera por uma chamada de ferramenta MCP varia: ZCode, 30 segundos; Cursor, Kimi, DeepSeek e OpenCode, 60 segundos; Codex, 5 minutos; Claude Code, Qoder, CodeBuddy e Grok, praticamente sem limite. Na versão oficial, `get_delegation_status` (esperar o resultado de uma tarefa delegada) pode esperar muito numa só chamada e `ask_user_question` (uma pergunta para você) espera até você responder; passado o prazo, o agente trata a chamada como falha e segue em frente, então a pergunta conta como sem resposta.
+- Esta versão dá a essas ferramentas um teto por agente, abaixo do prazo dele: por exemplo 20 segundos no ZCode, 45 segundos no OpenCode, 4 minutos no Codex; agentes sem limite ficam sem teto, como na versão oficial. Ao chegar ao teto sem resultado, a chamada volta e diz ao agente como continuar esperando.
+- Perguntas: se você ainda não respondeu, o cartão da pergunta continua onde está e o agente segue esperando com uma ferramenta nova, `get_question_answer`; quando você responde, a resposta aparece no cartão original.
+- Tarefas delegadas: cada chamada a `get_delegation_status` espera no máximo até o teto e devolve o estado atual das tarefas. A geração de imagens funciona do mesmo jeito; veja a seção anterior.
+- Enquanto espera, o agente recebe um aviso de progresso a cada 10 segundos, o que permite aos agentes que estendem o prazo com o progresso, como o OpenCode, esperar mais.
 
 </details>
 

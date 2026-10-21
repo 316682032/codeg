@@ -46,6 +46,7 @@ use crate::acp::delegation::types::{
 };
 use crate::acp::feedback::{PendingFeedback, SessionFeedbackAccess};
 use crate::acp::question::{QuestionOutcome, SessionQuestionAccess};
+use crate::acp::question_collect::CollectedAnswer;
 #[cfg(unix)]
 use crate::acp::scratch_dir::{is_inside_sweep_scope, SUN_PATH_CAP};
 use crate::acp::chat_authoring::{AuthoringContext, AuthoringOutcome, ChatAuthoringAccess};
@@ -530,7 +531,18 @@ impl DelegationListener {
                     .register_question(&parent_conn_id, req.questions)
                     .await
                 else {
-                    write_frame(conn, &ask_declined_response()?).await?;
+                    // One question at a time. A capped agent may well ask
+                    // again while its first question is still up (it got
+                    // `pending` back): point it at that one instead.
+                    let waiting = match req.wait_ms {
+                        Some(_) => self.questions.pending_question_id(&parent_conn_id).await,
+                        None => None,
+                    };
+                    let resp = match waiting {
+                        Some(question_id) => ask_pending_response(&question_id),
+                        None => ask_declined_response()?,
+                    };
+                    write_frame(conn, &resp).await?;
                     return Ok(());
                 };
                 let question_id = reg.question_id;
@@ -559,6 +571,21 @@ impl DelegationListener {
                             .await;
                         return Ok(());
                     }
+                    // Past this the agent would drop the call (its own
+                    // tool-call deadline): answer `pending` and leave the
+                    // question up. Closing the receiver first makes a late
+                    // answer fail to send, so it is kept for
+                    // `get_question_answer` rather than lost in between.
+                    _ = sleep_for(req.wait_ms) => {
+                        answer_rx.close();
+                        match answer_rx.try_recv() {
+                            Ok(outcome) => Some(outcome),
+                            Err(_) => {
+                                write_frame(conn, &ask_pending_response(&question_id)).await?;
+                                return Ok(());
+                            }
+                        }
+                    }
                 };
                 let resp = match outcome {
                     Some(o) => ask_response(&o)?,
@@ -567,6 +594,88 @@ impl DelegationListener {
                     None => ask_declined_response()?,
                 };
                 write_frame(conn, &resp).await?;
+                return Ok(());
+            }
+            BrokerMessage::AskCollect(req) => {
+                let Some(entry) = self.tokens.lookup(&req.token).await else {
+                    write_frame(conn, &ask_gone_response()).await?;
+                    return Ok(());
+                };
+                let collect = self.questions.collect_answer(
+                    &entry.parent_connection_id,
+                    &req.question_id,
+                    req.wait_ms.map(std::time::Duration::from_millis),
+                );
+                tokio::pin!(collect);
+                // A wait without a cap can last as long as the user takes:
+                // race peer-close like `Status`, so a canceled call does not
+                // leave this task parked. Nothing to undo.
+                let mut probe = [0u8; 1];
+                let collected = tokio::select! {
+                    biased;
+                    collected = &mut collect => collected,
+                    _ = conn.read(&mut probe) => return Ok(()),
+                };
+                let resp = match collected {
+                    CollectedAnswer::Answered(outcome) => ask_response(&outcome)?,
+                    CollectedAnswer::Pending => ask_pending_response(&req.question_id),
+                    CollectedAnswer::Gone => ask_gone_response(),
+                };
+                write_frame(conn, &resp).await?;
+                return Ok(());
+            }
+            BrokerMessage::ImageModels(req) => BrokerResponse {
+                outcome: match self.tokens.lookup(&req.token).await {
+                    Some(_) => crate::image_gen::mcp::models().await,
+                    None => serde_json::json!({ "models": [] }),
+                },
+            },
+            BrokerMessage::ImageGenerate(req) => {
+                let Some(entry) = self.tokens.lookup(&req.token).await else {
+                    write_frame(conn, &image_refused_response()).await?;
+                    return Ok(());
+                };
+                let conversation_id = self
+                    .parent_lookup
+                    .current_conversation_id(&entry.parent_connection_id)
+                    .await;
+                let generate = crate::image_gen::mcp::generate(
+                    &entry.parent_connection_id,
+                    conversation_id,
+                    &entry.working_dir,
+                    req.input,
+                    req.wait_ms.map(std::time::Duration::from_millis),
+                );
+                tokio::pin!(generate);
+                // Leaving early only stops the wait: the job carries on, and
+                // `image_get_result` can still collect it.
+                let mut probe = [0u8; 1];
+                let outcome = tokio::select! {
+                    biased;
+                    outcome = &mut generate => outcome,
+                    _ = conn.read(&mut probe) => return Ok(()),
+                };
+                write_frame(conn, &BrokerResponse { outcome }).await?;
+                return Ok(());
+            }
+            BrokerMessage::ImageResult(req) => {
+                let Some(entry) = self.tokens.lookup(&req.token).await else {
+                    write_frame(conn, &image_refused_response()).await?;
+                    return Ok(());
+                };
+                let wait = crate::image_gen::mcp::wait_for(
+                    &entry.parent_connection_id,
+                    &req.job_ids,
+                    req.wait_ms.map(std::time::Duration::from_millis),
+                );
+                tokio::pin!(wait);
+                let mut probe = [0u8; 1];
+                let outcome = tokio::select! {
+                    biased;
+                    outcome = &mut wait => outcome,
+                    _ = conn.read(&mut probe) => return Ok(()),
+                };
+                write_frame(conn, &BrokerResponse { outcome }).await?;
                 return Ok(());
             }
             BrokerMessage::SessionInfo(req) => {
@@ -1559,6 +1668,38 @@ fn authoring_response(outcome: AuthoringOutcome) -> std::io::Result<BrokerRespon
 /// The `declined` outcome — used when the token is invalid, the connection is
 /// gone, or the answer one-shot was dropped without a response. The LLM reads it
 /// as "the user didn't answer; proceed with your own judgment".
+/// The user has not answered yet; the question stays up and
+/// `get_question_answer` collects the answer.
+fn ask_pending_response(question_id: &str) -> BrokerResponse {
+    BrokerResponse {
+        outcome: serde_json::json!({ "pending": true, "question_id": question_id }),
+    }
+}
+
+/// `get_question_answer` for a question that is no longer waiting.
+fn ask_gone_response() -> BrokerResponse {
+    BrokerResponse {
+        outcome: serde_json::json!({ "gone": true }),
+    }
+}
+
+/// An image tool call with a token this codeg does not know.
+fn image_refused_response() -> BrokerResponse {
+    BrokerResponse {
+        outcome: serde_json::json!({
+            "error": "This Codeg session has ended; image generation is not available here."
+        }),
+    }
+}
+
+/// Sleep for `wait_ms`, or forever when there is no cap.
+async fn sleep_for(wait_ms: Option<u64>) {
+    match wait_ms {
+        Some(ms) => tokio::time::sleep(std::time::Duration::from_millis(ms)).await,
+        None => std::future::pending::<()>().await,
+    }
+}
+
 fn ask_declined_response() -> std::io::Result<BrokerResponse> {
     ask_response(&QuestionOutcome {
         answers: Vec::new(),
@@ -3393,6 +3534,7 @@ mod tests {
                 ],
                 is_secret: false,
             }],
+            wait_ms: None,
         })
     }
 
@@ -3507,6 +3649,76 @@ mod tests {
         server_task.await.unwrap();
         assert_eq!(resp.outcome["declined"], true);
         assert!(questions.registered.lock().await.is_empty());
+    }
+
+    /// With a cap (an agent whose tool calls time out quickly) an unanswered
+    /// ask returns `pending` at the cap and leaves the question up, so the
+    /// answer can still be collected with `get_question_answer`.
+    #[tokio::test]
+    async fn a_capped_ask_returns_pending_and_keeps_the_question() {
+        let questions = Arc::new(StubQuestion::default());
+        let tokens = Arc::new(TokenRegistry::default());
+        tokens
+            .register(
+                "tok".into(),
+                TokenEntry {
+                    parent_connection_id: "parent-conn".into(),
+                    working_dir: PathBuf::from("/tmp"),
+                },
+            )
+            .await;
+        let listener = make_question_listener(tokens, questions.clone());
+        let (mut client, mut server) = duplex(8 * 1024);
+        let server_task = tokio::spawn(async move {
+            listener.serve_one(&mut server).await.unwrap();
+        });
+        let BrokerMessage::Ask(mut req) = ask_msg("tok") else {
+            unreachable!()
+        };
+        req.wait_ms = Some(30);
+        write_frame(&mut client, &BrokerMessage::Ask(req))
+            .await
+            .unwrap();
+        let resp: BrokerResponse = read_frame(&mut client).await.unwrap();
+        server_task.await.unwrap();
+        assert_eq!(resp.outcome["pending"], true);
+        assert_eq!(resp.outcome["question_id"], "q-1");
+        assert!(questions.canceled.lock().await.is_empty());
+        assert!(questions.pending.lock().await.contains_key("q-1"));
+    }
+
+    /// Collecting with a known token goes to the question store; this stub
+    /// keeps no answers, so the question reads as gone.
+    #[tokio::test]
+    async fn collecting_an_unknown_question_reports_gone() {
+        let questions = Arc::new(StubQuestion::default());
+        let tokens = Arc::new(TokenRegistry::default());
+        tokens
+            .register(
+                "tok".into(),
+                TokenEntry {
+                    parent_connection_id: "parent-conn".into(),
+                    working_dir: PathBuf::from("/tmp"),
+                },
+            )
+            .await;
+        let listener = make_question_listener(tokens, questions);
+        for token in ["tok", "bad-token"] {
+            let listener = listener.clone();
+            let (mut client, mut server) = duplex(8 * 1024);
+            let server_task = tokio::spawn(async move {
+                listener.serve_one(&mut server).await.unwrap();
+            });
+            let msg = BrokerMessage::AskCollect(super::super::transport::BrokerAskCollectRequest {
+                token: token.into(),
+                question_id: "q-9".into(),
+                wait_ms: Some(10),
+            });
+            write_frame(&mut client, &msg).await.unwrap();
+            let resp: BrokerResponse = read_frame(&mut client).await.unwrap();
+            server_task.await.unwrap();
+            assert_eq!(resp.outcome["gone"], true, "{token}");
+        }
     }
 
     // -- browser tools ------------------------------------------------------

@@ -57,7 +57,8 @@
       "computer_use": "电脑操作",
       "quick_messages": "快捷消息",
       "logs": "运行日志",
-      "translation": "翻译"
+      "translation": "翻译",
+      "image_generation": "图片生成"
     }
   },
   "AppearanceSettings": {
@@ -5404,7 +5405,8 @@
     "saving": "保存中…",
     "saved": "工具设置已保存",
     "saveFailed": "保存工具设置失败",
-    "loadFailed": "加载失败：{detail}"
+    "loadFailed": "加载失败：{detail}",
+    "configureImage": "去配置服务"
   },
   "AgentTools": {
     "delegation": {
@@ -5451,6 +5453,11 @@
       "label": "创建待办任务",
       "short": "创建和管理工作任务。",
       "hint": "从对话中往待办看板排一张任务卡。默认关闭——它会写入应用状态。"
+    },
+    "image": {
+      "label": "生成图片",
+      "short": "用你配置的服务生成和修改图片。",
+      "hint": "让智能体用你在「设置 → 图片生成」里配置的服务生成和修改图片，图片保存成文件。接口由 codeg 来调，智能体看不到 API Key。默认关闭。"
     }
   },
   "DesktopNotificationSettings": {
@@ -7497,5 +7504,91 @@
       "description": "翻译结果保留 30 天，重新打开会话时直接显示。清空后会全部重新翻译，比如换了模型以后。",
       "clear": "清空缓存"
     }
+  },
+  "ImageGenerationSettings": {
+    "title": "图片生成",
+    "description": "让智能体通过 codeg 生成和修改图片。API Key 只保存在 codeg 里，智能体看不到；所有支持 MCP 的智能体都能用。",
+    "loading": "加载中…",
+    "loadFailed": "加载失败：{message}",
+    "saveFailed": "保存失败：{message}",
+    "keySaved": "API Key 已保存",
+    "keyRemoved": "API Key 已删除",
+    "enable": {
+      "title": "允许智能体生成图片",
+      "description": "打开后，之后启动的智能体会多出生成图片的工具；关闭立即生效。和「协作 → 会话内工具」里的开关是同一个。"
+    },
+    "services": {
+      "title": "服务",
+      "description": "官方服务和中转站都在这里加，可以加多个。",
+      "add": "添加服务",
+      "empty": "还没有服务，点「添加服务」加一个。"
+    },
+    "kind": {
+      "openai": "OpenAI 接口",
+      "gemini": "Gemini 接口"
+    },
+    "service": {
+      "official": "官方地址",
+      "modelCount": "{count, plural, =0 {没有模型} other {# 个模型}}",
+      "configured": "已配置",
+      "needsKey": "未填 Key",
+      "name": "名称",
+      "kind": "接口类型",
+      "kindHint": "Grok 和大多数中转站用 OpenAI 接口。",
+      "baseUrl": "接口地址",
+      "baseUrlHintOpenai": "留空用 OpenAI 官方地址。Grok 填 https://api.x.ai/v1，中转站填它给的地址。",
+      "baseUrlHintGemini": "留空用 Google 官方地址，中转站填它给的地址。",
+      "models": "模型",
+      "modelsHint": "智能体可以从这些模型里挑一个；没挑时用下面的「默认模型」。",
+      "noModels": "还没有模型",
+      "removeModel": "移除 {model}",
+      "addModelPlaceholder": "输入模型名，回车添加（中转站的模型名照它的写）",
+      "addModel": "添加模型",
+      "suggested": "常用：",
+      "remove": "删除这个服务",
+      "removeConfirmTitle": "删除「{name}」？",
+      "removeConfirmDescription": "它的 API Key 也会一起删掉。",
+      "cancel": "取消",
+      "removeConfirm": "删除"
+    },
+    "key": {
+      "title": "API Key",
+      "needsKeyFirst": "先保存 API Key",
+      "placeholder": "粘贴 API Key",
+      "label": "{service} 的 API Key",
+      "hide": "隐藏",
+      "show": "显示",
+      "save": "保存",
+      "cancel": "取消",
+      "saved": "已保存",
+      "replace": "更换",
+      "remove": "删除 Key"
+    },
+    "test": {
+      "needsModel": "先添加一个模型",
+      "description": "用 {model} 生成一张低质量小图（由服务方计费）",
+      "running": "测试中…",
+      "run": "测试",
+      "ok": "能用 · {model} 用了 {seconds} 秒",
+      "cost": "每次测试生成一张图，由服务方计费。"
+    },
+    "generation": {
+      "title": "生成",
+      "defaultModel": "默认模型",
+      "defaultModelHint": "智能体没指定模型时用它。",
+      "defaultModelAuto": "第一个可用的模型",
+      "noKey": "（未填 Key）",
+      "saveDir": "没指定保存路径时存到",
+      "saveDirHint": "智能体调用时可以自己传保存路径，相对路径按会话的工作目录算；没传时存到这里，按日期分文件夹。",
+      "sendPreview": "把预览图发给智能体",
+      "sendPreviewHint": "附一张约 512 像素宽的缩小图，让智能体看到结果再决定要不要改，会占用它的上下文。智能体用的模型看不了图片时请关掉。"
+    }
+  },
+  "ImageGeneration": {
+    "generating": "正在生成… 已用 {seconds} 秒",
+    "loading": "正在读取图片…",
+    "took": "用时 {seconds} 秒",
+    "fileMissing": "读不到图片文件，可能已被移动或删除。",
+    "statusLost": "生成期间 codeg 重启过，结果未知。"
   }
 }

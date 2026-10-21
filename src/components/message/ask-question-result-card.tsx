@@ -35,6 +35,7 @@ import {
 } from "@/lib/ask-question"
 import type { PendingQuestionState } from "@/lib/types"
 import type { ToolCallState } from "@/lib/adapters/ai-elements-adapter"
+import { pendingQuestionId } from "@/lib/image-gen/tool-calls"
 
 // Separator for the composite "header + question" lookup key. A control char
 // (unit separator) that never appears in agent-authored text.
@@ -79,7 +80,13 @@ export function AskQuestionResultCard({
 
   const isError = !!errorText?.trim()
   const isRunning = state === "input-available" || state === "input-streaming"
-  const isInFlight = !isError && !outcome && isRunning
+  // keh4l build: the ask returned before the user answered (the agent's
+  // tool-call deadline); its answer, once collected, is folded in here.
+  const awaitingCollect = useMemo(
+    () => !isError && pendingQuestionId(output) !== null,
+    [isError, output]
+  )
+  const isInFlight = !isError && ((!outcome && isRunning) || awaitingCollect)
 
   // The question set, shaped for AskQuestionCard (synthetic ids: the persisted
   // input carries none — the backend mints them server-side).

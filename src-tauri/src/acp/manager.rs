@@ -3737,6 +3737,25 @@ impl ConnectionManager {
     /// gone (nothing to ask) OR when this connection already has a pending ask
     /// — see below.
     ///
+    /// The question waiting for an answer on `conn_id`, if any.
+    pub async fn pending_question_id(&self, conn_id: &str) -> Option<String> {
+        self.pending_questions
+            .lock()
+            .await
+            .iter()
+            .find(|(_, e)| e.parent_connection_id == conn_id)
+            .map(|(id, _)| id.clone())
+    }
+
+    /// Whether `question_id` is still waiting for an answer on `conn_id`.
+    pub async fn is_question_pending(&self, conn_id: &str, question_id: &str) -> bool {
+        self.pending_questions
+            .lock()
+            .await
+            .get(question_id)
+            .is_some_and(|e| e.parent_connection_id == conn_id)
+    }
+
     /// One pending ask per connection: `SessionState.pending_question` and the
     /// frontend card are single slots, so a second concurrent ask would
     /// overwrite the first's card/snapshot and orphan the first (still-parked)
@@ -3844,16 +3863,20 @@ impl ConnectionManager {
         answer: QuestionAnswer,
     ) -> Result<(), AcpError> {
         let _ = conn_id;
-        let entry = self.pending_questions.lock().await.remove(question_id);
-        let Some(entry) = entry else {
+        let mut reg = self.pending_questions.lock().await;
+        let Some(entry) = reg.remove(question_id) else {
             // Already answered / canceled / gone elsewhere — idempotent success.
             return Ok(());
         };
         let outcome = build_outcome(&entry.questions, &answer);
-        // Ignore a dropped receiver: the listener may have abandoned the wait
-        // (peer-close) at the same instant; the resolved-event below still clears
-        // the card.
-        let _ = entry.sender.send(outcome);
+        // A dropped receiver means the ask already returned `pending` (its
+        // wait was capped): keep the outcome for `get_question_answer`. Done
+        // under the registry lock so a collector never sees the question as
+        // neither pending nor answered.
+        if let Err(outcome) = entry.sender.send(outcome) {
+            crate::acp::question_collect::keep(question_id, &entry.parent_connection_id, outcome);
+        }
+        drop(reg);
         if let Some((state, emitter)) = self.get_state_and_emitter(&entry.parent_connection_id).await
         {
             emit_with_state(
@@ -3879,6 +3902,7 @@ impl ConnectionManager {
         let Some(entry) = removed else {
             return;
         };
+        crate::acp::question_collect::changed();
         if let Some((state, emitter)) = self.get_state_and_emitter(&entry.parent_connection_id).await
         {
             emit_with_state(
@@ -3916,9 +3940,11 @@ impl ConnectionManager {
             }
             ids
         };
+        crate::acp::question_collect::drop_for_parent(conn_id);
         if drained.is_empty() {
             return;
         }
+        crate::acp::question_collect::changed();
         // Best-effort card clear: depending on the teardown path the connection
         // may already be out of the map (`disconnect` removes it before the
         // run_connection cleanup guard fires this sweep), so tolerate `None` — the
@@ -4536,6 +4562,28 @@ impl SessionQuestionAccess for ConnectionManagerQuestionLookup {
         self.manager
             .cancel_questions_by_parent(parent_connection_id)
             .await
+    }
+
+    async fn pending_question_id(&self, parent_connection_id: &str) -> Option<String> {
+        self.manager.pending_question_id(parent_connection_id).await
+    }
+
+    async fn collect_answer(
+        &self,
+        parent_connection_id: &str,
+        question_id: &str,
+        wait: Option<std::time::Duration>,
+    ) -> crate::acp::question_collect::CollectedAnswer {
+        let manager = self.manager.clone();
+        crate::acp::question_collect::collect(question_id, parent_connection_id, wait, || {
+            let manager = manager.clone();
+            async move {
+                manager
+                    .is_question_pending(parent_connection_id, question_id)
+                    .await
+            }
+        })
+        .await
     }
 }
 

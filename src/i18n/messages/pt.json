@@ -57,7 +57,8 @@
       "computer_use": "Uso do computador",
       "quick_messages": "Mensagens rápidas",
       "logs": "Registros de execução",
-      "translation": "Tradução"
+      "translation": "Tradução",
+      "image_generation": "Geração de imagens"
     }
   },
   "AppearanceSettings": {
@@ -5404,7 +5405,8 @@
     "saving": "Salvando…",
     "saved": "Configurações de ferramentas salvas",
     "saveFailed": "Falha ao salvar as configurações de ferramentas",
-    "loadFailed": "Falha ao carregar: {detail}"
+    "loadFailed": "Falha ao carregar: {detail}",
+    "configureImage": "Configurar serviços"
   },
   "AgentTools": {
     "delegation": {
@@ -5451,6 +5453,11 @@
       "label": "Criar tarefas a fazer",
       "short": "Cria e gere tarefas de trabalho.",
       "hint": "Coloca um cartão no quadro de tarefas a partir da conversa. Desativado por padrão — grava o estado do app."
+    },
+    "image": {
+      "label": "Gerar imagens",
+      "short": "Gera e edita imagens com os serviços que você configurou.",
+      "hint": "Permite que os agentes gerem e editem imagens com os serviços configurados em Configurações → Geração de imagens, salvas como arquivos. Quem faz a chamada é o Codeg, então os agentes nunca veem a chave de API. Desativado por padrão."
     }
   },
   "DesktopNotificationSettings": {
@@ -7497,5 +7504,91 @@
       "description": "As traduções ficam guardadas por 30 dias, então uma conversa reaberta as mostra na hora. Limpe o cache para traduzir tudo de novo, por exemplo depois de trocar de modelo.",
       "clear": "Limpar cache"
     }
+  },
+  "ImageGenerationSettings": {
+    "title": "Geração de imagens",
+    "description": "Permite que os agentes gerem e editem imagens pelo Codeg. As chaves de API ficam no Codeg e os agentes nunca as veem. Qualquer agente compatível com MCP pode usar.",
+    "loading": "Carregando…",
+    "loadFailed": "Falha ao carregar: {message}",
+    "saveFailed": "Falha ao salvar: {message}",
+    "keySaved": "Chave de API salva",
+    "keyRemoved": "Chave de API removida",
+    "enable": {
+      "title": "Permitir que os agentes gerem imagens",
+      "description": "Os agentes iniciados a partir de agora recebem as ferramentas de imagem; desativar vale na hora. É o mesmo interruptor de Colaboração → Ferramentas na conversa."
+    },
+    "services": {
+      "title": "Serviços",
+      "description": "Adicione aqui os serviços oficiais e os relays. Dá para adicionar vários.",
+      "add": "Adicionar serviço",
+      "empty": "Ainda não há serviços. Use Adicionar serviço para configurar um."
+    },
+    "kind": {
+      "openai": "API da OpenAI",
+      "gemini": "API do Gemini"
+    },
+    "service": {
+      "official": "Endereço oficial",
+      "modelCount": "{count, plural, =0 {Nenhum modelo} one {# modelo} other {# modelos}}",
+      "configured": "Configurado",
+      "needsKey": "Sem chave",
+      "name": "Nome",
+      "kind": "Tipo de API",
+      "kindHint": "O Grok e a maioria dos relays usam a API da OpenAI.",
+      "baseUrl": "Endereço da API",
+      "baseUrlHintOpenai": "Deixe vazio para o endereço oficial da OpenAI. Para o Grok, digite https://api.x.ai/v1; para um relay, o endereço que ele informar.",
+      "baseUrlHintGemini": "Deixe vazio para o endereço oficial do Google. Para um relay, digite o endereço que ele informar.",
+      "models": "Modelos",
+      "modelsHint": "Os agentes podem escolher qualquer um deles. Se não escolherem, é usado o modelo padrão abaixo.",
+      "noModels": "Ainda não há modelos",
+      "removeModel": "Remover {model}",
+      "addModelPlaceholder": "Digite o nome de um modelo e pressione Enter (num relay, o nome que ele usa)",
+      "addModel": "Adicionar um modelo",
+      "suggested": "Comuns:",
+      "remove": "Remover este serviço",
+      "removeConfirmTitle": "Remover {name}?",
+      "removeConfirmDescription": "A chave de API dele também é apagada.",
+      "cancel": "Cancelar",
+      "removeConfirm": "Remover"
+    },
+    "key": {
+      "title": "Chave de API",
+      "needsKeyFirst": "Salve uma chave de API primeiro",
+      "placeholder": "Cole a chave de API",
+      "label": "Chave de API do {service}",
+      "hide": "Ocultar",
+      "show": "Mostrar",
+      "save": "Salvar",
+      "cancel": "Cancelar",
+      "saved": "Salva",
+      "replace": "Trocar",
+      "remove": "Remover chave"
+    },
+    "test": {
+      "needsModel": "Adicione um modelo primeiro",
+      "description": "Gera uma imagem pequena de baixa qualidade com {model} (cobrada pelo serviço)",
+      "running": "Testando…",
+      "run": "Testar",
+      "ok": "Funciona · {model} levou {seconds} s",
+      "cost": "Cada teste gera uma imagem, cobrada pelo serviço."
+    },
+    "generation": {
+      "title": "Geração",
+      "defaultModel": "Modelo padrão",
+      "defaultModelHint": "Usado quando o agente não indica um modelo.",
+      "defaultModelAuto": "Primeiro modelo disponível",
+      "noKey": "(sem chave)",
+      "saveDir": "Salvar em, quando o agente não indica um caminho",
+      "saveDirHint": "Os agentes podem passar o próprio caminho ao chamar a ferramenta; um caminho relativo parte da pasta de trabalho da conversa. Sem caminho, as imagens vão para cá, numa pasta por dia.",
+      "sendPreview": "Enviar uma prévia ao agente",
+      "sendPreviewHint": "Anexa uma cópia com cerca de 512 pixels de largura para o agente ver o resultado antes de decidir se muda algo. Isso ocupa parte do contexto dele. Desative se o modelo do agente não consegue ler imagens."
+    }
+  },
+  "ImageGeneration": {
+    "generating": "Gerando… {seconds} s",
+    "loading": "Carregando a imagem…",
+    "took": "levou {seconds} s",
+    "fileMissing": "Não foi possível ler o arquivo de imagem. Ele pode ter sido movido ou apagado.",
+    "statusLost": "O Codeg reiniciou durante a geração, então o resultado é desconhecido."
   }
 }

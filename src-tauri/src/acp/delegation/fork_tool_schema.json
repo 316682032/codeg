@@ -1,0 +1,84 @@
+[
+  {
+    "name": "get_question_answer",
+    "description": "Collect the user's answer to a question you asked with ask_user_question when that call returned pending: true because the user had not answered yet. Waits for the answer, up to this call's limit, and returns it. If the user still has not answered, it returns pending: true again: call it again with the same question_id. Do not ask the question again, and do not message the user while you wait.",
+    "inputSchema": {
+      "type": "object",
+      "required": ["question_id"],
+      "properties": {
+        "question_id": {
+          "type": "string",
+          "description": "The question_id from the pending ask_user_question result."
+        }
+      }
+    }
+  },
+  {
+    "name": "image_generate",
+    "description": "Generate an image, or edit and restyle existing images given as reference_images, with the image service the user configured in Codeg, and save it as a file. Use it when the task needs a raster image (an illustration, photo, icon, texture, banner, mockup); draw things better made in code (SVG icons, charts, CSS) in code instead. Write a detailed prompt: the subject, style, composition, colors, lighting, and any text to render, quoted exactly. The image is written to output_path when you give one (a relative path is resolved against the session's working directory; a directory, or a path without an extension, gets a generated file name; an existing file is replaced). Without output_path it goes to Codeg's image folder: copy or move it into the project yourself if it belongs there. Generating takes from a few seconds to a couple of minutes. If it is not done when this call returns, the result says so and gives a job_id: call image_get_result with it to wait, and do not start the same image again. A finished result gives the saved file's absolute path and pixel size, and a small preview of the image when the user allows it.",
+    "inputSchema": {
+      "type": "object",
+      "required": ["prompt"],
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "description": "What to draw, or what to change in the reference images."
+        },
+        "model": {
+          "type": "string",
+          "description": "Model to use. Omit to use the user's default."
+        },
+        "aspect_ratio": {
+          "type": "string",
+          "enum": ["1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9"],
+          "description": "Shape of the image. Omit for the service default (usually square)."
+        },
+        "resolution": {
+          "type": "string",
+          "enum": ["1K", "2K", "4K"],
+          "description": "Size class of the longer edge. Omit for about 1K. Larger is slower and costs more."
+        },
+        "size": {
+          "type": "string",
+          "description": "Exact WIDTHxHEIGHT in pixels, for GPT image models (for example 1536x1024). Takes precedence over aspect_ratio and resolution where the model accepts it."
+        },
+        "quality": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "auto"],
+          "description": "Rendering quality, for models that support it (GPT image models). Lower is faster and cheaper."
+        },
+        "background": {
+          "type": "string",
+          "enum": ["auto", "transparent", "opaque"],
+          "description": "transparent needs a model that supports it (GPT image models) and a .png or .webp output_path."
+        },
+        "reference_images": {
+          "type": "array",
+          "items": { "type": "string" },
+          "maxItems": 10,
+          "description": "Local image files (absolute, or relative to the working directory) to edit, or to use as references. Say in the prompt what to do with them."
+        },
+        "output_path": {
+          "type": "string",
+          "description": "Where to save the image. The extension (.png, .jpg, .webp) picks the format."
+        }
+      }
+    }
+  },
+  {
+    "name": "image_get_result",
+    "description": "Wait for images started by image_generate and collect them, by job_id. Returns as soon as one of them finishes, or when this call's wait ends; call again with the ones still running. A finished job gives the saved file's absolute path and pixel size, and a small preview of the image when the user allows it. While you are only waiting, do not message the user about it; just call again.",
+    "inputSchema": {
+      "type": "object",
+      "required": ["job_ids"],
+      "properties": {
+        "job_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "job_ids from image_generate results."
+        }
+      }
+    }
+  }
+]

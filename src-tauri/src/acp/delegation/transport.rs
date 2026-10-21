@@ -185,6 +185,47 @@ pub struct BrokerCommitFeedbackRequest {
 pub struct BrokerAskRequest {
     pub token: String,
     pub questions: Vec<QuestionSpec>,
+    /// Answer "still waiting" after this long instead of blocking until the
+    /// user answers; the agent then collects the answer with
+    /// `get_question_answer` ([`BrokerAskCollectRequest`]). `None` blocks.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait_ms: Option<u64>,
+}
+
+/// Collect the answer to an `ask_user_question` that returned before the user
+/// answered. Waits up to `wait_ms` for it (`None`: until answered).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BrokerAskCollectRequest {
+    pub token: String,
+    pub question_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait_ms: Option<u64>,
+}
+
+/// The image models the person configured, for `image_generate`'s schema.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BrokerImageModelsRequest {
+    pub token: String,
+}
+
+/// Start generating an image (`image_generate`'s arguments, checked by the
+/// parent) and wait up to `wait_ms` for it (`None`: until it is done).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BrokerImageGenerateRequest {
+    pub token: String,
+    pub input: Value,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait_ms: Option<u64>,
+}
+
+/// Wait up to `wait_ms` (`None`: until one finishes) for image jobs started
+/// by `image_generate`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BrokerImageResultRequest {
+    pub token: String,
+    pub job_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait_ms: Option<u64>,
 }
 
 /// Resolve a session the user referenced (`codeg://session/<id>`) into its
@@ -472,6 +513,14 @@ pub enum BrokerMessage {
     /// empty list when the lookup fails, so a companion never mistakes a
     /// refusal for an old listener (see `Ping`).
     ListAssistants(BrokerListAssistantsRequest),
+    /// `get_question_answer`.
+    AskCollect(BrokerAskCollectRequest),
+    /// `image_generate`'s model list, at `tools/list` time.
+    ImageModels(BrokerImageModelsRequest),
+    /// `image_generate`.
+    ImageGenerate(BrokerImageGenerateRequest),
+    /// `image_get_result`.
+    ImageResult(BrokerImageResultRequest),
     /// Liveness and capability probe, carrying no `token`: the answer reveals
     /// nothing beyond "the socket is being served" and what this listener
     /// understands. Sent by codeg's own service-status check
@@ -639,6 +688,15 @@ pub async fn client_ask_round_trip(
     req: &BrokerAskRequest,
 ) -> io::Result<BrokerResponse> {
     message_round_trip(socket_path, &BrokerMessage::Ask(req.clone())).await
+}
+
+/// Any other message, for tools whose round trip needs nothing beyond the
+/// frame exchange.
+pub async fn client_message_round_trip(
+    socket_path: &str,
+    msg: &BrokerMessage,
+) -> io::Result<BrokerResponse> {
+    message_round_trip(socket_path, msg).await
 }
 
 /// Dispatch a `get_session_info` request and read back the serialized

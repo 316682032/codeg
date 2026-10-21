@@ -39,6 +39,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">📱 <strong>Switch open conversations on a phone</strong><br/>On a phone, tap the conversation title to see every open conversation and how far each has got, then tap one to switch; the title lights up when another one is waiting for you.</td>
+    <td width="50%" valign="top">🎨 <strong>Agents generate images</strong><br/>Set up the address, key and models of OpenAI, Grok, Gemini or a relay, and every agent that supports MCP can make and edit images, saved where it says; the image shows in the conversation, and the key never passes through the agent.</td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">⏳ <strong>Results for agents with short time-outs</strong><br/>Some agents wait only 30 to 60 seconds for a tool call. This build caps each wait per agent, returns in time and collects the rest on the next call, so a slow answer to a question no longer counts as no answer.</td>
     <td width="50%" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
   </tr>
 </table>
@@ -108,6 +112,32 @@
 - With "Sync open conversation tabs across windows" on (the default), a conversation closed on the phone closes on the computer too, just as closing its tab there would.
 - At 768 px and wider (computers, tablets) nothing changes: the tab strip stays.
 - Requested in [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
+
+</details>
+
+<details>
+<summary><strong>Agents generate images</strong>: details</summary>
+<br/>
+
+- In Settings → Image generation, add a service: pick OpenAI API (OpenAI itself, Grok and most relays) or Gemini API (Google itself or a relay), leave the address empty for the official one, then add the key and model names such as `gpt-image-2`, `grok-imagine-image-2.0` or `gemini-3-pro-image`. You can add several. Test generates one small, low-quality image to check it works, billed by the service.
+- Once the switch at the top of the page is on (the same one as "Generate images" in Settings → Collaboration → In-conversation tools, off by default) and at least one service has a key and a model, agents started from then on get two tools, `image_generate` and `image_get_result`. An agent can pick the model, aspect ratio, resolution and a transparent background, and pass reference images to edit an existing picture; without a model it gets the default one from the settings.
+- The agent decides where the image is saved; a relative path is resolved against the conversation's working folder. Without one, images go to `~/.codeg/generated-images/<date>/`, a folder you can change in the settings.
+- Each image gets a card in the conversation: while it is being made, the seconds so far; then the image, where it was saved (click to open), the service and model, the size and the time taken. The image is read from the file, so after reloading the conversation it shows for as long as the file is there.
+- By default the agent also gets a copy about 512 pixels wide, so it can see the result before deciding whether to change it; this uses some of its context. Turn it off in the settings if the agent's model can't read images.
+- An image often takes from tens of seconds to two minutes. When that is longer than the agent can wait for one tool call, it gets a job id first and collects the image with `image_get_result`; see the next section.
+- Codeg makes the call itself; the agent only gets the image file. API keys are kept in the system keychain (on the server build, in `tokens.json` in the data folder), not in the database, and are not part of config sync.
+
+</details>
+
+<details>
+<summary><strong>Results for agents with short time-outs</strong>: details</summary>
+<br/>
+
+- How long an agent waits for one MCP tool call varies: ZCode 30 seconds; Cursor, Kimi, DeepSeek and OpenCode 60 seconds; Codex 5 minutes; Claude Code, Qoder, CodeBuddy and Grok practically without a limit. In the official build, `get_delegation_status` (waiting for a delegated task's result) can wait a long time in one call and `ask_user_question` (a question for you) waits until you answer; past the deadline the agent treats the call as failed and carries on, so the question counts as unanswered.
+- This build gives these tools a cap per agent, below its deadline: for example 20 seconds on ZCode, 45 seconds on OpenCode, 4 minutes on Codex; agents without a limit get no cap, as in the official build. When the cap is reached without a result, the call returns and tells the agent how to keep waiting.
+- Questions: if you haven't answered by then, the question card stays where it is and the agent keeps waiting with a new tool, `get_question_answer`; once you answer, the answer shows in the original question card.
+- Delegated tasks: one `get_delegation_status` call waits at most up to the cap, then returns the tasks' current status. Image generation works the same way; see the previous section.
+- While waiting, the agent gets a progress update every 10 seconds, which lets agents that extend their deadline on progress, such as OpenCode, wait longer.
 
 </details>
 

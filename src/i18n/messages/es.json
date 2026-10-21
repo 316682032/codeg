@@ -57,7 +57,8 @@
       "computer_use": "Uso del ordenador",
       "quick_messages": "Mensajes rápidos",
       "logs": "Registros de ejecución",
-      "translation": "Traducción"
+      "translation": "Traducción",
+      "image_generation": "Generación de imágenes"
     }
   },
   "AppearanceSettings": {
@@ -5404,7 +5405,8 @@
     "saving": "Guardando…",
     "saved": "Ajustes de herramientas guardados",
     "saveFailed": "No se pudieron guardar los ajustes de herramientas",
-    "loadFailed": "Error al cargar: {detail}"
+    "loadFailed": "Error al cargar: {detail}",
+    "configureImage": "Configurar servicios"
   },
   "AgentTools": {
     "delegation": {
@@ -5451,6 +5453,11 @@
       "label": "Crear tareas pendientes",
       "short": "Crea y gestiona tareas de trabajo.",
       "hint": "Añade una tarjeta al tablero de pendientes desde la conversación. Desactivado por defecto: escribe estado de la aplicación."
+    },
+    "image": {
+      "label": "Generar imágenes",
+      "short": "Genera y edita imágenes con los servicios que configuraste.",
+      "hint": "Permite a los agentes generar y editar imágenes con los servicios que configuras en Ajustes → Generación de imágenes, y guardarlas como archivos. La llamada la hace Codeg, así que los agentes nunca ven la clave de API. Desactivado por defecto."
     }
   },
   "DesktopNotificationSettings": {
@@ -7497,5 +7504,91 @@
       "description": "Las traducciones se guardan 30 días, así una conversación reabierta las muestra al instante. Vacía la caché para traducirlo todo de nuevo, por ejemplo tras cambiar de modelo.",
       "clear": "Vaciar caché"
     }
+  },
+  "ImageGenerationSettings": {
+    "title": "Generación de imágenes",
+    "description": "Permite a los agentes generar y editar imágenes a través de Codeg. Las claves de API se quedan en Codeg y los agentes nunca las ven. Cualquier agente compatible con MCP puede usarlo.",
+    "loading": "Cargando…",
+    "loadFailed": "No se pudo cargar: {message}",
+    "saveFailed": "No se pudo guardar: {message}",
+    "keySaved": "Clave de API guardada",
+    "keyRemoved": "Clave de API eliminada",
+    "enable": {
+      "title": "Permitir que los agentes generen imágenes",
+      "description": "Los agentes que se inicien a partir de ahora tendrán las herramientas de imagen; desactivarlo se aplica al momento. Es el mismo interruptor que el de Colaboración → Herramientas en la conversación."
+    },
+    "services": {
+      "title": "Servicios",
+      "description": "Añade aquí los servicios oficiales y los intermediarios (relays). Puedes añadir varios.",
+      "add": "Añadir servicio",
+      "empty": "Aún no hay servicios. Usa Añadir servicio para configurar uno."
+    },
+    "kind": {
+      "openai": "API de OpenAI",
+      "gemini": "API de Gemini"
+    },
+    "service": {
+      "official": "Dirección oficial",
+      "modelCount": "{count, plural, =0 {Sin modelos} one {# modelo} other {# modelos}}",
+      "configured": "Configurado",
+      "needsKey": "Sin clave",
+      "name": "Nombre",
+      "kind": "Tipo de API",
+      "kindHint": "Grok y la mayoría de los intermediarios usan la API de OpenAI.",
+      "baseUrl": "Dirección de la API",
+      "baseUrlHintOpenai": "Déjala vacía para usar la dirección oficial de OpenAI. Para Grok, escribe https://api.x.ai/v1; para un intermediario, la dirección que te dé.",
+      "baseUrlHintGemini": "Déjala vacía para usar la dirección oficial de Google. Para un intermediario, escribe la dirección que te dé.",
+      "models": "Modelos",
+      "modelsHint": "Los agentes pueden elegir cualquiera de estos. Si no eligen, se usa el modelo predeterminado de abajo.",
+      "noModels": "Aún no hay modelos",
+      "removeModel": "Quitar {model}",
+      "addModelPlaceholder": "Escribe el nombre de un modelo y pulsa Intro (en un intermediario, el nombre que use él)",
+      "addModel": "Añadir un modelo",
+      "suggested": "Habituales:",
+      "remove": "Eliminar este servicio",
+      "removeConfirmTitle": "¿Eliminar {name}?",
+      "removeConfirmDescription": "También se elimina su clave de API.",
+      "cancel": "Cancelar",
+      "removeConfirm": "Eliminar"
+    },
+    "key": {
+      "title": "Clave de API",
+      "needsKeyFirst": "Guarda primero una clave de API",
+      "placeholder": "Pega la clave de API",
+      "label": "Clave de API de {service}",
+      "hide": "Ocultar",
+      "show": "Mostrar",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "saved": "Guardada",
+      "replace": "Cambiar",
+      "remove": "Eliminar clave"
+    },
+    "test": {
+      "needsModel": "Añade primero un modelo",
+      "description": "Genera una imagen pequeña de baja calidad con {model} (la cobra el servicio)",
+      "running": "Probando…",
+      "run": "Probar",
+      "ok": "Funciona · {model} tardó {seconds} s",
+      "cost": "Cada prueba genera una imagen, que cobra el servicio."
+    },
+    "generation": {
+      "title": "Generación",
+      "defaultModel": "Modelo predeterminado",
+      "defaultModelHint": "Se usa cuando el agente no indica un modelo.",
+      "defaultModelAuto": "El primer modelo disponible",
+      "noKey": "(sin clave)",
+      "saveDir": "Guardar en, si el agente no indica una ruta",
+      "saveDirHint": "Los agentes pueden indicar su propia ruta al llamar a la herramienta; una ruta relativa se resuelve desde la carpeta de trabajo de la conversación. Sin ruta, las imágenes van aquí, en una carpeta por día.",
+      "sendPreview": "Enviar una vista previa al agente",
+      "sendPreviewHint": "Adjunta una copia de unos 512 píxeles de ancho para que el agente vea el resultado antes de decidir si lo cambia. Consume parte de su contexto. Desactívalo si el modelo del agente no puede leer imágenes."
+    }
+  },
+  "ImageGeneration": {
+    "generating": "Generando… {seconds} s",
+    "loading": "Cargando la imagen…",
+    "took": "tardó {seconds} s",
+    "fileMissing": "No se puede leer el archivo de imagen. Puede que se haya movido o eliminado.",
+    "statusLost": "Codeg se reinició mientras se generaba, así que el resultado es desconocido."
   }
 }

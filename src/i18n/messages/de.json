@@ -57,7 +57,8 @@
       "computer_use": "Computernutzung",
       "quick_messages": "Schnellnachrichten",
       "logs": "Laufzeitprotokolle",
-      "translation": "Übersetzung"
+      "translation": "Übersetzung",
+      "image_generation": "Bildgenerierung"
     }
   },
   "AppearanceSettings": {
@@ -5404,7 +5405,8 @@
     "saving": "Wird gespeichert…",
     "saved": "Tool-Einstellungen gespeichert",
     "saveFailed": "Tool-Einstellungen konnten nicht gespeichert werden",
-    "loadFailed": "Laden fehlgeschlagen: {detail}"
+    "loadFailed": "Laden fehlgeschlagen: {detail}",
+    "configureImage": "Dienste einrichten"
   },
   "AgentTools": {
     "delegation": {
@@ -5451,6 +5453,11 @@
       "label": "To-do-Aufgaben erstellen",
       "short": "Erstellt und verwaltet Arbeitsaufgaben.",
       "hint": "Stellt aus der Unterhaltung heraus eine Karte auf das To-do-Board. Standardmäßig aus – schreibt App-Zustand."
+    },
+    "image": {
+      "label": "Bilder erzeugen",
+      "short": "Erzeugt und bearbeitet Bilder mit den eingerichteten Diensten.",
+      "hint": "Lässt Agenten mit den Diensten aus Einstellungen → Bildgenerierung Bilder erzeugen und bearbeiten und als Dateien speichern. Den Aufruf macht Codeg, Agenten sehen den API-Schlüssel also nie. Standardmäßig aus."
     }
   },
   "DesktopNotificationSettings": {
@@ -7497,5 +7504,91 @@
       "description": "Fertige Übersetzungen werden 30 Tage aufbewahrt, sodass eine wieder geöffnete Unterhaltung sie sofort zeigt. Leere den Cache, um alles neu zu übersetzen, etwa nach einem Modellwechsel.",
       "clear": "Cache leeren"
     }
+  },
+  "ImageGenerationSettings": {
+    "title": "Bildgenerierung",
+    "description": "Lässt Agenten über Codeg Bilder erzeugen und bearbeiten. API-Schlüssel bleiben in Codeg, Agenten sehen sie nie. Jeder Agent mit MCP-Unterstützung kann es nutzen.",
+    "loading": "Wird geladen…",
+    "loadFailed": "Laden fehlgeschlagen: {message}",
+    "saveFailed": "Speichern fehlgeschlagen: {message}",
+    "keySaved": "API-Schlüssel gespeichert",
+    "keyRemoved": "API-Schlüssel entfernt",
+    "enable": {
+      "title": "Agenten Bilder erzeugen lassen",
+      "description": "Agenten, die ab jetzt starten, bekommen die Bild-Tools; Ausschalten wirkt sofort. Derselbe Schalter wie unter Zusammenarbeit → Tools in der Unterhaltung."
+    },
+    "services": {
+      "title": "Dienste",
+      "description": "Offizielle Dienste und Relays werden hier hinzugefügt. Es können mehrere sein.",
+      "add": "Dienst hinzufügen",
+      "empty": "Noch keine Dienste. Mit „Dienst hinzufügen“ einen einrichten."
+    },
+    "kind": {
+      "openai": "OpenAI-API",
+      "gemini": "Gemini-API"
+    },
+    "service": {
+      "official": "Offizielle Adresse",
+      "modelCount": "{count, plural, =0 {Keine Modelle} one {# Modell} other {# Modelle}}",
+      "configured": "Eingerichtet",
+      "needsKey": "Kein Schlüssel",
+      "name": "Name",
+      "kind": "API-Art",
+      "kindHint": "Grok und die meisten Relays nutzen die OpenAI-API.",
+      "baseUrl": "API-Adresse",
+      "baseUrlHintOpenai": "Leer lassen für die offizielle Adresse von OpenAI. Für Grok https://api.x.ai/v1 eintragen, für ein Relay die Adresse, die es angibt.",
+      "baseUrlHintGemini": "Leer lassen für die offizielle Adresse von Google. Für ein Relay die Adresse eintragen, die es angibt.",
+      "models": "Modelle",
+      "modelsHint": "Agenten können jedes davon wählen. Wählen sie keins, gilt das Standardmodell unten.",
+      "noModels": "Noch keine Modelle",
+      "removeModel": "{model} entfernen",
+      "addModelPlaceholder": "Modellnamen eingeben und Eingabe drücken (bei einem Relay dessen Namen dafür)",
+      "addModel": "Modell hinzufügen",
+      "suggested": "Häufig:",
+      "remove": "Diesen Dienst entfernen",
+      "removeConfirmTitle": "{name} entfernen?",
+      "removeConfirmDescription": "Sein API-Schlüssel wird ebenfalls gelöscht.",
+      "cancel": "Abbrechen",
+      "removeConfirm": "Entfernen"
+    },
+    "key": {
+      "title": "API-Schlüssel",
+      "needsKeyFirst": "Zuerst einen API-Schlüssel speichern",
+      "placeholder": "API-Schlüssel einfügen",
+      "label": "API-Schlüssel für {service}",
+      "hide": "Ausblenden",
+      "show": "Anzeigen",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "saved": "Gespeichert",
+      "replace": "Ersetzen",
+      "remove": "Schlüssel entfernen"
+    },
+    "test": {
+      "needsModel": "Zuerst ein Modell hinzufügen",
+      "description": "Erzeugt mit {model} ein kleines Bild in niedriger Qualität (vom Dienst berechnet)",
+      "running": "Wird getestet…",
+      "run": "Testen",
+      "ok": "Funktioniert · {model} brauchte {seconds} s",
+      "cost": "Jeder Test erzeugt ein Bild, das der Dienst berechnet."
+    },
+    "generation": {
+      "title": "Erzeugung",
+      "defaultModel": "Standardmodell",
+      "defaultModelHint": "Wird verwendet, wenn der Agent kein Modell nennt.",
+      "defaultModelAuto": "Erstes verfügbares Modell",
+      "noKey": "(kein Schlüssel)",
+      "saveDir": "Speicherort, wenn der Agent keinen Pfad angibt",
+      "saveDirHint": "Agenten können beim Aufruf einen eigenen Pfad angeben; ein relativer Pfad gilt ab dem Arbeitsordner der Unterhaltung. Ohne Pfad landen Bilder hier, in einem Ordner pro Tag.",
+      "sendPreview": "Vorschau an den Agenten senden",
+      "sendPreviewHint": "Hängt eine etwa 512 Pixel breite Kopie an, damit der Agent das Ergebnis sieht, bevor er entscheidet, ob er es ändert. Das belegt etwas von seinem Kontext. Ausschalten, wenn das Modell des Agenten keine Bilder lesen kann."
+    }
+  },
+  "ImageGeneration": {
+    "generating": "Wird erzeugt… {seconds} s",
+    "loading": "Bild wird geladen…",
+    "took": "dauerte {seconds} s",
+    "fileMissing": "Die Bilddatei lässt sich nicht lesen. Sie wurde vielleicht verschoben oder gelöscht.",
+    "statusLost": "Codeg wurde während der Erzeugung neu gestartet, das Ergebnis ist unbekannt."
   }
 }

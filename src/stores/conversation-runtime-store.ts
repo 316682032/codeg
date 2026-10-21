@@ -44,6 +44,7 @@ import {
   parseBackgroundTaskMarker,
 } from "@/lib/background-agent"
 import { imageCardLabel } from "@/lib/image-tool-label"
+import { isImageJobTool } from "@/lib/image-gen/tool-calls"
 
 /**
  * Conversation-runtime shared state as a Zustand store — the per-conversation
@@ -1425,7 +1426,12 @@ export function buildStreamingTurnsFromLiveMessage(
         //     a generic tool card sitting above a detached image
         //   - the new card is not folded into `groupConsecutiveToolCalls`
         //     (which only consumes `tool-call` parts)
-        if (isImageGenerationToolCall(block.info)) {
+        // Codeg's own image tools keep their tool card (`ImageJobCard`), which
+        // shows the saved file rather than the preview the agent gets.
+        if (
+          isImageGenerationToolCall(block.info) &&
+          !isImageJobTool(getToolName(block.info))
+        ) {
           // codex-acp emits one image per ToolCall (each `call_id` is a
           // single ImageGenerationBegin/End pair). One block per image —
           // multiple images in a turn become multiple consecutive blocks.

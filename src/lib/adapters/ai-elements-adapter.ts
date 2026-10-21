@@ -51,6 +51,11 @@ import {
   embeddedReferenceUriFor,
   refOfEmbeddedReferenceUri,
 } from "@/components/chat/composer/reference-uri"
+import {
+  foldCollectCalls,
+  isImageJobTool,
+  type AdaptedImageJobPart,
+} from "@/lib/image-gen/tool-calls"
 
 /**
  * Adapted content part types for AI SDK Elements components
@@ -202,6 +207,8 @@ export type AdaptedContentPart =
     }
   | AdaptedGoalRunPart
   | AdaptedGeneratedImagePart
+  /** keh4l build: one image job, its collect calls folded in. */
+  | AdaptedImageJobPart
   | AdaptedPlanPart
   | AdaptedProposedPlanPart
   /**
@@ -1628,6 +1635,9 @@ function adaptImageToolResultParts(
 ): AdaptedGeneratedImagePart[] | null {
   const images = result.images
   if (!images || images.length === 0) return null
+  // Codeg's own image tools carry a small preview for the agent; their card
+  // shows the saved file instead (`ImageJobCard`).
+  if (isImageJobTool(ctx?.toolName)) return null
   const label = imageCardLabel({
     title: ctx?.title,
     toolName: ctx?.toolName,
@@ -2103,6 +2113,7 @@ export function isTurnAnswerPart(part: AdaptedContentPart): boolean {
     case "text":
     case "proposed-plan":
     case "generated-image":
+    case "image-job":
     case "turn-error":
       return true
     case "reasoning":
@@ -2663,7 +2674,9 @@ export function adaptMessageTurn(
               groupConsecutiveToolCalls(
                 dropEmptyInFlightToolCalls(
                   dropHiddenFeedbackChecks(
-                    dropPlanTextDuplicatedByReviewCard(adaptedContent)
+                    foldCollectCalls(
+                      dropPlanTextDuplicatedByReviewCard(adaptedContent)
+                    )
                   )
                 )
               )
