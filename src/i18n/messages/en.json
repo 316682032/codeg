@@ -7707,5 +7707,25 @@
   "SelectionDock": {
     "count": "{count, plural, one {# character} other {# characters}} selected",
     "cancelAsk": "Cancel"
+  },
+  "ServerRestart": {
+    "title": "Restart codeg",
+    "description": "Restarts the codeg service on this server: settings that need a restart take effect, and a misbehaving service gets a fresh start. Running conversations are interrupted; it is usually back within seconds, and this page reconnects by itself.",
+    "methodSupervised": "How: the supervisor starts it again.",
+    "methodReexec": "How: the process restarts in place.",
+    "button": "Restart",
+    "confirmTitle": "Restart codeg?",
+    "confirmBody": "The codeg service on the server restarts. It is usually back within seconds, and this page reconnects by itself.",
+    "confirmRunning": "{count, plural, one {# conversation is} other {# conversations are}} running and will be interrupted; terminals close too.",
+    "confirmIdle": "Terminals close, and agents disconnect until you return to their conversations.",
+    "confirmSettings": "Settings that need a restart (appearance, language, provider list, browser proxy, …) take effect after it.",
+    "cancel": "Cancel",
+    "confirm": "Restart",
+    "countdown": "Restarting in {seconds}s…",
+    "waiting": "Waiting for codeg to come back…",
+    "done": "codeg restarted",
+    "timeout": "codeg didn't come back in time. Refresh the page in a moment, or check the server's logs.",
+    "failed": "Restart failed: {message}",
+    "busy": "An update or restart is already in progress. Try again in a moment."
   }
 }

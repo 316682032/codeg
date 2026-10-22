@@ -47,7 +47,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">📋 <strong>Appui long pour sélectionner du texte sur un téléphone</strong><br/>Un appui long sur le texte d'une réponse ou de la zone de saisie fait apparaître les poignées de sélection et le menu de copie du téléphone, au lieu du menu de la conversation ; une réponse sélectionnée au doigt affiche Copier le texte / Citer / Demander sous la zone de saisie, à l'écart du menu du téléphone.</td>
-    <td width="50%" valign="top">🔄 <strong>Au plus près de l'original</strong><br/>Le projet d'origine est fusionné régulièrement ; ce qui n'est pas listé ici fonctionne comme dans la version officielle. Kiro CLI intégré, le premier ajout de cette version, fait partie de la version officielle depuis la 0.36.0.</td>
+    <td width="50%" valign="top">🔁 <strong>Redémarrer le serveur depuis le web</strong><br/>Réglages → Système gagne « Redémarrer codeg » : codeg déployé sur un serveur redémarre sans se connecter au serveur, et la page se reconnecte d'elle-même ; restaurer une sauvegarde sur un serveur redémarre désormais aussi pour l'appliquer.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Au plus près de l'original</strong><br/>Le projet d'origine est fusionné régulièrement ; ce qui n'est pas listé ici fonctionne comme dans la version officielle. Kiro CLI intégré, le premier ajout de cette version, fait partie de la version officielle depuis la 0.36.0.</td>
   </tr>
 </table>
 
@@ -169,6 +172,18 @@
 - Dans la version officielle, la bulle Copier le texte / Citer / Demander d'une réponse sélectionnée se place à côté de la sélection, tout comme le menu du téléphone, au-dessus ou en dessous selon ce que décide le téléphone ; une page ne peut ni lire sa position ni le déplacer, si bien que les deux se superposent souvent. Dans cette version, une sélection faite au doigt place ces boutons et le nombre de caractères sélectionnés sous la zone de saisie, à la place de la ligne dossier et branche jusqu'à ce que la sélection disparaisse ; le menu du téléphone ne va pas au-delà de la zone de saisie. Demander reçoit la question directement dans cette ligne. Une sélection faite à la souris affiche toujours la bulle au-dessus.
 - Les Messages rapides du menu de la zone de saisie se trouvent aussi sous le « + » en bas à gauche de la zone ; la traduction d'un message a son propre bouton.
 - Sur iOS, le menu système du texte ordinaire d'une page web n'a pas de « Tout sélectionner » (seuls les champs de texte l'ont) ; pour copier une réponse entière, utilisez le bouton de copie situé dessous.
+
+</details>
+
+<details>
+<summary><strong>Redémarrer le serveur depuis le web</strong> : détails</summary>
+<br/>
+
+- Déployée sur un serveur, la version officielle n'offre aucun moyen de redémarrer codeg depuis la page web : après avoir changé un réglage qui demande un redémarrage (apparence, langue, liste des fournisseurs, proxy du navigateur…), ou quand le service se comporte mal, il faut se connecter au serveur pour le redémarrer. Restaurer une sauvegarde sur un serveur, c'est pareil : la restauration ne s'applique qu'après un redémarrage, mais le redémarrage qu'elle appelle n'accepte qu'une mise à jour préparée, et se termine donc toujours par « le service n'a pas pu redémarrer, redémarrez-le manuellement ».
+- Cette version ajoute « Redémarrer codeg » sous « Mise à jour logicielle » dans Réglages → Système. « Redémarrer » demande d'abord confirmation, et la boîte de dialogue indique combien de conversations sont en cours et seront interrompues ; ensuite il fait un décompte, attend le retour du service et recharge la page. Les autres fenêtres ouvertes affichent aussi « Redémarrage » dans leur barre d'état.
+- Il redémarre comme une mise à jour sur place : sous Docker ou le superviseur (`--supervise`), le superviseur le relance après `CODEG_RESTART_DELAY_MS` ; lancé seul, le processus redémarre sur place (systemd et consorts voient toujours le même processus). Un redémarrage simple n'entre pas dans la période d'essai de la mise à jour et ne déclenche jamais son retour automatique en arrière. Impossible de redémarrer pendant qu'une mise à jour se télécharge ou s'installe.
+- Après la restauration d'une sauvegarde sur un serveur, « Redémarrer maintenant » dans le panneau de résultat utilise le même redémarrage, si bien que la restauration s'applique d'elle-même.
+- Versions serveur uniquement : absent de l'application de bureau et d'un navigateur connecté au service web intégré d'une application de bureau ; comme la mise à jour sur place, pas encore sur les serveurs Windows.
 
 </details>
 

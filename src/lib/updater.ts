@@ -66,6 +66,9 @@ export interface ServerUpdateStatus {
    * Only reported here, never by the check, so there is one source to trust.
    * Absent when nothing is in the way, and on servers that predate it. */
   selfUpdateBlocker?: AppCommandError | null
+  /** keh4l: `restart_server` restarts this server on request (Settings →
+   * System → "Restart codeg"). Absent on servers that predate it. */
+  restartSupported?: boolean
 }
 
 // ─── Unified, backend-owned update lifecycle ───────────────────────────────

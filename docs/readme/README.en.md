@@ -47,7 +47,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">📋 <strong>Long-press to select text on a phone</strong><br/>Long-pressing text in a reply or the message box brings up the phone's own selection handles and copy menu instead of the conversation menu; select a reply with a finger and Copy Text / Quote / Ask appear under the message box, clear of the phone's menu.</td>
-    <td width="50%" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
+    <td width="50%" valign="top">🔁 <strong>Restart the server from the web</strong><br/>Settings → System gains “Restart codeg”: codeg deployed on a server restarts without logging in to the server, and the page reconnects by itself; restoring a backup on a server now restarts to apply it, too.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
   </tr>
 </table>
 
@@ -169,6 +172,18 @@
 - In the official build, the Copy Text / Quote / Ask bubble for a selected reply sits next to the selection, and so does the phone's menu, above it or below as the phone decides; a page can neither read nor move it, so the two often land on top of each other. In this build, a selection made with a finger puts these buttons and the number of characters selected under the message box, standing in for the folder and branch row until the selection goes; the phone's menu can't reach past the message box. Ask takes the question right in that row. A selection made with a mouse still gets the bubble above it.
 - The message box menu's Quick messages are also under the “+” at the bottom left of the message box; translating a message has its own button.
 - On iOS, the system menu for ordinary text on a web page has no Select All (only text fields do); to copy a whole reply, use the copy button under it.
+
+</details>
+
+<details>
+<summary><strong>Restart the server from the web</strong>: details</summary>
+<br/>
+
+- Deployed on a server, the official build has no way to restart codeg from the web page: after changing a setting that needs a restart (appearance, language, provider list, browser proxy, …), or when the service misbehaves, you have to log in to the server and restart it there. Restoring a backup on a server is the same: the restore only applies after a restart, but the restart it calls only accepts a staged update, so it always ends with “the service could not restart, restart it manually”.
+- This build adds “Restart codeg” under “Software Update” in Settings → System. “Restart” asks first, and the dialog says how many conversations are running and will be interrupted; after that it counts down, waits for the service to come back and reloads the page. Other open windows show “Restarting” in their status bar too.
+- It restarts the way an in-place update does: under Docker or the supervisor (`--supervise`), the supervisor starts it again after `CODEG_RESTART_DELAY_MS`; run on its own, the process restarts in place (systemd and the like still see the same process). A plain restart doesn't enter the update's trial period and never triggers its automatic rollback. It can't restart while an update is downloading or installing.
+- After restoring a backup on a server, “Restart now” in the result panel uses the same restart, so the restore applies by itself.
+- Server builds only: not in the desktop app, nor in a browser connected to a desktop's built-in web service; like the in-place update, not on Windows servers yet.
 
 </details>
 

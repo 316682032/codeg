@@ -7707,5 +7707,25 @@
   "SelectionDock": {
     "count": "{count, plural, one {# caractère sélectionné} other {# caractères sélectionnés}}",
     "cancelAsk": "Annuler"
+  },
+  "ServerRestart": {
+    "title": "Redémarrer codeg",
+    "description": "Redémarre le service codeg de ce serveur : les réglages qui demandent un redémarrage s'appliquent, et un service qui se comporte mal repart de zéro. Les conversations en cours sont interrompues ; il revient en général en quelques secondes et cette page se reconnecte d'elle-même.",
+    "methodSupervised": "Comment : le superviseur le relance.",
+    "methodReexec": "Comment : le processus redémarre sur place.",
+    "button": "Redémarrer",
+    "confirmTitle": "Redémarrer codeg ?",
+    "confirmBody": "Le service codeg du serveur redémarre. Il revient en général en quelques secondes et cette page se reconnecte d'elle-même.",
+    "confirmRunning": "{count, plural, one {# conversation est en cours et sera interrompue} other {# conversations sont en cours et seront interrompues}} ; les terminaux se ferment aussi.",
+    "confirmIdle": "Les terminaux se ferment et les agents se déconnectent jusqu'à ce que vous reveniez à leurs conversations.",
+    "confirmSettings": "Les réglages qui demandent un redémarrage (apparence, langue, liste des fournisseurs, proxy du navigateur…) s'appliquent ensuite.",
+    "cancel": "Annuler",
+    "confirm": "Redémarrer",
+    "countdown": "Redémarrage dans {seconds} s…",
+    "waiting": "En attente du retour de codeg…",
+    "done": "codeg a redémarré",
+    "timeout": "codeg n'est pas revenu à temps. Actualisez la page dans un instant ou consultez les journaux du serveur.",
+    "failed": "Échec du redémarrage : {message}",
+    "busy": "Une mise à jour ou un redémarrage est déjà en cours. Réessayez dans un instant."
   }
 }

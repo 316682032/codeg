@@ -7707,5 +7707,25 @@
   "SelectionDock": {
     "count": "已选 {count} 字",
     "cancelAsk": "取消"
+  },
+  "ServerRestart": {
+    "title": "重启 codeg",
+    "description": "重启这台服务器上的 codeg 服务：需要重启才生效的设置会生效，服务异常时也可以重启一下。正在运行的会话会被中断，一般几秒钟就能恢复，这个页面会自动重新连接。",
+    "methodSupervised": "重启方式：交给守护进程重新拉起。",
+    "methodReexec": "重启方式：进程原地重新启动。",
+    "button": "重启",
+    "confirmTitle": "重启 codeg？",
+    "confirmBody": "服务器上的 codeg 服务会重启，一般几秒钟就能回来，这个页面会自动重新连接。",
+    "confirmRunning": "有 {count} 个会话正在运行，重启会中断它们；终端也会关闭。",
+    "confirmIdle": "终端会关闭；智能体的连接会断开，回到会话时会重新连上。",
+    "confirmSettings": "需要重启才生效的设置（外观、语言、服务商列表、浏览器代理等）会在重启后生效。",
+    "cancel": "取消",
+    "confirm": "重启",
+    "countdown": "将在 {seconds} 秒后重启…",
+    "waiting": "正在等待 codeg 恢复…",
+    "done": "codeg 已重启",
+    "timeout": "codeg 没有按时恢复。请稍后刷新页面，或到服务器上查看日志。",
+    "failed": "重启失败：{message}",
+    "busy": "已有更新或重启正在进行，请稍后再试。"
   }
 }

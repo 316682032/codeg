@@ -47,7 +47,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">📋 <strong>Mantener pulsado para seleccionar texto en el móvil</strong><br/>Mantener pulsado el texto de una respuesta o del cuadro de mensaje muestra los tiradores de selección y el menú de copiar del propio móvil, en lugar del menú de la conversación; al seleccionar una respuesta con el dedo, Copiar texto / Citar / Preguntar aparecen bajo el cuadro de mensaje, lejos del menú del móvil.</td>
-    <td width="50%" valign="top">🔄 <strong>Al día con el original</strong><br/>Los cambios del proyecto original se incorporan con regularidad; lo que no aparece aquí funciona igual que en la versión oficial. Kiro CLI integrado, lo primero que añadió esta versión, forma parte de la versión oficial desde la 0.36.0.</td>
+    <td width="50%" valign="top">🔁 <strong>Reiniciar el servidor desde la web</strong><br/>Ajustes → Sistema incorpora «Reiniciar codeg»: codeg desplegado en un servidor se reinicia sin entrar al servidor y la página se reconecta sola; restaurar una copia de seguridad en un servidor ahora también reinicia para aplicarla.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Al día con el original</strong><br/>Los cambios del proyecto original se incorporan con regularidad; lo que no aparece aquí funciona igual que en la versión oficial. Kiro CLI integrado, lo primero que añadió esta versión, forma parte de la versión oficial desde la 0.36.0.</td>
   </tr>
 </table>
 
@@ -169,6 +172,18 @@
 - En la versión oficial, la burbuja Copiar texto / Citar / Preguntar de una respuesta seleccionada aparece junto a la selección, y el menú del móvil también, encima o debajo según decida el móvil; la página no puede leer su posición ni moverlo, así que a menudo se tapan uno al otro. En esta versión, una selección hecha con el dedo lleva estos botones y el número de caracteres seleccionados bajo el cuadro de mensaje, en lugar de la fila de carpeta y rama hasta que se quita la selección; el menú del móvil no llega más allá del cuadro de mensaje. Preguntar recibe la pregunta en esa misma fila. Con una selección hecha con el ratón, la burbuja sigue apareciendo encima.
 - Los Mensajes rápidos del menú del cuadro de mensaje también están en el “+” de abajo a la izquierda del cuadro; traducir un mensaje tiene su propio botón.
 - En iOS, el menú del sistema para el texto normal de una página web no tiene Seleccionar todo (solo los campos de texto lo tienen); para copiar una respuesta entera, usa el botón de copiar que hay debajo.
+
+</details>
+
+<details>
+<summary><strong>Reiniciar el servidor desde la web</strong>: detalles</summary>
+<br/>
+
+- Desplegada en un servidor, la versión oficial no ofrece forma de reiniciar codeg desde la página web: tras cambiar un ajuste que necesita reinicio (apariencia, idioma, lista de proveedores, proxy del navegador…), o cuando el servicio falla, hay que entrar al servidor y reiniciarlo allí. Restaurar una copia de seguridad en un servidor es igual: la restauración solo se aplica tras reiniciar, pero el reinicio que llama solo acepta una actualización preparada, así que siempre termina con «no se pudo reiniciar el servicio, reinícialo a mano».
+- Esta versión añade «Reiniciar codeg» bajo «Actualización de software» en Ajustes → Sistema. «Reiniciar» pide confirmación, y el diálogo indica cuántas conversaciones están en curso y se interrumpirán; después cuenta atrás, espera a que vuelva el servicio y recarga la página. Las demás ventanas abiertas también muestran «Reiniciando» en su barra de estado.
+- Reinicia igual que una actualización in situ: con Docker o el supervisor (`--supervise`), el supervisor lo vuelve a iniciar tras `CODEG_RESTART_DELAY_MS`; ejecutado por su cuenta, el proceso se reinicia en el mismo lugar (systemd y similares siguen viendo el mismo proceso). Un reinicio normal no entra en el periodo de prueba de la actualización ni activa su reversión automática. No se puede reiniciar mientras una actualización se descarga o instala.
+- Tras restaurar una copia de seguridad en un servidor, «Reiniciar ahora» en el panel de resultados usa el mismo reinicio, así que la restauración se aplica sola.
+- Solo en las versiones de servidor: no aparece en la app de escritorio ni en un navegador conectado al servicio web integrado de un escritorio; como la actualización in situ, todavía no en servidores Windows.
 
 </details>
 

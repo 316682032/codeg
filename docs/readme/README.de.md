@@ -47,7 +47,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">📋 <strong>Text auf dem Handy per langem Drücken auswählen</strong><br/>Langes Drücken auf Text in einer Antwort oder im Eingabefeld zeigt die Auswahlgriffe und das Kopiermenü des Handys statt des Konversationsmenüs; wählt man eine Antwort mit dem Finger aus, erscheinen Text kopieren / Zitieren / Fragen unter dem Eingabefeld, abseits des Handymenüs.</td>
-    <td width="50%" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
+    <td width="50%" valign="top">🔁 <strong>Server aus dem Web neu starten</strong><br/>Einstellungen → Systemeinstellungen bekommt „codeg neu starten“: codeg auf einem Server startet neu, ohne dass man sich am Server anmelden muss, und die Seite verbindet sich von selbst wieder; eine Sicherung, die auf einem Server wiederhergestellt wird, startet jetzt ebenfalls neu, um wirksam zu werden.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
   </tr>
 </table>
 
@@ -169,6 +172,18 @@
 - In der offiziellen Version sitzt die Blase Text kopieren / Zitieren / Fragen einer ausgewählten Antwort neben der Auswahl, und das Menü des Handys ebenfalls, darüber oder darunter, wie das Handy es entscheidet; eine Seite kann seine Position weder lesen noch ändern, deshalb liegen beide oft übereinander. In dieser Version legt eine Auswahl mit dem Finger diese Schaltflächen und die Zahl der ausgewählten Zeichen unter das Eingabefeld, an die Stelle der Ordner- und Branch-Zeile, bis die Auswahl aufgehoben ist; das Menü des Handys reicht nicht über das Eingabefeld hinaus. Fragen nimmt die Frage direkt in dieser Zeile entgegen. Bei einer Auswahl mit der Maus steht die Blase weiterhin darüber.
 - Die Schnellnachrichten aus dem Menü des Eingabefelds gibt es auch unter dem „+“ unten links im Eingabefeld; das Übersetzen einer Nachricht hat eine eigene Schaltfläche.
 - Unter iOS hat das Systemmenü für normalen Text auf einer Webseite kein „Alles auswählen“ (nur Textfelder haben es); um eine ganze Antwort zu kopieren, nimm die Kopieren-Schaltfläche darunter.
+
+</details>
+
+<details>
+<summary><strong>Server aus dem Web neu starten</strong> – Details</summary>
+<br/>
+
+- Auf einem Server bietet die offizielle Version keine Möglichkeit, codeg aus der Webseite neu zu starten: Nach dem Ändern einer Einstellung, die einen Neustart braucht (Darstellung, Sprache, Anbieterliste, Browser-Proxy …), oder wenn der Dienst hängt, muss man sich am Server anmelden und ihn dort neu starten. Beim Wiederherstellen einer Sicherung auf einem Server ist es genauso: Die Wiederherstellung wird erst nach einem Neustart wirksam, aber der Neustart, den sie aufruft, akzeptiert nur ein bereitgestelltes Update und endet deshalb immer mit „Der Dienst konnte nicht neu starten, bitte manuell neu starten“.
+- Diese Version ergänzt „codeg neu starten“ unter „Softwareupdate“ in Einstellungen → Systemeinstellungen. „Neu starten“ fragt zuerst nach, und der Dialog sagt, wie viele Konversationen laufen und unterbrochen werden; danach zählt es herunter, wartet, bis der Dienst zurück ist, und lädt die Seite neu. Andere offene Fenster zeigen in ihrer Statusleiste ebenfalls „Neustart …“.
+- Der Neustart läuft wie bei einem In-Place-Update: Unter Docker oder dem Supervisor (`--supervise`) startet der Supervisor ihn nach `CODEG_RESTART_DELAY_MS` neu; läuft er für sich allein, startet sich der Prozess an Ort und Stelle neu (systemd und Ähnliche sehen weiterhin denselben Prozess). Ein normaler Neustart kommt nicht in die Probezeit des Updates und löst nie dessen automatisches Zurücksetzen aus. Während ein Update heruntergeladen oder installiert wird, ist kein Neustart möglich.
+- Nach dem Wiederherstellen einer Sicherung auf einem Server nutzt „Jetzt neu starten“ im Ergebnisbereich denselben Neustart, sodass die Wiederherstellung von selbst wirksam wird.
+- Nur in Server-Versionen: nicht in der Desktop-App und nicht in einem Browser, der mit dem eingebauten Webdienst einer Desktop-App verbunden ist; wie das In-Place-Update noch nicht auf Windows-Servern.
 
 </details>
 

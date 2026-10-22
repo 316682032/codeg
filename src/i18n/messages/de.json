@@ -7707,5 +7707,25 @@
   "SelectionDock": {
     "count": "{count} Zeichen ausgewählt",
     "cancelAsk": "Abbrechen"
+  },
+  "ServerRestart": {
+    "title": "codeg neu starten",
+    "description": "Startet den codeg-Dienst auf diesem Server neu: Einstellungen, die einen Neustart brauchen, werden wirksam, und ein Dienst, der hängt, beginnt von vorn. Laufende Konversationen werden unterbrochen; er ist meist nach wenigen Sekunden zurück, und diese Seite verbindet sich von selbst neu.",
+    "methodSupervised": "Wie: Der Supervisor startet ihn neu.",
+    "methodReexec": "Wie: Der Prozess startet sich an Ort und Stelle neu.",
+    "button": "Neu starten",
+    "confirmTitle": "codeg neu starten?",
+    "confirmBody": "Der codeg-Dienst auf dem Server startet neu. Er ist meist nach wenigen Sekunden zurück, und diese Seite verbindet sich von selbst neu.",
+    "confirmRunning": "{count, plural, one {# Konversation läuft und wird} other {# Konversationen laufen und werden}} unterbrochen; Terminals werden auch geschlossen.",
+    "confirmIdle": "Terminals werden geschlossen, und Agenten trennen sich, bis du zu ihren Konversationen zurückkehrst.",
+    "confirmSettings": "Einstellungen, die einen Neustart brauchen (Darstellung, Sprache, Anbieterliste, Browser-Proxy …), werden danach wirksam.",
+    "cancel": "Abbrechen",
+    "confirm": "Neu starten",
+    "countdown": "Neustart in {seconds} s …",
+    "waiting": "Warte, bis codeg zurück ist …",
+    "done": "codeg wurde neu gestartet",
+    "timeout": "codeg ist nicht rechtzeitig zurückgekommen. Lade die Seite gleich neu oder sieh in die Protokolle des Servers.",
+    "failed": "Neustart fehlgeschlagen: {message}",
+    "busy": "Ein Update oder Neustart läuft bereits. Versuche es gleich noch einmal."
   }
 }
