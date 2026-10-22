@@ -47,7 +47,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">📋 <strong>Toque longo para selecionar texto no celular</strong><br/>Um toque longo no texto de uma resposta ou da caixa de mensagem mostra as alças de seleção e o menu de copiar do próprio celular, em vez do menu da conversa; ao selecionar uma resposta com o dedo, Copiar texto / Citar / Perguntar aparecem abaixo da caixa de mensagem, longe do menu do celular.</td>
-    <td width="50%" valign="top">🔄 <strong>Acompanha o original</strong><br/>O projeto original é mesclado regularmente; o que não está listado aqui funciona como na versão oficial. O Kiro CLI integrado, a primeira coisa que esta versão adicionou, faz parte da versão oficial desde a 0.36.0.</td>
+    <td width="50%" valign="top">🔁 <strong>Reiniciar o servidor pela web</strong><br/>Configurações → Sistema ganha “Reiniciar o codeg”: o codeg implantado num servidor reinicia sem entrar no servidor, e a página se reconecta sozinha; restaurar um backup num servidor agora também reinicia para aplicá-lo.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Acompanha o original</strong><br/>O projeto original é mesclado regularmente; o que não está listado aqui funciona como na versão oficial. O Kiro CLI integrado, a primeira coisa que esta versão adicionou, faz parte da versão oficial desde a 0.36.0.</td>
   </tr>
 </table>
 
@@ -169,6 +172,18 @@
 - Na versão oficial, a bolha Copiar texto / Citar / Perguntar de uma resposta selecionada fica ao lado da seleção, e o menu do celular também, acima ou abaixo conforme o celular decide; a página não consegue ler a posição dele nem movê-lo, então os dois muitas vezes se sobrepõem. Nesta versão, uma seleção feita com o dedo coloca esses botões e o número de caracteres selecionados abaixo da caixa de mensagem, no lugar da linha de pasta e branch até a seleção sumir; o menu do celular não passa da caixa de mensagem. Perguntar recebe a pergunta nessa mesma linha. Numa seleção feita com o mouse, a bolha continua aparecendo acima.
 - As Mensagens rápidas do menu da caixa de mensagem também ficam no “+” no canto inferior esquerdo da caixa; traduzir uma mensagem tem um botão próprio.
 - No iOS, o menu do sistema para o texto comum de uma página web não tem Selecionar tudo (só os campos de texto têm); para copiar uma resposta inteira, use o botão de copiar abaixo dela.
+
+</details>
+
+<details>
+<summary><strong>Reiniciar o servidor pela web</strong>: detalhes</summary>
+<br/>
+
+- Implantada num servidor, a versão oficial não oferece como reiniciar o codeg pela página web: depois de mudar uma configuração que precisa de reinício (aparência, idioma, lista de provedores, proxy do navegador…), ou quando o serviço apresenta problemas, é preciso entrar no servidor e reiniciá-lo lá. Restaurar um backup num servidor é igual: a restauração só vale depois de reiniciar, mas o reinício que ela chama só aceita uma atualização preparada, então sempre termina com “não foi possível reiniciar o serviço, reinicie manualmente”.
+- Esta versão adiciona “Reiniciar o codeg” sob “Atualização de software” em Configurações → Sistema. “Reiniciar” pede confirmação, e a caixa de diálogo diz quantas conversas estão em andamento e serão interrompidas; depois faz uma contagem regressiva, espera o serviço voltar e recarrega a página. As outras janelas abertas também mostram “Reiniciando” na barra de status.
+- Reinicia do mesmo jeito que uma atualização no local: com Docker ou o supervisor (`--supervise`), o supervisor o inicia de novo após `CODEG_RESTART_DELAY_MS`; rodando sozinho, o processo reinicia no mesmo lugar (systemd e afins continuam vendo o mesmo processo). Um reinício comum não entra no período de teste da atualização nem dispara a reversão automática dela. Não é possível reiniciar enquanto uma atualização está sendo baixada ou instalada.
+- Depois de restaurar um backup num servidor, “Reiniciar agora” no painel de resultado usa o mesmo reinício, então a restauração passa a valer sozinha.
+- Só nas versões de servidor: não aparece no app de desktop nem num navegador conectado ao serviço web integrado de um desktop; como a atualização no local, ainda não em servidores Windows.
 
 </details>
 

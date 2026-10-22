@@ -24,6 +24,7 @@ import { CliAccessSettings } from "@/components/settings/cli-access-settings"
 import { DataSyncSettings } from "@/components/settings/data-sync-settings"
 import { ReleaseNotes } from "@/components/settings/release-notes"
 import { SettingsSection } from "@/components/shared/settings-section"
+import { ServerRestartCard } from "@/components/settings/server-restart-card"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -675,6 +676,9 @@ export function SystemNetworkSettings() {
             </div>
           )}
         </section>
+
+        {/* keh4l: restart the server this page is connected to. */}
+        <ServerRestartCard />
 
         {/* Titled by the option itself: the section *is* the one switch, so a
             card holding a single row would only say the heading back one line

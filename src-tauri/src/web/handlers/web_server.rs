@@ -231,6 +231,9 @@ pub struct ServerUpdateStatus {
     /// a newer one. Absent when nothing is in the way, and on older servers.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub self_update_blocker: Option<AppCommandError>,
+    /// keh4l: `restart_server` restarts this process on request (Settings →
+    /// System → "Restart codeg"). See [`super::server_restart::supported`].
+    pub restart_supported: bool,
 }
 
 /// Local-only counterpart to [`check_app_update`]: reports what this process
@@ -251,6 +254,7 @@ pub async fn app_update_status() -> Json<ServerUpdateStatus> {
         rollback_available: server_rollback_available(),
         live_progress: true,
         self_update_blocker: server_self_update_blocker(),
+        restart_supported: super::server_restart::supported(),
     })
 }
 
@@ -282,6 +286,7 @@ mod tests {
             rollback_available: false,
             live_progress: true,
             self_update_blocker: Some(blocker),
+            restart_supported: true,
         };
 
         let wire = serde_json::to_value(&status).unwrap();

@@ -30,7 +30,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { isDesktop } from "@/lib/platform"
 import { getActiveRemoteConnectionId } from "@/lib/transport"
-import { relaunchApp, restartApp, waitForServerHealthy } from "@/lib/updater"
+import { relaunchApp, waitForServerHealthy } from "@/lib/updater"
+import { restartServer } from "@/lib/server-restart"
 import {
   toLocalizedErrorMessage,
   type AppErrorTranslator,
@@ -394,7 +395,10 @@ export function BackupSettings({ pane }: { pane: DataSyncPane }) {
     // and look like success while the restore never applied. Tell the user to
     // restart manually instead.
     try {
-      await restartApp()
+      // keh4l: `restart_app` only restarts into a staged update, so it
+      // refused this one every time and the restore waited for a manual
+      // restart.
+      await restartServer()
     } catch {
       toast.error(t("restore.restartFailed"))
       setRestoring(false)

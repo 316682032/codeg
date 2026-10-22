@@ -7707,5 +7707,25 @@
   "SelectionDock": {
     "count": "已選 {count} 字",
     "cancelAsk": "取消"
+  },
+  "ServerRestart": {
+    "title": "重新啟動 codeg",
+    "description": "重新啟動這台伺服器上的 codeg 服務：需要重新啟動才生效的設定會生效，服務異常時也可以重新啟動一下。正在執行的會話會被中斷，一般幾秒鐘就能恢復，這個頁面會自動重新連線。",
+    "methodSupervised": "重新啟動方式：交給守護行程重新拉起。",
+    "methodReexec": "重新啟動方式：行程原地重新啟動。",
+    "button": "重新啟動",
+    "confirmTitle": "重新啟動 codeg？",
+    "confirmBody": "伺服器上的 codeg 服務會重新啟動，一般幾秒鐘就能回來，這個頁面會自動重新連線。",
+    "confirmRunning": "有 {count} 個會話正在執行，重新啟動會中斷它們；終端機也會關閉。",
+    "confirmIdle": "終端機會關閉；智慧體的連線會中斷，回到會話時會重新連上。",
+    "confirmSettings": "需要重新啟動才生效的設定（外觀、語言、服務商清單、瀏覽器代理等）會在重新啟動後生效。",
+    "cancel": "取消",
+    "confirm": "重新啟動",
+    "countdown": "將在 {seconds} 秒後重新啟動…",
+    "waiting": "正在等待 codeg 恢復…",
+    "done": "codeg 已重新啟動",
+    "timeout": "codeg 沒有按時恢復。請稍後重新整理頁面，或到伺服器上查看日誌。",
+    "failed": "重新啟動失敗：{message}",
+    "busy": "已有更新或重新啟動正在進行，請稍後再試。"
   }
 }

@@ -1594,6 +1594,11 @@ pub fn build_router_with_proxy_auth(
         )
         .route("/restart_app", post(handlers::app_update::restart_app))
         .route("/rollback_app", post(handlers::app_update::rollback_app))
+        // keh4l: Settings → System → "Restart codeg".
+        .route(
+            "/restart_server",
+            post(handlers::server_restart::restart_server),
+        )
         // ─── Chat Channels ───
         .route(
             "/list_chat_channels",

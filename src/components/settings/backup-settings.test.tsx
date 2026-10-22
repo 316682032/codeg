@@ -43,12 +43,15 @@ vi.mock("@/lib/api", () => ({
   uploadBackupWeb: vi.fn(async () => "u1"),
 }))
 
-const restartApp = vi.fn()
+const restartServer = vi.fn()
 const waitForServerHealthy = vi.fn(async () => true)
 vi.mock("@/lib/updater", () => ({
   relaunchApp: vi.fn(),
-  restartApp: () => restartApp(),
   waitForServerHealthy: () => waitForServerHealthy(),
+}))
+// keh4l: a staged restore restarts the server through `restart_server`.
+vi.mock("@/lib/server-restart", () => ({
+  restartServer: () => restartServer(),
 }))
 
 // The panels under test only exist inside the data & sync card, so that card
@@ -142,7 +145,7 @@ async function openRestoreTab() {
 beforeEach(() => {
   vi.clearAllMocks()
   progressHandler = null
-  restartApp.mockResolvedValue(undefined)
+  restartServer.mockResolvedValue(undefined)
   waitForServerHealthy.mockResolvedValue(true)
   vi.mocked(listSafetySnapshots).mockResolvedValue([])
   vi.mocked(backupActiveAgents).mockResolvedValue([])
@@ -327,12 +330,12 @@ describe("BackupSettings — restore", () => {
     expect(screen.getByText(/were running/)).toBeInTheDocument()
     // The report is shown BEFORE the restart; the desktop path used to
     // relaunch immediately and drop it.
-    expect(restartApp).not.toHaveBeenCalled()
+    expect(restartServer).not.toHaveBeenCalled()
 
     fireEvent.click(
       screen.getByRole("button", { name: t.restore.result.restartNow })
     )
-    await waitFor(() => expect(restartApp).toHaveBeenCalled())
+    await waitFor(() => expect(restartServer).toHaveBeenCalled())
   })
 
   it("does NOT poll health and reload when the restart request fails", async () => {
@@ -345,7 +348,7 @@ describe("BackupSettings — restore", () => {
         skippedConflicts: [],
       },
     } as never)
-    restartApp.mockRejectedValue(new Error("unsupported"))
+    restartServer.mockRejectedValue(new Error("unsupported"))
     renderSettings()
     await openRestoreTab()
     await selectBackup({
@@ -362,7 +365,7 @@ describe("BackupSettings — restore", () => {
       await screen.findByRole("button", { name: t.restore.result.restartNow })
     )
 
-    await waitFor(() => expect(restartApp).toHaveBeenCalled())
+    await waitFor(() => expect(restartServer).toHaveBeenCalled())
     // Polling would land back on the still-running OLD process and look like
     // success while the restore never applied.
     expect(waitForServerHealthy).not.toHaveBeenCalled()

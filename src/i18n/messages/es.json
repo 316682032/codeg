@@ -7707,5 +7707,25 @@
   "SelectionDock": {
     "count": "{count, plural, one {# carácter seleccionado} other {# caracteres seleccionados}}",
     "cancelAsk": "Cancelar"
+  },
+  "ServerRestart": {
+    "title": "Reiniciar codeg",
+    "description": "Reinicia el servicio codeg de este servidor: se aplican los ajustes que necesitan un reinicio y un servicio que falla vuelve a empezar. Las conversaciones en curso se interrumpen; suele volver en unos segundos y esta página se reconecta sola.",
+    "methodSupervised": "Cómo: el supervisor lo vuelve a iniciar.",
+    "methodReexec": "Cómo: el proceso se reinicia en el mismo lugar.",
+    "button": "Reiniciar",
+    "confirmTitle": "¿Reiniciar codeg?",
+    "confirmBody": "El servicio codeg del servidor se reinicia. Suele volver en unos segundos y esta página se reconecta sola.",
+    "confirmRunning": "{count, plural, one {Hay # conversación en curso que se interrumpirá} other {Hay # conversaciones en curso que se interrumpirán}}; también se cierran los terminales.",
+    "confirmIdle": "Los terminales se cierran y los agentes se desconectan hasta que vuelvas a sus conversaciones.",
+    "confirmSettings": "Los ajustes que necesitan un reinicio (apariencia, idioma, lista de proveedores, proxy del navegador…) se aplican después.",
+    "cancel": "Cancelar",
+    "confirm": "Reiniciar",
+    "countdown": "Reiniciando en {seconds} s…",
+    "waiting": "Esperando a que codeg vuelva…",
+    "done": "codeg se ha reiniciado",
+    "timeout": "codeg no volvió a tiempo. Actualiza la página dentro de un momento o revisa los registros del servidor.",
+    "failed": "No se pudo reiniciar: {message}",
+    "busy": "Ya hay una actualización o un reinicio en curso. Inténtalo de nuevo en un momento."
   }
 }

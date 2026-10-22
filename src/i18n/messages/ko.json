@@ -7707,5 +7707,25 @@
   "SelectionDock": {
     "count": "{count}자 선택됨",
     "cancelAsk": "취소"
+  },
+  "ServerRestart": {
+    "title": "codeg 다시 시작",
+    "description": "이 서버의 codeg 서비스를 다시 시작합니다. 다시 시작해야 적용되는 설정이 적용되고, 문제가 있는 서비스도 새로 시작할 수 있습니다. 실행 중인 대화는 중단됩니다. 보통 몇 초면 돌아오며, 이 페이지는 자동으로 다시 연결됩니다.",
+    "methodSupervised": "방식: 수퍼바이저가 다시 실행합니다.",
+    "methodReexec": "방식: 프로세스가 그 자리에서 다시 시작합니다.",
+    "button": "다시 시작",
+    "confirmTitle": "codeg를 다시 시작할까요?",
+    "confirmBody": "서버의 codeg 서비스가 다시 시작됩니다. 보통 몇 초면 돌아오며, 이 페이지는 자동으로 다시 연결됩니다.",
+    "confirmRunning": "{count}개의 대화가 실행 중이며 다시 시작하면 중단됩니다. 터미널도 닫힙니다.",
+    "confirmIdle": "터미널이 닫히고, 에이전트 연결은 끊겼다가 대화로 돌아가면 다시 연결됩니다.",
+    "confirmSettings": "다시 시작해야 적용되는 설정(외관, 언어, 공급자 목록, 브라우저 프록시 등)은 다시 시작한 뒤 적용됩니다.",
+    "cancel": "취소",
+    "confirm": "다시 시작",
+    "countdown": "{seconds}초 후 다시 시작합니다…",
+    "waiting": "codeg가 돌아오기를 기다리는 중…",
+    "done": "codeg를 다시 시작했습니다",
+    "timeout": "codeg가 제시간에 돌아오지 않았습니다. 잠시 후 페이지를 새로 고치거나 서버 로그를 확인하세요.",
+    "failed": "다시 시작하지 못했습니다: {message}",
+    "busy": "업데이트나 다시 시작이 이미 진행 중입니다. 잠시 후 다시 시도하세요."
   }
 }
