@@ -2532,7 +2532,9 @@
       "needsInput": "응답 필요",
       "draft": "보내지 않음",
       "viewing": "보는 중",
-      "allConversations": "모든 대화 (기록 포함)"
+      "allConversations": "모든 대화 (기록 포함)",
+      "keep": "남겨 두기",
+      "keepHint": "이 대화를 남겨 두어 목록에서 다음 대화를 열어도 바뀌지 않게 합니다"
     },
     "fileWorkspace": {
       "files": "파일",

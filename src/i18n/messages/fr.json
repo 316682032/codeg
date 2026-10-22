@@ -2532,7 +2532,9 @@
       "needsInput": "Vous attend",
       "draft": "Non envoyé",
       "viewing": "Affichée",
-      "allConversations": "Toutes les conversations (historique compris)"
+      "allConversations": "Toutes les conversations (historique compris)",
+      "keep": "Garder ouverte",
+      "keepHint": "Garder cette conversation ouverte pour que la suivante ouverte depuis la liste ne la remplace pas"
     },
     "fileWorkspace": {
       "files": "Fichiers",

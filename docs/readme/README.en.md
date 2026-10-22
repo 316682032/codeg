@@ -114,7 +114,8 @@
 - "Needs you" is only known while this device is connected to that conversation: it shows for conversations opened at least once on this device, and the others show their saved status.
 - With "Sync open conversation tabs across windows" on (the default), a conversation closed on the phone closes on the computer too, just as closing its tab there would.
 - At 768 px and wider (computers, tablets) nothing changes: the tab strip stays.
-- Requested in [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
+- A conversation opened from the sidebar starts as a preview (as on the desktop) that the next one opened replaces; here its title is in italics, and the 📌 next to it keeps it. Double-tapping it in the sidebar keeps it too, as a double click does on the desktop: on a phone the sidebar now waits a moment before closing, so the second tap lands on the same row.
+- Requested in [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10), [#12](https://github.com/keh4l/codeg/issues/12).
 
 </details>
 

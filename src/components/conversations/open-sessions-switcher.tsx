@@ -7,6 +7,7 @@ import {
   CircleAlert,
   History,
   Loader2,
+  Pin,
   SquarePen,
   X,
 } from "lucide-react"
@@ -65,8 +66,13 @@ export function OpenSessionsSwitcher({ title }: { title: string }) {
   const tSidebar = useTranslations("Folder.sidebar")
   const tabs = useTabStore((s) => s.tabs)
   const activeTabId = useTabStore((s) => s.activeTabId)
-  const { switchTab, closeTab, openNewConversationTab, openChatModeTab } =
-    useTabActions()
+  const {
+    switchTab,
+    closeTab,
+    pinTab,
+    openNewConversationTab,
+    openChatModeTab,
+  } = useTabActions()
   const { activeFolder } = useActiveFolder()
   const { isOpen: sidebarOpen, toggle: toggleSidebar } = useSidebarContext()
   const allFolders = useAppWorkspaceStore((s) => s.allFolders)
@@ -204,6 +210,7 @@ export function OpenSessionsSwitcher({ title }: { title: string }) {
               }
               now={now}
               onSelect={handleSelect}
+              onKeep={pinTab}
               onClose={handleClose}
             />
           ))}
@@ -233,6 +240,7 @@ const OpenSessionRow = memo(function OpenSessionRow({
   folderLabel,
   now,
   onSelect,
+  onKeep,
   onClose,
 }: {
   tab: TabItem
@@ -240,6 +248,7 @@ const OpenSessionRow = memo(function OpenSessionRow({
   folderLabel: string
   now: number
   onSelect: (tabId: string) => void
+  onKeep: (tabId: string) => void
   onClose: (tabId: string) => void
 }) {
   const t = useTranslations("Folder.openSessions")
@@ -282,8 +291,14 @@ const OpenSessionRow = memo(function OpenSessionRow({
           />
         </span>
         <span className="min-w-0 flex-1">
+          {/* A preview — the next conversation opened from the list replaces
+              it — leans, as its tab does on the desktop. */}
           <span
-            className={cn("block truncate text-sm", active && "font-semibold")}
+            className={cn(
+              "block truncate text-sm",
+              active && "font-semibold",
+              !tab.isPinned && "[font-style:oblique]"
+            )}
           >
             {title}
           </span>
@@ -293,6 +308,17 @@ const OpenSessionRow = memo(function OpenSessionRow({
         </span>
         <OpenSessionStatus tab={tab} live={live} />
       </button>
+      {!tab.isPinned && (
+        <button
+          type="button"
+          onClick={() => onKeep(tab.id)}
+          aria-label={t("keep")}
+          title={t("keepHint")}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground/70 active:bg-muted active:text-foreground"
+        >
+          <Pin className="h-4 w-4" aria-hidden />
+        </button>
+      )}
       <button
         type="button"
         onClick={() => onClose(tab.id)}

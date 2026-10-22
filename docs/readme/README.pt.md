@@ -114,7 +114,8 @@
 - "Precisa de você" só é conhecido enquanto este dispositivo está conectado à conversa: aparece nas conversas abertas pelo menos uma vez neste dispositivo, e as outras mostram o estado salvo.
 - Com "Sincronizar abas de conversa entre janelas" ativada (padrão), uma conversa fechada no celular também fecha no computador, como fechar a aba dela lá.
 - Com 768 px de largura ou mais (computadores, tablets) nada muda: a barra de abas continua.
-- Solicitado em [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
+- Uma conversa aberta pela barra lateral começa como prévia (como no desktop), que a próxima aberta substitui; aqui o título dela fica em itálico, e o 📌 ao lado a mantém aberta. Tocar duas vezes nela na barra lateral também a mantém, como um clique duplo no desktop: no celular a barra lateral agora espera um instante antes de fechar, para o segundo toque cair na mesma linha.
+- Solicitado em [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10), [#12](https://github.com/keh4l/codeg/issues/12).
 
 </details>
 

@@ -2532,7 +2532,9 @@
       "needsInput": "Precisa de você",
       "draft": "Não enviado",
       "viewing": "Vendo",
-      "allConversations": "Todas as conversas (com histórico)"
+      "allConversations": "Todas as conversas (com histórico)",
+      "keep": "Manter aberta",
+      "keepHint": "Mantenha esta conversa aberta para que a próxima aberta pela lista não a substitua"
     },
     "fileWorkspace": {
       "files": "Arquivos",

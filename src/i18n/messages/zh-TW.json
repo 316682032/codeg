@@ -2532,7 +2532,9 @@
       "needsInput": "需要處理",
       "draft": "未送出",
       "viewing": "正在看",
-      "allConversations": "全部會話（含歷史）"
+      "allConversations": "全部會話（含歷史）",
+      "keep": "保留",
+      "keepHint": "保留這個對話，從清單打開下一個對話時不取代它"
     },
     "fileWorkspace": {
       "files": "檔案",

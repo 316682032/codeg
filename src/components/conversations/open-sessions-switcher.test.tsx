@@ -14,6 +14,7 @@ const h = vi.hoisted(() => ({
   listeners: new Set<() => void>(),
   switchTab: vi.fn(),
   closeTab: vi.fn(),
+  pinTab: vi.fn(),
   openNewConversationTab: vi.fn(),
   openChatModeTab: vi.fn(),
   toggleSidebar: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock("@/contexts/tab-context", () => {
     useTabActions: () => ({
       switchTab: h.switchTab,
       closeTab: h.closeTab,
+      pinTab: h.pinTab,
       openNewConversationTab: h.openNewConversationTab,
       openChatModeTab: h.openChatModeTab,
     }),
@@ -236,6 +238,27 @@ describe("OpenSessionsSwitcher", () => {
     )
 
     expect(h.closeTab).toHaveBeenCalledWith("tab-c")
+    expect(h.switchTab).not.toHaveBeenCalled()
+  })
+
+  it("offers to keep a preview, which the next one opened would replace", async () => {
+    h.tabs = [
+      tab({ id: "tab-a", title: "Storyboard" }),
+      tab({ id: "tab-b", title: "Missing APIs", isPinned: false }),
+    ]
+    const user = userEvent.setup()
+    render(withIntl(<OpenSessionsSwitcher title="Storyboard" />))
+    await user.click(screen.getByRole("button", { name: /Switch open/ }))
+    const rows = within(await screen.findByRole("dialog")).getAllByRole(
+      "listitem"
+    )
+
+    expect(
+      within(rows[0]).queryByRole("button", { name: "Keep open" })
+    ).toBeNull()
+    await user.click(within(rows[1]).getByRole("button", { name: "Keep open" }))
+
+    expect(h.pinTab).toHaveBeenCalledWith("tab-b")
     expect(h.switchTab).not.toHaveBeenCalled()
   })
 

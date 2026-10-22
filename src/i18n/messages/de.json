@@ -2532,7 +2532,9 @@
       "needsInput": "Wartet auf dich",
       "draft": "Nicht gesendet",
       "viewing": "Angezeigt",
-      "allConversations": "Alle Konversationen (mit Verlauf)"
+      "allConversations": "Alle Konversationen (mit Verlauf)",
+      "keep": "Offen halten",
+      "keepHint": "Diese Unterhaltung offen halten, damit die nächste aus der Liste sie nicht ersetzt"
     },
     "fileWorkspace": {
       "files": "Dateien",
