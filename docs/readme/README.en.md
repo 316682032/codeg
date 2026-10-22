@@ -46,7 +46,8 @@
     <td width="50%" valign="top">🗂️ <strong>Only the agents you use</strong><br/>Settings lists only the agents you added; the rest wait in “Add agents”, searchable and added several at a time. A new install enables only what is installed here, so the new-conversation picker stays short.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
+    <td width="50%" valign="top">📋 <strong>Long-press to select text on a phone</strong><br/>Long-pressing text in a reply or the message box brings up the phone's own selection handles and copy menu instead of the conversation menu; select a reply with a finger and Copy Text / Quote / Ask appear under the message box, clear of the phone's menu.</td>
+    <td width="50%" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
   </tr>
 </table>
 
@@ -156,6 +157,18 @@
 - When codeg has no settings for an agent yet (a fresh install, or a built-in added by a later release), it enables the agent only if it is detected as installed here. Codeg counts an agent as installed once the ACP adapter or CLI it runs is in place, so a fresh install often has none and the list starts empty: pick from “Add agents”. An agent you install later is not added by itself, and existing settings are never changed.
 - After upgrading from an earlier build with agents in “My agents” that aren't installed, a hint at the top of the list offers once to “Keep only the installed” ones or keep things as they are (the choice is remembered per device).
 - The new-conversation picker ends its row with a “+” that opens “Add agents”; when the agents don't all fit, it is at the bottom of the “more” menu instead. With no agent enabled, the picker's button opens “Add agents” too.
+
+</details>
+
+<details>
+<summary><strong>Long-press to select text on a phone</strong>: details</summary>
+<br/>
+
+- In the official build the whole conversation area and the message box carry menus of their own, and a long press with a finger opens them too: hold a reply for about 0.7 s and the conversation menu (New Conversation, Export Conversation, …) appears; on Android the event the long press sends is cancelled as well, which cancels the phone's own word selection. Over HTTPS, a long press in the message box opens its own Cut / Copy / Select all menu. The phone's selection handles and copy menu never appear, so text in replies and in the message box is hard to copy.
+- This build leaves a long press with a finger or a pen to the phone: selecting, dragging the handles, copying and pasting are the phone's own. A right click with a mouse still opens both menus, on a computer with a touch screen too.
+- In the official build, the Copy Text / Quote / Ask bubble for a selected reply sits next to the selection, and so does the phone's menu, above it or below as the phone decides; a page can neither read nor move it, so the two often land on top of each other. In this build, a selection made with a finger puts these buttons and the number of characters selected under the message box, standing in for the folder and branch row until the selection goes; the phone's menu can't reach past the message box. Ask takes the question right in that row. A selection made with a mouse still gets the bubble above it.
+- The message box menu's Quick messages are also under the “+” at the bottom left of the message box; translating a message has its own button.
+- On iOS, the system menu for ordinary text on a web page has no Select All (only text fields do); to copy a whole reply, use the copy button under it.
 
 </details>
 

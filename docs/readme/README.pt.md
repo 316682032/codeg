@@ -46,7 +46,8 @@
     <td width="50%" valign="top">🗂️ <strong>Só os agentes que você usa</strong><br/>As configurações listam só os agentes que você adicionou; o resto fica em “Adicionar agentes”, com busca e vários de uma vez. Uma instalação nova ativa só os que estão instalados aqui, e o seletor de nova conversa fica curto.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Acompanha o original</strong><br/>O projeto original é mesclado regularmente; o que não está listado aqui funciona como na versão oficial. O Kiro CLI integrado, a primeira coisa que esta versão adicionou, faz parte da versão oficial desde a 0.36.0.</td>
+    <td width="50%" valign="top">📋 <strong>Toque longo para selecionar texto no celular</strong><br/>Um toque longo no texto de uma resposta ou da caixa de mensagem mostra as alças de seleção e o menu de copiar do próprio celular, em vez do menu da conversa; ao selecionar uma resposta com o dedo, Copiar texto / Citar / Perguntar aparecem abaixo da caixa de mensagem, longe do menu do celular.</td>
+    <td width="50%" valign="top">🔄 <strong>Acompanha o original</strong><br/>O projeto original é mesclado regularmente; o que não está listado aqui funciona como na versão oficial. O Kiro CLI integrado, a primeira coisa que esta versão adicionou, faz parte da versão oficial desde a 0.36.0.</td>
   </tr>
 </table>
 
@@ -156,6 +157,18 @@
 - Quando o codeg ainda não tem configurações para um agente (uma instalação nova, ou um agente integrado adicionado por uma versão posterior), ele o ativa só se o detectar como instalado aqui. Para o codeg, um agente está instalado quando o adaptador ACP ou a CLI que ele executa está pronto; uma instalação nova muitas vezes não tem nenhum e a lista começa vazia: escolha em “Adicionar agentes”. Um agente que você instalar depois não é adicionado sozinho, e as configurações existentes nunca mudam.
 - Ao atualizar de uma versão anterior com agentes não instalados em “Meus agentes”, um aviso no topo da lista oferece uma vez “Manter só os instalados” ou deixar como está (a escolha é lembrada por dispositivo).
 - O seletor de nova conversa termina a linha com um “+” que abre “Adicionar agentes”; quando nem todos os agentes cabem, ele fica no fim do menu “mais”. Sem nenhum agente ativado, o botão do seletor também abre “Adicionar agentes”.
+
+</details>
+
+<details>
+<summary><strong>Toque longo para selecionar texto no celular</strong>: detalhes</summary>
+<br/>
+
+- Na versão oficial, toda a área da conversa e a caixa de mensagem têm menus próprios, e um toque longo com o dedo também os abre: ao segurar uma resposta por cerca de 0,7 s aparece o menu da conversa (Nova conversa, Exportar conversa…); no Android, o evento que o toque longo envia também é cancelado, e com ele a seleção de palavras do próprio celular. Em HTTPS, um toque longo na caixa de mensagem abre o menu próprio dela, Cortar / Copiar / Selecionar tudo. As alças de seleção e o menu de copiar do celular nunca aparecem, então copiar texto das respostas e da caixa de mensagem fica difícil.
+- Esta versão deixa o toque longo com o dedo ou a caneta para o celular: selecionar, arrastar as alças, copiar e colar são os do próprio celular. O clique direito com o mouse continua abrindo os dois menus, também em um computador com tela sensível ao toque.
+- Na versão oficial, a bolha Copiar texto / Citar / Perguntar de uma resposta selecionada fica ao lado da seleção, e o menu do celular também, acima ou abaixo conforme o celular decide; a página não consegue ler a posição dele nem movê-lo, então os dois muitas vezes se sobrepõem. Nesta versão, uma seleção feita com o dedo coloca esses botões e o número de caracteres selecionados abaixo da caixa de mensagem, no lugar da linha de pasta e branch até a seleção sumir; o menu do celular não passa da caixa de mensagem. Perguntar recebe a pergunta nessa mesma linha. Numa seleção feita com o mouse, a bolha continua aparecendo acima.
+- As Mensagens rápidas do menu da caixa de mensagem também ficam no “+” no canto inferior esquerdo da caixa; traduzir uma mensagem tem um botão próprio.
+- No iOS, o menu do sistema para o texto comum de uma página web não tem Selecionar tudo (só os campos de texto têm); para copiar uma resposta inteira, use o botão de copiar abaixo dela.
 
 </details>
 

@@ -2828,6 +2828,35 @@ describe("MessageInput right-click token selection", () => {
     expect(selectedText(editor)).toBe("adam@example.com")
   })
 
+  // keh4l: a phone's long press selects the word itself and brings up its
+  // own Copy / Select All / Paste bar; the custom menu, and the token
+  // selection that comes with it, took that over.
+  it("leaves a touch long press to the phone", async () => {
+    const editor = await mountWithEditor()
+    seed(editor, "ping adam@example.com today", 8)
+
+    firePointer(editingSurface(), "pointerdown", "touch")
+    // What an Android long press sends: not cancelled, so the phone goes on.
+    expect(
+      fireEvent.contextMenu(editingSurface(), { clientX: 40, clientY: 12 })
+    ).toBe(true)
+
+    expect(screen.queryByRole("menu")).toBeNull()
+    expect(selectedText(editor)).toBe("")
+  })
+
+  it("opens the custom menu on a right click after a touch", async () => {
+    const editor = await mountWithEditor()
+    seed(editor, "ping adam@example.com today", 8)
+
+    firePointer(editingSurface(), "pointerdown", "touch")
+    firePointer(editingSurface(), "pointerdown", "mouse")
+    fireEvent.contextMenu(editingSurface(), { clientX: 40, clientY: 12 })
+
+    await screen.findByRole("menuitem", { name: "Send email" })
+    expect(selectedText(editor)).toBe("adam@example.com")
+  })
+
   it("still picks the token up where the native menu takes over", async () => {
     const editor = await mountWithEditor({ clipboardRead: false })
     seed(editor, "ping adam@example.com today", 8)

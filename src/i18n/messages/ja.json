@@ -7703,5 +7703,9 @@
       "dismiss": "このままにする",
       "kept": "未インストールのエージェントを {count} 個外しました"
     }
+  },
+  "SelectionDock": {
+    "count": "{count} 文字を選択中",
+    "cancelAsk": "キャンセル"
   }
 }

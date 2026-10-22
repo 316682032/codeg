@@ -239,6 +239,9 @@ export function ConversationShell({
     <div
       className="relative flex h-full min-h-0 flex-col"
       style={resizableWidth ? chatGutterStyle : undefined}
+      // keh4l: bounds the transcript's search for its composer's selection
+      // dock (see `findDock` in selection-action-bubble.tsx).
+      data-conversation-shell=""
     >
       {topBanner}
 

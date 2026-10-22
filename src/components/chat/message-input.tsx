@@ -84,6 +84,7 @@ import {
 } from "@/lib/session-settings"
 import { useAgentSkills } from "@/hooks/use-agent-skills"
 import { isPrimaryPointerCoarse } from "@/hooks/use-is-coarse-pointer"
+import { useMouseOnlyContextMenu } from "@/hooks/use-mouse-only-context-menu"
 import { useAgentVocabulary } from "@/hooks/use-agent-vocabulary"
 import {
   clearMessageInputDraftV2,
@@ -511,6 +512,9 @@ export function MessageInput({
   // works over the editable text. Resolved on the client after mount so SSR and
   // the first client render agree (no hydration mismatch on the trigger).
   const [clipboardReadSupported, setClipboardReadSupported] = useState(false)
+  // keh4l: a long press in the editor is the phone's (select, then its own
+  // Copy / Select All / Paste bar); the custom menu answers a right click.
+  const composerMenuTrigger = useMouseOnlyContextMenu()
   // Snapshotted when the custom right-click menu opens: whether the editor holds
   // a non-empty selection, which gates the Cut/Copy items. Read from the editor's
   // ProseMirror state (not the DOM Selection) so it stays correct after the radix
@@ -2080,10 +2084,20 @@ export function MessageInput({
           {/* Disabled in non-secure web (no async clipboard read) so the native
               context menu — whose Paste still works over the editor text — is
               not suppressed. Desktop/secure-web get the full custom menu. */}
-          <ContextMenuTrigger asChild disabled={!clipboardReadSupported}>
+          <ContextMenuTrigger
+            asChild
+            {...composerMenuTrigger}
+            disabled={!clipboardReadSupported || composerMenuTrigger.disabled}
+          >
             <div
               {...chromeFocus}
-              onContextMenuCapture={handleComposerContextMenu}
+              // keh4l: not under a finger — the token selection would fight
+              // the word the phone's long press is selecting.
+              onContextMenuCapture={
+                composerMenuTrigger.disabled
+                  ? undefined
+                  : handleComposerContextMenu
+              }
               className={cn(
                 // `codeg-composer-chrome` paints the text I-beam across the box's
                 // blank areas (padding, the dead space below a short message, the
@@ -2320,7 +2334,7 @@ export function MessageInput({
           // it always takes the rounded-bottom box treatment. Pickers sit at the
           // left edge; the context-usage circle + agent connection status
           // right-align at the trailing edge.
-          <div className="flex items-center justify-between gap-2 rounded-b-xl px-2 pt-1 text-xs text-muted-foreground">
+          <div className="relative flex items-center justify-between gap-2 rounded-b-xl px-2 pt-1 text-xs text-muted-foreground [&:has(>[data-selection-actions-dock]>*)>:not([data-selection-actions-dock])]:invisible">
             <div className="flex min-w-0 items-center gap-1">
               <ConversationFolderBranchPicker
                 tabId={attachmentTabId}
@@ -2337,7 +2351,21 @@ export function MessageInput({
               <ComposerContextUsage tabId={attachmentTabId ?? null} />
               <ComposerConnectionStatus tabId={attachmentTabId ?? null} />
             </div>
+            {/* keh4l: a selection made by a finger in the transcript puts its
+                Copy / Quote / Ask here, over this row, which steps aside while
+                it does (see `findDock` in selection-action-bubble.tsx). */}
+            <div
+              data-selection-actions-dock=""
+              className="absolute inset-0 flex items-center px-2 pt-1 empty:hidden"
+            />
           </div>
+        )}
+        {!hasFolderBranchPicker && (
+          // keh4l: the same dock where there is no row to stand in for.
+          <div
+            data-selection-actions-dock=""
+            className="flex items-center px-2 pt-1 text-xs empty:hidden"
+          />
         )}
       </div>
       {!attach.showNativePaperclip && (

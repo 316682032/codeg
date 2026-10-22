@@ -46,7 +46,8 @@
     <td width="50%" valign="top">🗂️ <strong>Nur die Agenten, die du nutzt</strong><br/>Die Einstellungen listen nur die Agenten, die du hinzugefügt hast; der Rest wartet unter „Agenten hinzufügen“, durchsuchbar und mehrere auf einmal hinzuzufügen. Eine neue Installation aktiviert nur, was hier installiert ist, damit die Auswahl für neue Unterhaltungen kurz bleibt.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
+    <td width="50%" valign="top">📋 <strong>Text auf dem Handy per langem Drücken auswählen</strong><br/>Langes Drücken auf Text in einer Antwort oder im Eingabefeld zeigt die Auswahlgriffe und das Kopiermenü des Handys statt des Konversationsmenüs; wählt man eine Antwort mit dem Finger aus, erscheinen Text kopieren / Zitieren / Fragen unter dem Eingabefeld, abseits des Handymenüs.</td>
+    <td width="50%" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
   </tr>
 </table>
 
@@ -156,6 +157,18 @@
 - Solange codeg für einen Agenten noch keine Einstellungen hat (eine neue Installation oder ein eingebauter Agent aus einer späteren Version), aktiviert es ihn nur, wenn er hier als installiert erkannt wird. Als installiert gilt ein Agent, sobald der ACP-Adapter oder die CLI, die codeg startet, vorhanden ist; eine neue Installation hat daher oft keinen, und die Liste beginnt leer: wähle unter „Agenten hinzufügen“. Ein später installierter Agent wird nicht von selbst hinzugefügt, und bestehende Einstellungen ändern sich nie.
 - Nach einem Update von einem früheren Build mit nicht installierten Agenten in „Meine Agenten“ bietet ein Hinweis oben in der Liste einmal an, „nur die installierten zu behalten“ oder es so zu lassen (die Wahl wird pro Gerät gemerkt).
 - Die Auswahl für neue Unterhaltungen endet ihre Zeile mit einem „+“, das „Agenten hinzufügen“ öffnet; passen nicht alle Agenten hinein, steht es unten im „Mehr“-Menü. Ist kein Agent aktiviert, öffnet die Schaltfläche der Auswahl ebenfalls „Agenten hinzufügen“.
+
+</details>
+
+<details>
+<summary><strong>Text auf dem Handy per langem Drücken auswählen</strong> – Details</summary>
+<br/>
+
+- In der offiziellen Version tragen der ganze Konversationsbereich und das Eingabefeld eigene Kontextmenüs, und langes Drücken mit dem Finger öffnet sie ebenfalls: Hält man eine Antwort etwa 0,7 s gedrückt, erscheint das Konversationsmenü (Neue Konversation, Konversation exportieren, …); unter Android wird zudem das Ereignis abgebrochen, das das lange Drücken sendet, und damit die Wortauswahl des Handys. Über HTTPS öffnet langes Drücken im Eingabefeld dessen eigenes Menü Ausschneiden / Kopieren / Alles auswählen. Die Auswahlgriffe und das Kopiermenü des Handys erscheinen nie, sodass sich Text aus Antworten und aus dem Eingabefeld kaum kopieren lässt.
+- Diese Version überlässt langes Drücken mit Finger oder Stift dem Handy: Auswählen, Ziehen der Griffe, Kopieren und Einfügen sind die des Handys. Ein Rechtsklick mit der Maus öffnet weiterhin beide Menüs, auch auf einem Rechner mit Touchscreen.
+- In der offiziellen Version sitzt die Blase Text kopieren / Zitieren / Fragen einer ausgewählten Antwort neben der Auswahl, und das Menü des Handys ebenfalls, darüber oder darunter, wie das Handy es entscheidet; eine Seite kann seine Position weder lesen noch ändern, deshalb liegen beide oft übereinander. In dieser Version legt eine Auswahl mit dem Finger diese Schaltflächen und die Zahl der ausgewählten Zeichen unter das Eingabefeld, an die Stelle der Ordner- und Branch-Zeile, bis die Auswahl aufgehoben ist; das Menü des Handys reicht nicht über das Eingabefeld hinaus. Fragen nimmt die Frage direkt in dieser Zeile entgegen. Bei einer Auswahl mit der Maus steht die Blase weiterhin darüber.
+- Die Schnellnachrichten aus dem Menü des Eingabefelds gibt es auch unter dem „+“ unten links im Eingabefeld; das Übersetzen einer Nachricht hat eine eigene Schaltfläche.
+- Unter iOS hat das Systemmenü für normalen Text auf einer Webseite kein „Alles auswählen“ (nur Textfelder haben es); um eine ganze Antwort zu kopieren, nimm die Kopieren-Schaltfläche darunter.
 
 </details>
 

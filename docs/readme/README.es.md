@@ -46,7 +46,8 @@
     <td width="50%" valign="top">🗂️ <strong>Solo los agentes que usas</strong><br/>Ajustes muestra solo los agentes que añadiste; el resto queda en «Añadir agentes», con búsqueda y para añadir varios a la vez. Una instalación nueva activa solo los que están instalados aquí, así que el selector de nueva conversación queda corto.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Al día con el original</strong><br/>Los cambios del proyecto original se incorporan con regularidad; lo que no aparece aquí funciona igual que en la versión oficial. Kiro CLI integrado, lo primero que añadió esta versión, forma parte de la versión oficial desde la 0.36.0.</td>
+    <td width="50%" valign="top">📋 <strong>Mantener pulsado para seleccionar texto en el móvil</strong><br/>Mantener pulsado el texto de una respuesta o del cuadro de mensaje muestra los tiradores de selección y el menú de copiar del propio móvil, en lugar del menú de la conversación; al seleccionar una respuesta con el dedo, Copiar texto / Citar / Preguntar aparecen bajo el cuadro de mensaje, lejos del menú del móvil.</td>
+    <td width="50%" valign="top">🔄 <strong>Al día con el original</strong><br/>Los cambios del proyecto original se incorporan con regularidad; lo que no aparece aquí funciona igual que en la versión oficial. Kiro CLI integrado, lo primero que añadió esta versión, forma parte de la versión oficial desde la 0.36.0.</td>
   </tr>
 </table>
 
@@ -156,6 +157,18 @@
 - Cuando codeg aún no tiene ajustes para un agente (una instalación nueva, o un agente integrado que añade una versión posterior), lo activa solo si detecta que está instalado aquí. Codeg considera instalado un agente cuando el adaptador ACP o la CLI que ejecuta están listos, así que una instalación nueva a menudo no tiene ninguno y la lista empieza vacía: elige en «Añadir agentes». Un agente que instales después no se añade solo, y los ajustes existentes nunca cambian.
 - Al actualizar desde una versión anterior con agentes en «Mis agentes» que no están instalados, un aviso arriba de la lista ofrece una vez «Quedarme solo con los instalados» o dejarlo así (la elección se recuerda por dispositivo).
 - El selector de nueva conversación termina su fila con un «+» que abre «Añadir agentes»; cuando no caben todos los agentes, está al final del menú «más». Sin ningún agente activado, el botón del selector también abre «Añadir agentes».
+
+</details>
+
+<details>
+<summary><strong>Mantener pulsado para seleccionar texto en el móvil</strong>: detalles</summary>
+<br/>
+
+- En la versión oficial toda el área de la conversación y el cuadro de mensaje llevan menús propios, y una pulsación larga con el dedo también los abre: al mantener pulsada una respuesta unos 0,7 s aparece el menú de la conversación (Nueva conversación, Exportar conversación…); en Android además se cancela el evento que envía la pulsación larga, y con él la selección de palabras del propio móvil. Con HTTPS, una pulsación larga en el cuadro de mensaje abre su propio menú Cortar / Copiar / Seleccionar todo. Los tiradores de selección y el menú de copiar del móvil no llegan a aparecer, así que copiar texto de las respuestas y del cuadro de mensaje resulta difícil.
+- Esta versión deja la pulsación larga con el dedo o con un lápiz al móvil: seleccionar, arrastrar los tiradores, copiar y pegar son los del propio móvil. El clic derecho con ratón sigue abriendo ambos menús, también en un ordenador con pantalla táctil.
+- En la versión oficial, la burbuja Copiar texto / Citar / Preguntar de una respuesta seleccionada aparece junto a la selección, y el menú del móvil también, encima o debajo según decida el móvil; la página no puede leer su posición ni moverlo, así que a menudo se tapan uno al otro. En esta versión, una selección hecha con el dedo lleva estos botones y el número de caracteres seleccionados bajo el cuadro de mensaje, en lugar de la fila de carpeta y rama hasta que se quita la selección; el menú del móvil no llega más allá del cuadro de mensaje. Preguntar recibe la pregunta en esa misma fila. Con una selección hecha con el ratón, la burbuja sigue apareciendo encima.
+- Los Mensajes rápidos del menú del cuadro de mensaje también están en el “+” de abajo a la izquierda del cuadro; traducir un mensaje tiene su propio botón.
+- En iOS, el menú del sistema para el texto normal de una página web no tiene Seleccionar todo (solo los campos de texto lo tienen); para copiar una respuesta entera, usa el botón de copiar que hay debajo.
 
 </details>
 
