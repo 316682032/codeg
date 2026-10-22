@@ -224,7 +224,7 @@ mod tests {
         let migrations = <Migrator as MigratorTrait>::migrations();
         let idx = migrations
             .iter()
-            .position(|m| m.name().contains("kiro_builtin_agent"))
+            .position(|m| m.name() == "m20261015_000001_kiro_builtin_agent")
             .expect("kiro migration is registered");
         Migrator::up(&conn, Some(idx as u32))
             .await

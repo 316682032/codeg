@@ -20,6 +20,8 @@ pub mod cli_access;
 /// path validation and URI encoding stay compiled in every mode so their tests
 /// run without the tauri stack.
 pub mod clipboard;
+/// The ✨ commit message generator (both runtimes).
+pub mod commit_message;
 /// Computer use: sharing windows, the helper, the agent reads — the desktop
 /// app's, and codeg-server's where it is let share the screen it runs on.
 pub mod computer;
@@ -47,6 +49,10 @@ pub mod forge;
 pub mod generative_ui;
 /// Image generation for agents (keh4l build); see `crate::image_gen`.
 pub mod image_gen;
+/// Folder commands set to run on the desktop's own machine ("Run on this
+/// computer"), even from a remote-desktop window. Desktop-only by design.
+#[cfg(feature = "tauri-runtime")]
+pub mod local_command;
 pub mod logging;
 pub mod mcp;
 pub mod mcp_service;

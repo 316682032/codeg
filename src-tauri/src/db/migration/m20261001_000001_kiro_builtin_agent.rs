@@ -9,8 +9,9 @@
 //! The work itself now lives in the upstream migration, which does everything
 //! this one did (plus moving tags and delegation defaults) and only touches
 //! rows still typed `custom:kiro-cli`, so running it after this one is safe.
-//! This one does nothing, and is registered after the upstream migration so
-//! that migration's tests find it first.
+//! This one does nothing. It is registered in name order like every other
+//! migration (`migrations_are_listed_in_name_order`), so the upstream
+//! migration's tests look theirs up by its full name.
 
 use sea_orm_migration::prelude::*;
 
