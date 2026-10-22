@@ -180,6 +180,15 @@ import { DeepSeekModelListEditor } from "./deepseek-model-list-editor"
 import { KimiCodeConfigPanel } from "./kimi-code-config-panel"
 import { PiConfigPanel } from "./pi-config-panel"
 import { QoderConfigPanel } from "./qoder-config-panel"
+import { AddAgentsDialog } from "./my-agents/add-agents-dialog"
+import {
+  AddAgentsRow,
+  MyAgentsEmpty,
+  MyAgentsHint,
+  MyAgentsListHeader,
+} from "./my-agents/my-agents-list"
+import { useMyAgents } from "./my-agents/use-my-agents"
+import { mergeListedOrder } from "@/lib/my-agents"
 
 interface AgentCheckState {
   result?: PreflightResult
@@ -4765,6 +4774,7 @@ export function AcpAgentSettings() {
   const ime = useImeGuard()
   const locale = useLocale()
   const t = useTranslations("AcpAgentSettings")
+  const tMyAgents = useTranslations("MyAgents")
   const rawTranslator = t as unknown as AcpTranslator
   acpTranslator = (key, values) => rawTranslator(key, values)
   const searchParams = useSearchParams()
@@ -4884,6 +4894,8 @@ export function AcpAgentSettings() {
   const pendingOrderRef = useRef<AgentType[] | null>(null)
   const busyActionRef = useRef<Set<AgentType>>(new Set())
   const handledSearchAgentRef = useRef<string | null>(null)
+  // keh4l: the "My agents" set when the page opened (kept by useMyAgents).
+  const myAgentsListedRef = useRef<ReadonlySet<AgentType> | null>(null)
   const agentListRef = useRef<HTMLDivElement | null>(null)
   const installStream = useAgentInstallStream()
   const [streamAgentType, setStreamAgentType] = useState<AgentType | null>(null)
@@ -5089,7 +5101,12 @@ export function AcpAgentSettings() {
 
   useEffect(() => {
     if (loadingAgents || !agentTypesKey) return
-    const agentTypes = agentTypesKey.split(",") as AgentType[]
+    const listed = myAgentsListedRef.current
+    // keh4l: only "My agents" are checked on open; one shown from the
+    // catalog or `?agent=` is checked when it is (see useMyAgents).
+    const agentTypes = (agentTypesKey.split(",") as AgentType[]).filter(
+      (agentType) => !listed || listed.has(agentType)
+    )
     runAllPreflight(agentTypes).catch((err) => {
       console.error("[Settings] run all preflight failed:", err)
     })
@@ -5135,7 +5152,8 @@ export function AcpAgentSettings() {
       if (prev && sortedAgents.some((agent) => agent.agent_type === prev)) {
         return prev
       }
-      return sortedAgents[0].agent_type
+      // keh4l: the first of "My agents", which is what the list shows.
+      return sortedAgents.find((agent) => agent.enabled)?.agent_type ?? null
     })
   }, [sortedAgents])
 
@@ -5973,14 +5991,29 @@ export function AcpAgentSettings() {
     [refreshAgents, t]
   )
 
-  const handleReorder = useCallback((next: AcpAgentInfo[]) => {
-    const reordered = next.map((agent, index) => ({
-      ...agent,
-      sort_order: index,
-    }))
-    setAgents(reordered)
-    pendingOrderRef.current = reordered.map((agent) => agent.agent_type)
-  }, [])
+  const handleReorder = useCallback(
+    (next: AcpAgentInfo[]) => {
+      // keh4l: `next` is "My agents" only; the rest keep their order after it.
+      const reordered = mergeListedOrder(sortedAgents, next)
+      setAgents(reordered)
+      pendingOrderRef.current = reordered.map((agent) => agent.agent_type)
+    },
+    [sortedAgents]
+  )
+
+  const myAgents = useMyAgents({
+    agents: sortedAgents,
+    drafts,
+    draftFor: buildAgentDraft,
+    setDrafts,
+    setAgents,
+    persistEnv,
+    persistReorder,
+    runPreflight,
+    listedRef: myAgentsListedRef,
+    selectedAgentType,
+    select: setSelectedAgentType,
+  })
 
   // One package operation at a time across ALL agents: while any
   // install/upgrade/uninstall runs, every agent's package-action buttons are
@@ -8309,6 +8342,16 @@ export function AcpAgentSettings() {
         onAdded={() => void refreshAgents()}
       />
 
+      <AddAgentsDialog
+        key={myAgents.addDialogKey}
+        open={myAgents.addOpen}
+        onOpenChange={myAgents.setAddOpen}
+        agents={sortedAgents}
+        listedTypes={myAgents.listedTypes}
+        onAdd={myAgents.add}
+        onAddCustom={() => setAddCustomOpen(true)}
+      />
+
       {/* Keyed by the id so switching agents never leaks a previous form. */}
       {editCustomAgentId !== null && (
         <AddCustomAgentDialog
@@ -8330,18 +8373,24 @@ export function AcpAgentSettings() {
 
       <div className="flex-1 min-h-0 grid gap-3 lg:grid-cols-[minmax(15rem,20rem)_1fr]">
         <div className="min-h-0 min-w-0 rounded-lg border bg-card flex flex-col overflow-hidden">
-          <div className="border-b px-3 py-2 text-xs font-medium text-muted-foreground">
-            {t("agentList")}
-          </div>
+          <MyAgentsListHeader
+            count={myAgents.listedAgents.length}
+            onAdd={myAgents.openAddDialog}
+          />
+          <MyAgentsHint
+            listed={myAgents.listedAgents}
+            onKeepInstalled={myAgents.keepInstalled}
+          />
           <Reorder.Group
             as="div"
             axis="y"
-            values={sortedAgents}
+            values={myAgents.listedAgents}
             onReorder={handleReorder}
             ref={agentListRef}
             className="flex-1 min-h-0 overflow-y-auto space-y-2 p-2"
           >
-            {sortedAgents.map((agent) => {
+            {myAgents.listedAgents.length === 0 && <MyAgentsEmpty />}
+            {myAgents.listedAgents.map((agent) => {
               const current = checkState[agent.agent_type]
               const isChecking = Boolean(checking[agent.agent_type])
               const draft = drafts[agent.agent_type] ?? buildAgentDraft(agent)
@@ -8416,15 +8465,6 @@ export function AcpAgentSettings() {
                         <span className="text-sm font-medium truncate">
                           {agent.name}
                         </span>
-                        {draft.enabled && (
-                          <span
-                            className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"
-                            aria-label={t("status.agentEnabledAria", {
-                              name: agent.name,
-                            })}
-                            title={t("status.enabled")}
-                          />
-                        )}
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
@@ -8470,6 +8510,12 @@ export function AcpAgentSettings() {
               )
             })}
           </Reorder.Group>
+          <div className="border-t p-2">
+            <AddAgentsRow
+              available={sortedAgents.length - myAgents.listedAgents.length}
+              onAdd={myAgents.openAddDialog}
+            />
+          </div>
         </div>
 
         <div className="min-h-0 min-w-0 rounded-lg border bg-card">
@@ -8511,6 +8557,10 @@ export function AcpAgentSettings() {
                       the name, the distribution badge, the Custom badge and
                       the enable switch. */}
                   <div className="flex items-center gap-2 shrink-0">
+                    {/* keh4l: the switch is membership in "My agents". */}
+                    <span className="text-xs text-muted-foreground">
+                      {tMyAgents("switchLabel")}
+                    </span>
                     <button
                       type="button"
                       role="switch"
@@ -8550,16 +8600,20 @@ export function AcpAgentSettings() {
                           nextEnabled,
                           nextDraft.envText,
                           nextDraft.modelProviderId
-                        ).catch((err) => {
-                          console.error(
-                            "[Settings] persist enabled failed:",
-                            err
+                        )
+                          .then(() =>
+                            myAgents.onToggled(selectedAgent, nextEnabled)
                           )
-                          const message = toErrorMessage(err)
-                          toast.error(t("toasts.saveAgentSwitchFailed"), {
-                            description: message,
+                          .catch((err) => {
+                            console.error(
+                              "[Settings] persist enabled failed:",
+                              err
+                            )
+                            const message = toErrorMessage(err)
+                            toast.error(t("toasts.saveAgentSwitchFailed"), {
+                              description: message,
+                            })
                           })
-                        })
                       }}
                     >
                       <span

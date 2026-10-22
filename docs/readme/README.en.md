@@ -43,7 +43,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">⏳ <strong>Results for agents with short time-outs</strong><br/>Some agents wait only 30 to 60 seconds for a tool call. This build caps each wait per agent, returns in time and collects the rest on the next call, so a slow answer to a question no longer counts as no answer.</td>
-    <td width="50%" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
+    <td width="50%" valign="top">🗂️ <strong>Only the agents you use</strong><br/>Settings lists only the agents you added; the rest wait in “Add agents”, searchable and added several at a time. A new install enables only what is installed here, so the new-conversation picker stays short.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Follows upstream</strong><br/>Upstream is merged in regularly; anything not listed here works exactly as in the official build. The built-in Kiro CLI, the first thing this build added, has been part of the official build since 0.36.0.</td>
   </tr>
 </table>
 
@@ -138,6 +141,20 @@
 - Questions: if you haven't answered by then, the question card stays where it is and the agent keeps waiting with a new tool, `get_question_answer`; once you answer, the answer shows in the original question card.
 - Delegated tasks: one `get_delegation_status` call waits at most up to the cap, then returns the tasks' current status. Image generation works the same way; see the previous section.
 - While waiting, the agent gets a progress update every 10 seconds, which lets agents that extend their deadline on progress, such as OpenCode, wait longer.
+
+</details>
+
+<details>
+<summary><strong>Only the agents you use</strong>: details</summary>
+<br/>
+
+- There are close to 20 built-in agents, and the official build enables all of them, installed or not: a long settings list, a new-conversation picker crowded with agents that aren't installed (the conversation page never installs one, so picking one gets you nowhere), and an install check for every one each time the settings page opens.
+- In this build, Settings → Agents lists only “My agents”, which you can still drag to reorder. “Add” in its title bar and the row below the list open “Add agents”: search by name or description, filter by installed / not installed, find the agents already installed here first, and add several at a time. One that isn't installed is installed from its details once added.
+- The switch in an agent's details is “My agents”: turn it off to take the agent off the list, with undo. It is the official build's “enabled” setting, so the new-conversation picker, delegation and everything else follow it.
+- Opening the settings page checks only “My agents”; any other agent is checked when you open it.
+- When codeg has no settings for an agent yet (a fresh install, or a built-in added by a later release), it enables the agent only if it is detected as installed here. Codeg counts an agent as installed once the ACP adapter or CLI it runs is in place, so a fresh install often has none and the list starts empty: pick from “Add agents”. An agent you install later is not added by itself, and existing settings are never changed.
+- After upgrading from an earlier build with agents in “My agents” that aren't installed, a hint at the top of the list offers once to “Keep only the installed” ones or keep things as they are (the choice is remembered per device).
+- The new-conversation picker ends its row with a “+” that opens “Add agents”; when the agents don't all fit, it is at the bottom of the “more” menu instead. With no agent enabled, the picker's button opens “Add agents” too.
 
 </details>
 

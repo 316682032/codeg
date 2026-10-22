@@ -43,7 +43,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">⏳ <strong>Resultados para agentes com tempo limite curto</strong><br/>Alguns agentes esperam só de 30 a 60 segundos por uma chamada de ferramenta. Esta versão limita cada espera por agente, responde a tempo e busca o resto na chamada seguinte, então uma resposta demorada a uma pergunta não conta mais como sem resposta.</td>
-    <td width="50%" valign="top">🔄 <strong>Acompanha o original</strong><br/>O projeto original é mesclado regularmente; o que não está listado aqui funciona como na versão oficial. O Kiro CLI integrado, a primeira coisa que esta versão adicionou, faz parte da versão oficial desde a 0.36.0.</td>
+    <td width="50%" valign="top">🗂️ <strong>Só os agentes que você usa</strong><br/>As configurações listam só os agentes que você adicionou; o resto fica em “Adicionar agentes”, com busca e vários de uma vez. Uma instalação nova ativa só os que estão instalados aqui, e o seletor de nova conversa fica curto.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Acompanha o original</strong><br/>O projeto original é mesclado regularmente; o que não está listado aqui funciona como na versão oficial. O Kiro CLI integrado, a primeira coisa que esta versão adicionou, faz parte da versão oficial desde a 0.36.0.</td>
   </tr>
 </table>
 
@@ -138,6 +141,20 @@
 - Perguntas: se você ainda não respondeu, o cartão da pergunta continua onde está e o agente segue esperando com uma ferramenta nova, `get_question_answer`; quando você responde, a resposta aparece no cartão original.
 - Tarefas delegadas: cada chamada a `get_delegation_status` espera no máximo até o teto e devolve o estado atual das tarefas. A geração de imagens funciona do mesmo jeito; veja a seção anterior.
 - Enquanto espera, o agente recebe um aviso de progresso a cada 10 segundos, o que permite aos agentes que estendem o prazo com o progresso, como o OpenCode, esperar mais.
+
+</details>
+
+<details>
+<summary><strong>Só os agentes que você usa</strong>: detalhes</summary>
+<br/>
+
+- São quase 20 agentes integrados, e a versão oficial ativa todos, instalados ou não: uma lista longa nas configurações, um seletor de nova conversa cheio de agentes não instalados (a página de conversa nunca instala nenhum, então escolher um não leva a nada) e uma verificação de cada um sempre que a página de configurações abre.
+- Nesta versão, Configurações → Agentes lista só “Meus agentes”, que ainda podem ser reordenados arrastando. “Adicionar” na barra de título e a linha abaixo da lista abrem “Adicionar agentes”: busque por nome ou descrição, filtre por instalados / não instalados, encontre primeiro os já instalados nesta máquina e adicione vários de uma vez. Um não instalado é instalado pelos detalhes depois de adicionado.
+- O interruptor nos detalhes de um agente é “Meus agentes”: desligue para tirar o agente da lista, com desfazer. É a configuração “ativado” da versão oficial, então o seletor de nova conversa, a delegação e todo o resto seguem ele.
+- Ao abrir a página de configurações, só “Meus agentes” são verificados; qualquer outro agente é verificado quando você o abre.
+- Quando o codeg ainda não tem configurações para um agente (uma instalação nova, ou um agente integrado adicionado por uma versão posterior), ele o ativa só se o detectar como instalado aqui. Para o codeg, um agente está instalado quando o adaptador ACP ou a CLI que ele executa está pronto; uma instalação nova muitas vezes não tem nenhum e a lista começa vazia: escolha em “Adicionar agentes”. Um agente que você instalar depois não é adicionado sozinho, e as configurações existentes nunca mudam.
+- Ao atualizar de uma versão anterior com agentes não instalados em “Meus agentes”, um aviso no topo da lista oferece uma vez “Manter só os instalados” ou deixar como está (a escolha é lembrada por dispositivo).
+- O seletor de nova conversa termina a linha com um “+” que abre “Adicionar agentes”; quando nem todos os agentes cabem, ele fica no fim do menu “mais”. Sem nenhum agente ativado, o botão do seletor também abre “Adicionar agentes”.
 
 </details>
 

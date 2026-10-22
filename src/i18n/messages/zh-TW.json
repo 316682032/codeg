@@ -7657,5 +7657,49 @@
     "took": "用時 {seconds} 秒",
     "fileMissing": "讀不到圖片檔案，可能已被移動或刪除。",
     "statusLost": "生成期間 codeg 重新啟動過，結果未知。"
+  },
+  "MyAgents": {
+    "title": "我的智慧體",
+    "add": "新增",
+    "addAgents": "新增智慧體",
+    "moreAvailable": "還有 {count} 個可用",
+    "empty": "還沒有新增智慧體",
+    "emptyHint": "在「新增智慧體」裡挑你要用的；沒安裝的，新增後可在詳情裡安裝。",
+    "switchLabel": "我的智慧體",
+    "removed": "已從我的智慧體移除 {name}",
+    "added": "已新增 {count} 個智慧體",
+    "undo": "復原",
+    "saveFailed": "更新我的智慧體失敗",
+    "pickerAdd": "新增智慧體…",
+    "dialog": {
+      "title": "新增智慧體",
+      "description": "選你要用的智慧體，它們會出現在這裡的清單和新對話的選擇器裡。沒安裝的，新增後可在詳情裡安裝。",
+      "search": "搜尋名稱或描述",
+      "filter": {
+        "all": "全部",
+        "installed": "已安裝",
+        "missing": "未安裝"
+      },
+      "groupInstalled": "本機已安裝 · {count}",
+      "groupMissing": "未安裝 · {count}",
+      "groupCustom": "自訂智慧體 · {count}",
+      "installedVersion": "本機已安裝 · {version}",
+      "notInstalled": "未安裝",
+      "systemInstall": "需先自行安裝 CLI",
+      "unavailable": "目前平台不可用",
+      "noMatch": "沒有符合的智慧體",
+      "allAdded": "所有智慧體都已在我的智慧體裡",
+      "addCustom": "找不到？新增自訂智慧體",
+      "cancel": "取消",
+      "confirm": "新增",
+      "confirmCount": "新增 {count} 個"
+    },
+    "hint": {
+      "title": "我的智慧體裡有 {count} 個還沒安裝",
+      "body": "它們也會出現在新對話的選擇器裡，但裝好之前無法使用。",
+      "keepInstalled": "只保留已安裝的 {count} 個",
+      "dismiss": "維持現狀",
+      "kept": "已移除 {count} 個未安裝的智慧體"
+    }
   }
 }

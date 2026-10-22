@@ -43,7 +43,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">⏳ <strong>Des résultats même pour les agents au délai court</strong><br/>Certains agents n'attendent que 30 à 60 secondes un appel d'outil. Cette version plafonne chaque attente selon l'agent, répond à temps et récupère la suite à l'appel suivant : une réponse lente à une question ne compte plus comme une absence de réponse.</td>
-    <td width="50%" valign="top">🔄 <strong>Au plus près de l'original</strong><br/>Le projet d'origine est fusionné régulièrement ; ce qui n'est pas listé ici fonctionne comme dans la version officielle. Kiro CLI intégré, le premier ajout de cette version, fait partie de la version officielle depuis la 0.36.0.</td>
+    <td width="50%" valign="top">🗂️ <strong>Seulement les agents que vous utilisez</strong><br/>Les réglages listent seulement les agents que vous avez ajoutés ; les autres attendent dans « Ajouter des agents », avec recherche et ajout de plusieurs à la fois. Une nouvelle installation n'active que ceux installés ici, et le sélecteur de nouvelle conversation reste court.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Au plus près de l'original</strong><br/>Le projet d'origine est fusionné régulièrement ; ce qui n'est pas listé ici fonctionne comme dans la version officielle. Kiro CLI intégré, le premier ajout de cette version, fait partie de la version officielle depuis la 0.36.0.</td>
   </tr>
 </table>
 
@@ -138,6 +141,20 @@
 - Questions : si vous n'avez pas encore répondu, la carte de la question reste en place et l'agent continue d'attendre avec un nouvel outil, `get_question_answer` ; une fois votre réponse donnée, elle s'affiche dans la carte d'origine.
 - Tâches déléguées : un appel à `get_delegation_status` attend au plus jusqu'au plafond, puis renvoie l'état actuel des tâches. La génération d'images fonctionne de la même façon ; voir la section précédente.
 - Pendant l'attente, l'agent reçoit un point d'avancement toutes les 10 secondes, ce qui permet aux agents qui prolongent leur délai selon l'avancement, comme OpenCode, d'attendre plus longtemps.
+
+</details>
+
+<details>
+<summary><strong>Seulement les agents que vous utilisez</strong> : détails</summary>
+<br/>
+
+- Il y a près de 20 agents intégrés, et la version officielle les active tous, installés ou non : une longue liste dans les réglages, un sélecteur de nouvelle conversation rempli d'agents non installés (la page de conversation n'en installe jamais, les choisir ne mène à rien) et une vérification de chacun à chaque ouverture de la page des réglages.
+- Dans cette version, Réglages → Agents IA ne liste que « Mes agents », toujours réordonnables par glisser-déposer. « Ajouter » dans la barre de titre et la ligne sous la liste ouvrent « Ajouter des agents » : recherche par nom ou description, filtre installés / non installés, agents déjà installés ici en premier, ajout de plusieurs à la fois. Un agent non installé s'installe depuis ses détails une fois ajouté.
+- L'interrupteur dans les détails d'un agent, c'est « Mes agents » : désactivez-le pour retirer l'agent de la liste, avec annulation possible. C'est le réglage « activé » de la version officielle, donc le sélecteur de nouvelle conversation, la délégation et tout le reste le suivent.
+- À l'ouverture de la page des réglages, seuls « Mes agents » sont vérifiés ; tout autre agent l'est quand vous l'ouvrez.
+- Tant que codeg n'a pas encore de réglages pour un agent (nouvelle installation, ou agent intégré ajouté par une version ultérieure), il ne l'active que s'il le détecte comme installé ici. Pour codeg, un agent est installé dès que l'adaptateur ACP ou la CLI qu'il lance est en place ; une nouvelle installation n'en a donc souvent aucun et la liste démarre vide : choisissez dans « Ajouter des agents ». Un agent installé plus tard n'est pas ajouté tout seul, et les réglages existants ne changent jamais.
+- Après une mise à jour depuis une version antérieure avec des agents non installés dans « Mes agents », un message en haut de la liste propose une fois de « garder seulement les installés » ou de laisser tel quel (le choix est mémorisé par appareil).
+- Le sélecteur de nouvelle conversation termine sa ligne par un « + » qui ouvre « Ajouter des agents » ; quand tous les agents ne tiennent pas, il est en bas du menu « plus ». Sans agent activé, le bouton du sélecteur ouvre aussi « Ajouter des agents ».
 
 </details>
 

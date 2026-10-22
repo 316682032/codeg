@@ -7657,5 +7657,49 @@
     "took": "levou {seconds} s",
     "fileMissing": "Não foi possível ler o arquivo de imagem. Ele pode ter sido movido ou apagado.",
     "statusLost": "O Codeg reiniciou durante a geração, então o resultado é desconhecido."
+  },
+  "MyAgents": {
+    "title": "Meus agentes",
+    "add": "Adicionar",
+    "addAgents": "Adicionar agentes",
+    "moreAvailable": "Mais {count} disponíveis",
+    "empty": "Nenhum agente adicionado ainda",
+    "emptyHint": "Escolha os que você usa em “Adicionar agentes”. Um que não esteja instalado pode ser instalado pelos detalhes depois de adicionado.",
+    "switchLabel": "Meus agentes",
+    "removed": "{name} removido de Meus agentes",
+    "added": "{count, plural, one {# agente adicionado} other {# agentes adicionados}}",
+    "undo": "Desfazer",
+    "saveFailed": "Não foi possível atualizar Meus agentes",
+    "pickerAdd": "Adicionar agentes…",
+    "dialog": {
+      "title": "Adicionar agentes",
+      "description": "Escolha os agentes que você usa. Eles aparecem nesta lista e no seletor de nova conversa. Um que não esteja instalado pode ser instalado pelos detalhes depois de adicionado.",
+      "search": "Pesquisar por nome ou descrição",
+      "filter": {
+        "all": "Todos",
+        "installed": "Instalados",
+        "missing": "Não instalados"
+      },
+      "groupInstalled": "Instalados nesta máquina · {count}",
+      "groupMissing": "Não instalados · {count}",
+      "groupCustom": "Agentes personalizados · {count}",
+      "installedVersion": "Instalado · {version}",
+      "notInstalled": "Não instalado",
+      "systemInstall": "Instale a CLI primeiro",
+      "unavailable": "Indisponível nesta plataforma",
+      "noMatch": "Nenhum agente corresponde",
+      "allAdded": "Todos os agentes já estão em Meus agentes",
+      "addCustom": "Não encontrou? Adicione um agente personalizado",
+      "cancel": "Cancelar",
+      "confirm": "Adicionar",
+      "confirmCount": "Adicionar {count}"
+    },
+    "hint": {
+      "title": "{count, plural, one {# agente em Meus agentes não está instalado} other {# agentes em Meus agentes não estão instalados}}",
+      "body": "Eles também aparecem no seletor de nova conversa, mas só podem iniciar depois de instalados.",
+      "keepInstalled": "Manter só os {count} instalados",
+      "dismiss": "Deixar como está",
+      "kept": "{count, plural, one {# agente não instalado removido} other {# agentes não instalados removidos}}"
+    }
   }
 }
