@@ -114,7 +114,8 @@
 - « Vous attend » n'est connu que si cet appareil est connecté à la conversation : il s'affiche pour les conversations ouvertes au moins une fois sur cet appareil, les autres montrent leur état enregistré.
 - Avec « Synchroniser les onglets de conversation entre les fenêtres » activé (par défaut), une conversation fermée sur le téléphone se ferme aussi sur l'ordinateur, comme si l'on fermait son onglet là-bas.
 - À partir de 768 px de large (ordinateurs, tablettes), rien ne change : la barre d'onglets reste.
-- Demandé dans [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
+- Une conversation ouverte depuis la barre latérale est d'abord un aperçu (comme sur le bureau) que la suivante ouverte remplace ; ici son titre est en italique, et le 📌 à côté la garde ouverte. Un double toucher dans la barre latérale la garde aussi, comme un double clic sur le bureau : sur un téléphone, la barre latérale attend maintenant un instant avant de se fermer, pour que le second toucher tombe sur la même ligne.
+- Demandé dans [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10), [#12](https://github.com/keh4l/codeg/issues/12).
 
 </details>
 

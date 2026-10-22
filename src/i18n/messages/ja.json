@@ -2532,7 +2532,9 @@
       "needsInput": "対応待ち",
       "draft": "未送信",
       "viewing": "表示中",
-      "allConversations": "すべての会話（履歴を含む）"
+      "allConversations": "すべての会話（履歴を含む）",
+      "keep": "残す",
+      "keepHint": "この会話を残し、一覧から次の会話を開いても置き換えないようにします"
     },
     "fileWorkspace": {
       "files": "ファイル",

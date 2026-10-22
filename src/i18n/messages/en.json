@@ -2532,7 +2532,9 @@
       "needsInput": "Needs you",
       "draft": "Not sent",
       "viewing": "Viewing",
-      "allConversations": "All conversations (incl. history)"
+      "allConversations": "All conversations (incl. history)",
+      "keep": "Keep open",
+      "keepHint": "Keep this conversation open, so the next one opened from the list doesn't replace it"
     },
     "fileWorkspace": {
       "files": "Files",

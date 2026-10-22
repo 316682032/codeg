@@ -114,7 +114,8 @@
 - «Te necesita» solo se sabe mientras este dispositivo está conectado a esa conversación: aparece en las conversaciones abiertas al menos una vez en este dispositivo, y las demás muestran su estado guardado.
 - Con «Sincronizar pestañas de conversación entre ventanas» activado (por defecto), una conversación cerrada en el móvil también se cierra en el ordenador, igual que al cerrar allí su pestaña.
 - Con 768 px o más de ancho (ordenadores, tabletas) no cambia nada: sigue la barra de pestañas.
-- Solicitado en [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
+- Una conversación abierta desde la barra lateral empieza como vista previa (como en el escritorio) que la siguiente que abras reemplaza; aquí su título va en cursiva y el 📌 junto a ella la mantiene. Tocarla dos veces en la barra lateral también la mantiene, como un doble clic en el escritorio: en el móvil la barra lateral ahora espera un momento antes de cerrarse, para que el segundo toque caiga en la misma fila.
+- Solicitado en [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10), [#12](https://github.com/keh4l/codeg/issues/12).
 
 </details>
 

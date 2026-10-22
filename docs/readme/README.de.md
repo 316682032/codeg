@@ -114,7 +114,8 @@
 - „Wartet auf dich“ ist nur bekannt, solange dieses Gerät mit der Konversation verbunden ist: Es erscheint bei Konversationen, die auf diesem Gerät mindestens einmal geöffnet wurden; die anderen zeigen ihren gespeicherten Status.
 - Mit „Konversationstabs fensterübergreifend synchronisieren“ an (Standard) wird eine auf dem Handy geschlossene Konversation auch am Computer geschlossen, genau wie beim Schließen ihres Tabs dort.
 - Ab 768 px Breite (Computer, Tablets) ändert sich nichts: Die Tableiste bleibt.
-- Angefragt in [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10).
+- Eine aus der Seitenleiste geöffnete Unterhaltung ist zunächst eine Vorschau (wie auf dem Desktop), die die nächste geöffnete ersetzt; hier steht ihr Titel kursiv, und das 📌 daneben hält sie offen. Ein Doppeltipp in der Seitenleiste hält sie ebenfalls offen, wie ein Doppelklick auf dem Desktop: Auf dem Handy wartet die Seitenleiste jetzt kurz, bevor sie sich schließt, damit der zweite Tipp dieselbe Zeile trifft.
+- Angefragt in [keh4l/codeg#10](https://github.com/keh4l/codeg/issues/10), [#12](https://github.com/keh4l/codeg/issues/12).
 
 </details>
 

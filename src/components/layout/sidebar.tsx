@@ -48,6 +48,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useMobileConversationTap } from "@/hooks/use-mobile-conversation-tap"
 import { useIsMac } from "@/hooks/use-is-mac"
 import { usePlatform } from "@/hooks/use-platform"
 import { useZoomLevel } from "@/hooks/use-appearance"
@@ -181,6 +182,10 @@ export function Sidebar() {
   const { shortcuts } = useShortcutSettings()
   const isMobile = useIsMobile()
   const listRef = useRef<SidebarConversationListHandle>(null)
+  const handleMobileConversationTap = useMobileConversationTap({
+    isOpen,
+    close: toggle,
+  })
   // On desktop the header's top-left is owned by the fixed window-chrome overlay
   // (sidebar toggle + remote); reserve exactly its width so the view controls
   // and drag region clear it. The reserve scales with the app zoom to track the
@@ -644,19 +649,11 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* On mobile, clicking a conversation card auto-closes the Drawer */}
+      {/* On mobile, clicking a conversation card auto-closes the Drawer —
+          keh4l: a moment later, so a double tap can keep it (#12). */}
       <div
         className="flex flex-col flex-1 min-h-0 overflow-hidden pt-1.5"
-        onClick={
-          isMobile
-            ? (e) => {
-                const target = e.target as HTMLElement
-                if (target.closest("[data-conversation-id]")) {
-                  toggle()
-                }
-              }
-            : undefined
-        }
+        onClick={isMobile ? handleMobileConversationTap : undefined}
       >
         <SidebarTagFilterBar filter={tagFilter} onChange={handleSetTagFilter} />
         <SidebarConversationList
