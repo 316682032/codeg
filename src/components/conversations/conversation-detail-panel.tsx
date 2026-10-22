@@ -75,6 +75,7 @@ import { useSidebarContext } from "@/contexts/sidebar-context"
 import { useAuxPanelContext } from "@/contexts/aux-panel-context"
 import { useWorkspaceView } from "@/contexts/workspace-context"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useMouseOnlyContextMenu } from "@/hooks/use-mouse-only-context-menu"
 import { usePlatform } from "@/hooks/use-platform"
 import { useZoomLevel } from "@/hooks/use-appearance"
 import { isDesktop } from "@/lib/platform"
@@ -2867,6 +2868,9 @@ export function ConversationDetailPanel() {
 
   const tileTabRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
   const groupContainerRef = useRef<HTMLDivElement | null>(null)
+  // keh4l: a long press on the transcript selects text, the phone's way; the
+  // panel menu below opens from a right click only.
+  const panelMenuTrigger = useMouseOnlyContextMenu()
 
   // Scroll each TILED group's selected tab into view when the selection (or
   // the group's tiled-ness) changes — the signature string keeps the effect
@@ -3106,7 +3110,7 @@ export function ConversationDetailPanel() {
           />
         )}
         <ContextMenu>
-          <ContextMenuTrigger asChild>
+          <ContextMenuTrigger asChild {...panelMenuTrigger}>
             <div
               ref={groupContainerRef}
               className="relative min-h-0 flex-1 overflow-hidden"

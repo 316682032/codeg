@@ -1,5 +1,5 @@
 import { useRef } from "react"
-import { act, fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { NextIntlClientProvider } from "next-intl"
 import {
   afterEach,
@@ -119,6 +119,21 @@ function firePointer(
       new MouseEvent(type, { bubbles: true, cancelable: true, ...init })
     )
   })
+}
+
+/**
+ * A whole press (down, then up) that names its `pointerType`, which jsdom's
+ * events cannot carry on their own: React and the document listeners read it
+ * straight off the native event.
+ */
+function pressWith(pointerType: "mouse" | "touch", target: Element) {
+  for (const type of ["pointerdown", "pointerup"] as const) {
+    const event = new MouseEvent(type, { bubbles: true, cancelable: true })
+    Object.defineProperty(event, "pointerType", { value: pointerType })
+    act(() => {
+      target.dispatchEvent(event)
+    })
+  }
 }
 
 function Harness({
@@ -273,6 +288,19 @@ describe("SelectionActionBubble", () => {
     const toolbar = screen.getByRole("toolbar")
     expect(toolbar.style.top).toBe("38px") // 130 - 100 + 8
     expect(toolbar.style.transform).toBe("translate(-50%, 0)")
+  })
+
+  it("floats above the selection again after a mouse press", () => {
+    const { container } = render(<Harness onQuote={vi.fn()} />)
+    const para = container.querySelector("[data-testid=para]")!
+    mockSelection(para, "hello")
+    pressWith("touch", para)
+    pressWith("mouse", para)
+    selectionChanged()
+
+    const toolbar = screen.getByRole("toolbar")
+    expect(toolbar.style.top).toBe("92px")
+    expect(toolbar.style.transform).toBe("translate(-50%, -100%)")
   })
 
   it("hides while the selection is scrolled out of the message area", () => {
@@ -724,5 +752,160 @@ describe("SelectionActionBubble", () => {
       vi.useRealTimers()
     }
     expect(screen.getByRole("toolbar")).toBeTruthy()
+  })
+})
+
+/**
+ * keh4l: a transcript inside a conversation shell, with (or without) the dock
+ * its composer keeps under the input, beside a second conversation's shell —
+ * tiled conversations each have their own.
+ */
+function ShellHarness({
+  withDock = true,
+  onQuote,
+  onAsk,
+}: {
+  withDock?: boolean
+  onQuote?: (text: string) => void
+  onAsk?: (selection: string, question: string) => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  return (
+    <NextIntlClientProvider locale="en" messages={enMessages}>
+      <div data-conversation-shell="">
+        <div ref={ref} data-testid="box">
+          <p data-testid="para">hello world</p>
+          <SelectionActionBubble
+            containerRef={ref}
+            onQuote={onQuote}
+            onAsk={onAsk}
+          />
+        </div>
+        {withDock && <div data-testid="dock" data-selection-actions-dock="" />}
+      </div>
+      <div data-conversation-shell="">
+        <div data-testid="other-dock" data-selection-actions-dock="" />
+      </div>
+    </NextIntlClientProvider>
+  )
+}
+
+/** A finger selects "hello" in the shell harness's transcript. */
+function touchSelect(container: HTMLElement, text = "hello") {
+  const para = container.querySelector("[data-testid=para]")!
+  mockSelection(para, text)
+  pressWith("touch", para)
+  selectionChanged()
+}
+
+describe("SelectionActionBubble, docked under the composer (keh4l)", () => {
+  it("puts a finger's selection actions under its own composer", () => {
+    const { container } = render(
+      <ShellHarness onQuote={vi.fn()} onAsk={vi.fn()} />
+    )
+    touchSelect(container)
+
+    const toolbar = within(screen.getByTestId("dock")).getByRole("toolbar")
+    // Nothing floats beside the selection, where the phone's own menu goes.
+    expect(within(screen.getByTestId("box")).queryByRole("toolbar")).toBeNull()
+    expect(toolbar.style.top).toBe("")
+    expect(
+      within(toolbar).getByRole("button", { name: "Copy Text" })
+    ).toBeTruthy()
+    expect(within(toolbar).getByRole("button", { name: "Quote" })).toBeTruthy()
+    expect(within(toolbar).getByRole("button", { name: "Ask" })).toBeTruthy()
+    expect(toolbar.textContent).toContain("5 characters selected")
+    expect(screen.getByTestId("other-dock").childElementCount).toBe(0)
+  })
+
+  it("copies from the dock", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    })
+    const { container } = render(<ShellHarness onQuote={vi.fn()} />)
+    touchSelect(container, "hello world")
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Copy Text" }))
+    })
+
+    expect(writeText).toHaveBeenCalledWith("hello world")
+    expect(toastSuccess).toHaveBeenCalledWith("Copied")
+    expect(screen.getByTestId("dock").childElementCount).toBe(0)
+  })
+
+  it("quotes even though the tap on the dock dropped the selection", () => {
+    const onQuote = vi.fn()
+    const { container } = render(<ShellHarness onQuote={onQuote} />)
+    touchSelect(container)
+    const quote = screen.getByRole("button", { name: "Quote" })
+
+    // A tap outside the selection clears it before its click lands.
+    pressWith("touch", quote)
+    window.getSelection()?.removeAllRanges()
+    selectionChanged()
+    act(() => {
+      fireEvent.click(quote)
+    })
+
+    expect(onQuote).toHaveBeenCalledWith("hello")
+  })
+
+  it("asks from the dock, and backs out of it with Cancel", () => {
+    const { container } = render(<ShellHarness onAsk={vi.fn()} />)
+    touchSelect(container)
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Ask" }))
+    })
+    const dock = screen.getByTestId("dock")
+    expect(
+      within(dock).getByRole("textbox", { name: "Ask about this selection…" })
+    ).toBeTruthy()
+
+    act(() => {
+      fireEvent.click(within(dock).getByRole("button", { name: "Cancel" }))
+    })
+    expect(dock.childElementCount).toBe(0)
+  })
+
+  // iOS sends a `pointerdown` for a press on one of its selection handles,
+  // and nothing after it.
+  it("follows the selection while a handle is dragged", () => {
+    const { container } = render(<ShellHarness onQuote={vi.fn()} />)
+    touchSelect(container)
+    const para = container.querySelector("[data-testid=para]")!
+    act(() => {
+      const press = new MouseEvent("pointerdown", { bubbles: true })
+      Object.defineProperty(press, "pointerType", { value: "touch" })
+      para.dispatchEvent(press)
+    })
+    mockSelection(para, "hello world")
+    selectionChanged()
+
+    const toolbar = within(screen.getByTestId("dock")).getByRole("toolbar")
+    expect(toolbar.textContent).toContain("11 characters selected")
+  })
+
+  it("leaves with the selection when a tap elsewhere clears it", () => {
+    const { container } = render(<ShellHarness onQuote={vi.fn()} />)
+    touchSelect(container)
+    pressWith("touch", container.querySelector("[data-testid=para]")!)
+    window.getSelection()?.removeAllRanges()
+    selectionChanged()
+
+    expect(screen.getByTestId("dock").childElementCount).toBe(0)
+  })
+
+  it("goes to the bottom of a transcript with no composer below it", () => {
+    const { container } = render(
+      <ShellHarness withDock={false} onQuote={vi.fn()} />
+    )
+    touchSelect(container)
+
+    const toolbar = screen.getByRole("toolbar")
+    expect(screen.getByTestId("box").contains(toolbar)).toBe(true)
+    expect(screen.getByTestId("other-dock").childElementCount).toBe(0)
   })
 })

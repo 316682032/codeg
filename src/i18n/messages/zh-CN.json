@@ -7703,5 +7703,9 @@
       "dismiss": "保持现状",
       "kept": "已移除 {count} 个未安装的智能体"
     }
+  },
+  "SelectionDock": {
+    "count": "已选 {count} 字",
+    "cancelAsk": "取消"
   }
 }

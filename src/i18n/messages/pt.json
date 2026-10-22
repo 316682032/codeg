@@ -7703,5 +7703,9 @@
       "dismiss": "Deixar como está",
       "kept": "{count, plural, one {# agente não instalado removido} other {# agentes não instalados removidos}}"
     }
+  },
+  "SelectionDock": {
+    "count": "{count, plural, one {# caractere selecionado} other {# caracteres selecionados}}",
+    "cancelAsk": "Cancelar"
   }
 }

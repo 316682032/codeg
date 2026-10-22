@@ -46,7 +46,8 @@
     <td width="50%" valign="top">🗂️ <strong>Seulement les agents que vous utilisez</strong><br/>Les réglages listent seulement les agents que vous avez ajoutés ; les autres attendent dans « Ajouter des agents », avec recherche et ajout de plusieurs à la fois. Une nouvelle installation n'active que ceux installés ici, et le sélecteur de nouvelle conversation reste court.</td>
   </tr>
   <tr>
-    <td colspan="2" valign="top">🔄 <strong>Au plus près de l'original</strong><br/>Le projet d'origine est fusionné régulièrement ; ce qui n'est pas listé ici fonctionne comme dans la version officielle. Kiro CLI intégré, le premier ajout de cette version, fait partie de la version officielle depuis la 0.36.0.</td>
+    <td width="50%" valign="top">📋 <strong>Appui long pour sélectionner du texte sur un téléphone</strong><br/>Un appui long sur le texte d'une réponse ou de la zone de saisie fait apparaître les poignées de sélection et le menu de copie du téléphone, au lieu du menu de la conversation ; une réponse sélectionnée au doigt affiche Copier le texte / Citer / Demander sous la zone de saisie, à l'écart du menu du téléphone.</td>
+    <td width="50%" valign="top">🔄 <strong>Au plus près de l'original</strong><br/>Le projet d'origine est fusionné régulièrement ; ce qui n'est pas listé ici fonctionne comme dans la version officielle. Kiro CLI intégré, le premier ajout de cette version, fait partie de la version officielle depuis la 0.36.0.</td>
   </tr>
 </table>
 
@@ -156,6 +157,18 @@
 - Tant que codeg n'a pas encore de réglages pour un agent (nouvelle installation, ou agent intégré ajouté par une version ultérieure), il ne l'active que s'il le détecte comme installé ici. Pour codeg, un agent est installé dès que l'adaptateur ACP ou la CLI qu'il lance est en place ; une nouvelle installation n'en a donc souvent aucun et la liste démarre vide : choisissez dans « Ajouter des agents ». Un agent installé plus tard n'est pas ajouté tout seul, et les réglages existants ne changent jamais.
 - Après une mise à jour depuis une version antérieure avec des agents non installés dans « Mes agents », un message en haut de la liste propose une fois de « garder seulement les installés » ou de laisser tel quel (le choix est mémorisé par appareil).
 - Le sélecteur de nouvelle conversation termine sa ligne par un « + » qui ouvre « Ajouter des agents » ; quand tous les agents ne tiennent pas, il est en bas du menu « plus ». Sans agent activé, le bouton du sélecteur ouvre aussi « Ajouter des agents ».
+
+</details>
+
+<details>
+<summary><strong>Appui long pour sélectionner du texte sur un téléphone</strong> : détails</summary>
+<br/>
+
+- Dans la version officielle, toute la zone de conversation et la zone de saisie ont leurs propres menus contextuels, et un appui long du doigt les ouvre aussi : en maintenant une réponse environ 0,7 s, le menu de la conversation (Nouvelle conversation, Exporter la conversation…) apparaît ; sous Android, l'événement envoyé par l'appui long est en plus annulé, ce qui annule la sélection de mot du téléphone. En HTTPS, un appui long dans la zone de saisie ouvre son propre menu Couper / Copier / Tout sélectionner. Les poignées de sélection et le menu de copie du téléphone n'apparaissent jamais, si bien que copier le texte des réponses et de la zone de saisie est difficile.
+- Cette version laisse l'appui long du doigt ou du stylet au téléphone : sélectionner, faire glisser les poignées, copier et coller sont ceux du téléphone. Un clic droit à la souris ouvre toujours les deux menus, y compris sur un ordinateur à écran tactile.
+- Dans la version officielle, la bulle Copier le texte / Citer / Demander d'une réponse sélectionnée se place à côté de la sélection, tout comme le menu du téléphone, au-dessus ou en dessous selon ce que décide le téléphone ; une page ne peut ni lire sa position ni le déplacer, si bien que les deux se superposent souvent. Dans cette version, une sélection faite au doigt place ces boutons et le nombre de caractères sélectionnés sous la zone de saisie, à la place de la ligne dossier et branche jusqu'à ce que la sélection disparaisse ; le menu du téléphone ne va pas au-delà de la zone de saisie. Demander reçoit la question directement dans cette ligne. Une sélection faite à la souris affiche toujours la bulle au-dessus.
+- Les Messages rapides du menu de la zone de saisie se trouvent aussi sous le « + » en bas à gauche de la zone ; la traduction d'un message a son propre bouton.
+- Sur iOS, le menu système du texte ordinaire d'une page web n'a pas de « Tout sélectionner » (seuls les champs de texte l'ont) ; pour copier une réponse entière, utilisez le bouton de copie situé dessous.
 
 </details>
 

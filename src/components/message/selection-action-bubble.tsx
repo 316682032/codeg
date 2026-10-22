@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
+import { createPortal } from "react-dom"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import {
@@ -9,6 +10,7 @@ import {
   MessageCircleQuestionMark,
   StickyNote,
   TextQuote,
+  X,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -38,6 +40,8 @@ const OUT_OF_VIEW_SLACK = 4
 type SelectionState =
   | { kind: "none" }
   | { kind: "offscreen"; text: string }
+  /** keh4l: made by a finger or a pen — see `findDock`. */
+  | { kind: "docked"; text: string; dock: HTMLElement | null }
   | {
       kind: "visible"
       text: string
@@ -55,8 +59,27 @@ function sameState(a: SelectionState, b: SelectionState): boolean {
   if (a.kind !== b.kind) return false
   if (a.kind === "none" || b.kind === "none") return true
   if (a.text !== b.text) return false
+  if (a.kind === "docked" && b.kind === "docked") return a.dock === b.dock
   if (a.kind !== "visible" || b.kind !== "visible") return true
   return a.x === b.x && a.y === b.y && a.below === b.below
+}
+
+/**
+ * Where a selection made by a finger (or a pen) puts its actions (keh4l
+ * build): the slot under its conversation's composer, in place of the
+ * folder/branch row (see `MessageInput`), or null where there is none.
+ *
+ * The phone shows its own Copy / Select All menu next to such a selection,
+ * above it or below as it sees fit — a page can neither read nor move it — so
+ * nothing of ours may sit beside the selection. The composer is in between:
+ * the menu never reaches past it.
+ */
+function findDock(container: HTMLElement): HTMLElement | null {
+  return (
+    container
+      .closest("[data-conversation-shell]")
+      ?.querySelector<HTMLElement>("[data-selection-actions-dock]") ?? null
+  )
 }
 
 interface SelectionActionBubbleProps {
@@ -107,6 +130,7 @@ export function SelectionActionBubble({
   onSaveAsNote,
 }: SelectionActionBubbleProps) {
   const t = useTranslations("Folder.chat.messageList")
+  const tDock = useTranslations("SelectionDock")
   const ime = useImeGuard()
   const [state, setState] = useState<SelectionState>(NO_SELECTION)
   const stateRef = useRef<SelectionState>(NO_SELECTION)
@@ -130,6 +154,9 @@ export function SelectionActionBubble({
   // unmount the button before its click ever lands. Frozen until the next press
   // outside the bubble.
   const pressedInsideRef = useRef(false)
+  // keh4l: whether the last press outside the toolbar was a finger's (or a
+  // pen's), which is what made the selection it leaves behind.
+  const directRef = useRef(false)
 
   const apply = useCallback((next: SelectionState) => {
     if (sameState(stateRef.current, next)) return
@@ -158,6 +185,9 @@ export function SelectionActionBubble({
     if (!container.contains(range.commonAncestorContainer)) return NO_SELECTION
     const text = selection.toString()
     if (!text.trim()) return NO_SELECTION
+    if (directRef.current) {
+      return { kind: "docked", text, dock: findDock(container) }
+    }
 
     const rect = range.getBoundingClientRect()
     const box = container.getBoundingClientRect()
@@ -225,7 +255,23 @@ export function SelectionActionBubble({
         if ((event.button ?? 0) === 0) pressedInsideRef.current = true
         return
       }
+      directRef.current =
+        event.pointerType === "touch" || event.pointerType === "pen"
       pressedInsideRef.current = false
+      if (directRef.current) {
+        // keh4l: a finger doesn't drag out a selection the way a mouse does —
+        // it long-presses, then drags the phone's handles — and iOS sends no
+        // `pointerup` or `pointercancel` for a press on a handle, so holding
+        // the toolbar back until one came hid it for good. The selection
+        // alone decides: a tap elsewhere clears it, and `selectionchange`
+        // takes the toolbar with it.
+        draggingRef.current = false
+        if (askingRef.current) {
+          closeAsk()
+          apply(NO_SELECTION)
+        }
+        return
+      }
       draggingRef.current = true
       // A press anywhere outside is the dismissal gesture for the ask composer
       // too — it abandons the question, same as pressing Escape.
@@ -279,7 +325,8 @@ export function SelectionActionBubble({
   // reflowing the transcript above it. None of those fire `selectionchange`, and
   // a scroll listener alone misses the reflow cases — a frame loop covers them
   // all, and only runs while a selection is actually live.
-  const live = state.kind !== "none"
+  // keh4l: a docked toolbar has no position to keep.
+  const live = state.kind === "visible" || state.kind === "offscreen"
   useEffect(() => {
     if (!live) return
     let frame = requestAnimationFrame(function tick() {
@@ -353,7 +400,8 @@ export function SelectionActionBubble({
    * collapses the page selection and would otherwise dismiss us.
    */
   const handleAskOpen = useCallback(() => {
-    if (stateRef.current.kind !== "visible" || !onAsk) return
+    const kind = stateRef.current.kind
+    if ((kind !== "visible" && kind !== "docked") || !onAsk) return
     pressedInsideRef.current = false
     askingRef.current = true
     setAsking(true)
@@ -386,26 +434,37 @@ export function SelectionActionBubble({
     dismiss()
   }, [dismiss, onAsk, question])
 
-  if (state.kind !== "visible") return null
+  if (state.kind !== "visible" && state.kind !== "docked") return null
+  const docked = state.kind === "docked"
+  // keh4l: docked, the buttons are pills of their own, as tall as the row's
+  // folder and branch pickers they stand in for.
+  const buttonVariant = docked ? "outline" : "ghost"
+  const buttonClass = docked ? "rounded-full" : undefined
 
-  return (
+  const toolbar = (
     <div
       ref={bubbleRef}
       role="toolbar"
       aria-label={t("selectionActions")}
       className={cn(
-        "absolute z-30 flex items-center gap-0.5 rounded-full border border-border bg-popover p-0.5 shadow-md select-none",
+        docked
+          ? "flex w-full min-w-0 items-center gap-1.5 select-none"
+          : "absolute z-30 flex items-center gap-0.5 rounded-full border border-border bg-popover p-0.5 shadow-md select-none",
         // Only the ask row can outgrow a narrow tiled column. Capping it against
         // the container (the bubble's containing block) lets the input shrink
         // instead of being sheared off by the panel's overflow-hidden; the
         // button row is left to size itself, where a cap would squeeze labels.
-        asking && "max-w-[calc(100%-1rem)]"
+        !docked && asking && "max-w-[calc(100%-1rem)]"
       )}
-      style={{
-        left: state.x,
-        top: state.y,
-        transform: `translate(-50%, ${state.below ? "0" : "-100%"})`,
-      }}
+      style={
+        state.kind === "visible"
+          ? {
+              left: state.x,
+              top: state.y,
+              transform: `translate(-50%, ${state.below ? "0" : "-100%"})`,
+            }
+          : undefined
+      }
       // Keep the selection (and the page's focus) intact while a button is
       // pressed. Without this the press collapses the selection, the resulting
       // `selectionchange` tears the toolbar down, and the button unmounts before
@@ -441,7 +500,14 @@ export function SelectionActionBubble({
             aria-label={t("selectionAskPlaceholder")}
             // `select-text` undoes the toolbar's `select-none`, which some
             // engines otherwise inherit into the field and make untouchable.
-            className="h-6 w-56 min-w-0 bg-transparent px-2 text-xs outline-none select-text placeholder:text-muted-foreground"
+            className={cn(
+              "min-w-0 bg-transparent outline-none select-text placeholder:text-muted-foreground",
+              // keh4l: docked, a field of its own, at 16px so iOS doesn't zoom
+              // the page in on focus.
+              docked
+                ? "h-6 flex-1 rounded-full border border-border px-3 text-base"
+                : "h-6 w-56 px-2 text-xs"
+            )}
             {...ime.props}
             onKeyDown={(event) => {
               if (event.key === "Escape") {
@@ -462,10 +528,24 @@ export function SelectionActionBubble({
               handleAskSubmit()
             }}
           />
+          {docked && (
+            // keh4l: there is no Escape key to back out with on a phone.
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className="rounded-full"
+              onClick={dismiss}
+              aria-label={tDock("cancelAsk")}
+            >
+              <X />
+            </Button>
+          )}
           <Button
             type="button"
-            variant="ghost"
+            variant={docked ? "default" : "ghost"}
             size="icon-xs"
+            className={docked ? "rounded-full" : undefined}
             disabled={question.trim().length === 0}
             onClick={handleAskSubmit}
             aria-label={t("selectionAskSubmit")}
@@ -477,8 +557,9 @@ export function SelectionActionBubble({
         <>
           <Button
             type="button"
-            variant="ghost"
+            variant={buttonVariant}
             size="xs"
+            className={buttonClass}
             onClick={handleCopy}
             aria-label={t("selectionCopy")}
           >
@@ -488,8 +569,9 @@ export function SelectionActionBubble({
           {onQuote && (
             <Button
               type="button"
-              variant="ghost"
+              variant={buttonVariant}
               size="xs"
+              className={buttonClass}
               onClick={handleQuote}
               aria-label={t("selectionQuote")}
             >
@@ -500,8 +582,9 @@ export function SelectionActionBubble({
           {onSaveAsNote && (
             <Button
               type="button"
-              variant="ghost"
+              variant={buttonVariant}
               size="xs"
+              className={buttonClass}
               onClick={handleSaveAsNote}
               aria-label={t("selectionSaveAsNote")}
             >
@@ -512,8 +595,9 @@ export function SelectionActionBubble({
           {onAsk && (
             <Button
               type="button"
-              variant="ghost"
+              variant={buttonVariant}
               size="xs"
+              className={buttonClass}
               onClick={handleAskOpen}
               aria-label={t("selectionAsk")}
             >
@@ -521,8 +605,25 @@ export function SelectionActionBubble({
               {t("selectionAsk")}
             </Button>
           )}
+          {docked && (
+            <span className="ms-auto shrink-0 ps-1 text-muted-foreground">
+              {tDock("count", { count: [...state.text].length })}
+            </span>
+          )}
         </>
       )}
     </div>
   )
+
+  if (!docked) return toolbar
+  // keh4l: no composer below this transcript (a read-only one): the bottom
+  // of the message area is the next place out of the phone menu's way.
+  if (!state.dock) {
+    return (
+      <div className="absolute inset-x-0 bottom-0 z-30 border-t border-border bg-popover px-3 py-1.5 text-xs">
+        {toolbar}
+      </div>
+    )
+  }
+  return createPortal(toolbar, state.dock)
 }
