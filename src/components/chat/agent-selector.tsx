@@ -9,10 +9,11 @@ import {
   useState,
 } from "react"
 import { useTranslations } from "next-intl"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, Plus } from "lucide-react"
 import { useAcpAgents } from "@/hooks/use-acp-agents"
 import type { AgentType, AcpAgentInfo } from "@/lib/types"
 import { getAgentLabel } from "@/lib/custom-agents"
+import { requestAddAgentsDialog } from "@/lib/my-agents"
 import { AgentIcon } from "@/components/agent-icon"
 import { SelectorTooltip } from "@/components/chat/selector-tooltip"
 import {
@@ -78,6 +79,7 @@ export function AgentSelector({
   align = "start",
 }: AgentSelectorProps) {
   const t = useTranslations("Folder.chat.agentSelector")
+  const tMyAgents = useTranslations("MyAgents")
   const { agents: rawAgents } = useAcpAgents()
   const agents = useMemo<AcpAgentInfo[]>(
     () => rawAgents.filter((a) => a.enabled),
@@ -122,6 +124,10 @@ export function AgentSelector({
     null
   )
   const [moreOpen, setMoreOpen] = useState(false)
+  // keh4l: with a way to the settings page, the row ends with one more button
+  // — the "more" menu, or "Add agents" when nothing overflows — so the fit
+  // below always leaves room for it.
+  const trailingAdd = Boolean(onOpenAgentsSettings)
 
   // The row as rendered, plus what got pushed into the "more" popover.
   // The selected agent is never pushed out: it keeps its place in the running
@@ -216,12 +222,15 @@ export function AgentSelector({
     // layout): show every agent rather than guess a cut. Collapsing on a bad
     // number would hide agents that had room all along.
     let next: number | null
+    const moreWidth = moreRef.current?.offsetWidth || unit
     if (outer <= 0 || unit <= 0) {
       next = null
-    } else if (selectedWidth + others * unit <= inner) {
+    } else if (
+      selectedWidth + others * unit + (trailingAdd ? moreWidth : 0) <=
+      inner
+    ) {
       next = null
     } else {
-      const moreWidth = moreRef.current?.offsetWidth || unit
       const fits = Math.floor((inner - selectedWidth - moreWidth) / unit)
       next = Math.max(0, Math.min(others, fits))
     }
@@ -244,7 +253,7 @@ export function AgentSelector({
       left: btn.offsetLeft,
       width: btn.offsetWidth,
     })
-  }, [agents.length, selected])
+  }, [agents.length, selected, trailingAdd])
 
   // Measure before the first paint so the row is never shown mid-collapse.
   useIsomorphicLayoutEffect(() => {
@@ -332,7 +341,11 @@ export function AgentSelector({
         {onOpenAgentsSettings ? (
           <button
             type="button"
-            onClick={onOpenAgentsSettings}
+            onClick={() => {
+              // keh4l: arrive at the "Add agents" catalog, not a bare page.
+              requestAddAgentsDialog()
+              onOpenAgentsSettings()
+            }}
             className="mt-2 inline-flex items-center rounded-md border px-2 py-1 text-xs text-foreground transition-colors hover:bg-accent cursor-pointer"
           >
             {t("openAgentsSettings")}
@@ -531,8 +544,51 @@ export function AgentSelector({
                   </button>
                 )
               })}
+              {/* keh4l: the way to agents not in "My agents" yet. */}
+              {onOpenAgentsSettings ? (
+                <>
+                  <div className="my-1 h-px bg-border" />
+                  <button
+                    type="button"
+                    data-slot="agent-selector-add"
+                    onClick={() => {
+                      setMoreOpen(false)
+                      requestAddAgentsDialog()
+                      onOpenAgentsSettings()
+                    }}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <Plus className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">
+                      {tMyAgents("pickerAdd")}
+                    </span>
+                  </button>
+                </>
+              ) : null}
             </PopoverContent>
           </Popover>
+        ) : trailingAdd && onOpenAgentsSettings ? (
+          // keh4l: nothing overflows, so "Add agents" stands on its own.
+          <SelectorTooltip label={tMyAgents("pickerAdd")} disabled={disabled}>
+            <button
+              ref={moreRef}
+              type="button"
+              data-slot="agent-selector-add"
+              disabled={disabled}
+              aria-label={tMyAgents("pickerAdd")}
+              onClick={() => {
+                requestAddAgentsDialog()
+                onOpenAgentsSettings()
+              }}
+              className={cn(
+                "relative z-10 inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full px-2 py-2 text-muted-foreground transition-colors",
+                "hover:text-foreground/70",
+                disabled && "cursor-not-allowed opacity-40"
+              )}
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+            </button>
+          </SelectorTooltip>
         ) : null}
       </div>
     </div>

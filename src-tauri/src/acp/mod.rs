@@ -30,6 +30,8 @@ pub mod js_text;
 pub mod latest_release;
 pub mod lifecycle;
 pub mod manager;
+/// "My agents" (keh4l build): which agents start enabled.
+pub mod my_agents;
 pub mod one_shot;
 pub mod opencode_catalog;
 pub mod opencode_launch;

@@ -7657,5 +7657,49 @@
     "took": "took {seconds} s",
     "fileMissing": "The image file can't be read. It may have been moved or deleted.",
     "statusLost": "Codeg restarted while this was generating, so the result is unknown."
+  },
+  "MyAgents": {
+    "title": "My agents",
+    "add": "Add",
+    "addAgents": "Add agents",
+    "moreAvailable": "{count} more available",
+    "empty": "No agents added yet",
+    "emptyHint": "Pick the ones you use from “Add agents”. One that isn't installed can be installed from its details once added.",
+    "switchLabel": "My agents",
+    "removed": "Removed {name} from My agents",
+    "added": "Added {count, plural, one {# agent} other {# agents}}",
+    "undo": "Undo",
+    "saveFailed": "Couldn't update My agents",
+    "pickerAdd": "Add agents…",
+    "dialog": {
+      "title": "Add agents",
+      "description": "Pick the agents you use. They appear in this list and in the new-conversation picker. One that isn't installed can be installed from its details once added.",
+      "search": "Search by name or description",
+      "filter": {
+        "all": "All",
+        "installed": "Installed",
+        "missing": "Not installed"
+      },
+      "groupInstalled": "Installed on this machine · {count}",
+      "groupMissing": "Not installed · {count}",
+      "groupCustom": "Custom agents · {count}",
+      "installedVersion": "Installed · {version}",
+      "notInstalled": "Not installed",
+      "systemInstall": "Install its CLI first",
+      "unavailable": "Not available on this platform",
+      "noMatch": "No matching agents",
+      "allAdded": "Every agent is already in My agents",
+      "addCustom": "Not here? Add a custom agent",
+      "cancel": "Cancel",
+      "confirm": "Add",
+      "confirmCount": "Add {count}"
+    },
+    "hint": {
+      "title": "{count, plural, one {# agent in My agents isn't installed} other {# agents in My agents aren't installed}}",
+      "body": "They also show in the new-conversation picker, but can't start until they are installed.",
+      "keepInstalled": "Keep only the {count} installed",
+      "dismiss": "Keep as is",
+      "kept": "Removed {count, plural, one {# agent that isn't installed} other {# agents that aren't installed}}"
+    }
   }
 }

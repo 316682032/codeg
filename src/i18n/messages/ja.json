@@ -7657,5 +7657,49 @@
     "took": "{seconds} 秒",
     "fileMissing": "画像ファイルを読み込めません。移動または削除された可能性があります。",
     "statusLost": "生成中に Codeg が再起動したため、結果はわかりません。"
+  },
+  "MyAgents": {
+    "title": "マイエージェント",
+    "add": "追加",
+    "addAgents": "エージェントを追加",
+    "moreAvailable": "ほかに {count} 個",
+    "empty": "エージェントはまだ追加されていません",
+    "emptyHint": "「エージェントを追加」から使うものを選んでください。未インストールのものは、追加後に詳細からインストールできます。",
+    "switchLabel": "マイエージェント",
+    "removed": "{name} をマイエージェントから外しました",
+    "added": "{count} 個のエージェントを追加しました",
+    "undo": "元に戻す",
+    "saveFailed": "マイエージェントを更新できませんでした",
+    "pickerAdd": "エージェントを追加…",
+    "dialog": {
+      "title": "エージェントを追加",
+      "description": "使うエージェントを選んでください。この一覧と新しい会話のピッカーに表示されます。未インストールのものは、追加後に詳細からインストールできます。",
+      "search": "名前や説明で検索",
+      "filter": {
+        "all": "すべて",
+        "installed": "インストール済み",
+        "missing": "未インストール"
+      },
+      "groupInstalled": "このマシンにインストール済み · {count}",
+      "groupMissing": "未インストール · {count}",
+      "groupCustom": "カスタムエージェント · {count}",
+      "installedVersion": "インストール済み · {version}",
+      "notInstalled": "未インストール",
+      "systemInstall": "先に CLI をインストールしてください",
+      "unavailable": "このプラットフォームでは使えません",
+      "noMatch": "一致するエージェントはありません",
+      "allAdded": "すべてのエージェントがマイエージェントにあります",
+      "addCustom": "見つからない場合はカスタムエージェントを追加",
+      "cancel": "キャンセル",
+      "confirm": "追加",
+      "confirmCount": "{count} 個を追加"
+    },
+    "hint": {
+      "title": "マイエージェントのうち {count} 個が未インストールです",
+      "body": "新しい会話のピッカーにも表示されますが、インストールするまで使えません。",
+      "keepInstalled": "インストール済みの {count} 個だけ残す",
+      "dismiss": "このままにする",
+      "kept": "未インストールのエージェントを {count} 個外しました"
+    }
   }
 }

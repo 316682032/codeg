@@ -7657,5 +7657,49 @@
     "took": "用时 {seconds} 秒",
     "fileMissing": "读不到图片文件，可能已被移动或删除。",
     "statusLost": "生成期间 codeg 重启过，结果未知。"
+  },
+  "MyAgents": {
+    "title": "我的智能体",
+    "add": "添加",
+    "addAgents": "添加智能体",
+    "moreAvailable": "还有 {count} 个可用",
+    "empty": "还没有添加智能体",
+    "emptyHint": "在「添加智能体」里挑你要用的；没安装的，添加后可在详情里安装。",
+    "switchLabel": "我的智能体",
+    "removed": "已从我的智能体移除 {name}",
+    "added": "已添加 {count} 个智能体",
+    "undo": "撤销",
+    "saveFailed": "更新我的智能体失败",
+    "pickerAdd": "添加智能体…",
+    "dialog": {
+      "title": "添加智能体",
+      "description": "选你要用的智能体，它们会出现在这里的列表和新会话的选择器里。没安装的，添加后可在详情里安装。",
+      "search": "搜索名称或描述",
+      "filter": {
+        "all": "全部",
+        "installed": "已安装",
+        "missing": "未安装"
+      },
+      "groupInstalled": "本机已安装 · {count}",
+      "groupMissing": "未安装 · {count}",
+      "groupCustom": "自定义智能体 · {count}",
+      "installedVersion": "本机已安装 · {version}",
+      "notInstalled": "未安装",
+      "systemInstall": "需先自行安装 CLI",
+      "unavailable": "当前平台不可用",
+      "noMatch": "没有匹配的智能体",
+      "allAdded": "所有智能体都已在我的智能体里",
+      "addCustom": "找不到？添加自定义智能体",
+      "cancel": "取消",
+      "confirm": "添加",
+      "confirmCount": "添加 {count} 个"
+    },
+    "hint": {
+      "title": "我的智能体里有 {count} 个还没安装",
+      "body": "它们也会出现在新会话的选择器里，但装好之前用不了。",
+      "keepInstalled": "只保留已安装的 {count} 个",
+      "dismiss": "保持现状",
+      "kept": "已移除 {count} 个未安装的智能体"
+    }
   }
 }

@@ -43,7 +43,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">⏳ <strong>Ergebnisse auch bei Agenten mit kurzem Timeout</strong><br/>Manche Agenten warten nur 30 bis 60 Sekunden auf einen Tool-Aufruf. Dieser Build begrenzt jedes Warten je Agent, antwortet rechtzeitig und holt den Rest beim nächsten Aufruf ab, sodass eine langsame Antwort auf eine Frage nicht mehr als keine Antwort zählt.</td>
-    <td width="50%" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
+    <td width="50%" valign="top">🗂️ <strong>Nur die Agenten, die du nutzt</strong><br/>Die Einstellungen listen nur die Agenten, die du hinzugefügt hast; der Rest wartet unter „Agenten hinzufügen“, durchsuchbar und mehrere auf einmal hinzuzufügen. Eine neue Installation aktiviert nur, was hier installiert ist, damit die Auswahl für neue Unterhaltungen kurz bleibt.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Nah am Upstream</strong><br/>Upstream wird regelmäßig hineingemergt; was hier nicht steht, funktioniert genau wie in der offiziellen Version. Das eingebaute Kiro CLI, das diese Version als Erstes hinzugefügt hat, ist seit 0.36.0 Teil der offiziellen Version.</td>
   </tr>
 </table>
 
@@ -138,6 +141,20 @@
 - Fragen: Hast du bis dahin nicht geantwortet, bleibt die Fragekarte stehen, und der Agent wartet mit einem neuen Tool weiter, `get_question_answer`; sobald du antwortest, steht die Antwort in der ursprünglichen Fragekarte.
 - Delegierte Aufgaben: Ein Aufruf von `get_delegation_status` wartet höchstens bis zur Grenze und liefert dann den aktuellen Stand der Aufgaben. Bei der Bildgenerierung ist es genauso; siehe vorheriger Abschnitt.
 - Während des Wartens bekommt der Agent alle 10 Sekunden eine Fortschrittsmeldung, sodass Agenten, die ihre Frist bei Fortschritt verlängern, etwa OpenCode, länger warten können.
+
+</details>
+
+<details>
+<summary><strong>Nur die Agenten, die du nutzt</strong> – Details</summary>
+<br/>
+
+- Es gibt fast 20 eingebaute Agenten, und der offizielle Build aktiviert alle, ob installiert oder nicht: eine lange Liste in den Einstellungen, eine Auswahl für neue Unterhaltungen voller nicht installierter Agenten (die Unterhaltungsseite installiert nie einen, die Wahl bringt also nichts) und eine Installationsprüfung für jeden bei jedem Öffnen der Einstellungsseite.
+- In diesem Build listet Einstellungen → Agenten nur „Meine Agenten“, weiterhin per Ziehen sortierbar. „Hinzufügen“ in der Titelleiste und die Zeile unter der Liste öffnen „Agenten hinzufügen“: nach Name oder Beschreibung suchen, nach installiert / nicht installiert filtern, die hier schon installierten zuerst finden und mehrere auf einmal hinzufügen. Ein nicht installierter wird nach dem Hinzufügen in seinen Details installiert.
+- Der Schalter in den Details eines Agenten ist „Meine Agenten“: ausschalten nimmt den Agenten aus der Liste, mit Rückgängig. Es ist die Einstellung „aktiviert“ des offiziellen Builds, daher folgen ihr die Auswahl für neue Unterhaltungen, die Delegation und alles andere.
+- Beim Öffnen der Einstellungsseite werden nur „Meine Agenten“ geprüft; jeder andere Agent, wenn du ihn öffnest.
+- Solange codeg für einen Agenten noch keine Einstellungen hat (eine neue Installation oder ein eingebauter Agent aus einer späteren Version), aktiviert es ihn nur, wenn er hier als installiert erkannt wird. Als installiert gilt ein Agent, sobald der ACP-Adapter oder die CLI, die codeg startet, vorhanden ist; eine neue Installation hat daher oft keinen, und die Liste beginnt leer: wähle unter „Agenten hinzufügen“. Ein später installierter Agent wird nicht von selbst hinzugefügt, und bestehende Einstellungen ändern sich nie.
+- Nach einem Update von einem früheren Build mit nicht installierten Agenten in „Meine Agenten“ bietet ein Hinweis oben in der Liste einmal an, „nur die installierten zu behalten“ oder es so zu lassen (die Wahl wird pro Gerät gemerkt).
+- Die Auswahl für neue Unterhaltungen endet ihre Zeile mit einem „+“, das „Agenten hinzufügen“ öffnet; passen nicht alle Agenten hinein, steht es unten im „Mehr“-Menü. Ist kein Agent aktiviert, öffnet die Schaltfläche der Auswahl ebenfalls „Agenten hinzufügen“.
 
 </details>
 

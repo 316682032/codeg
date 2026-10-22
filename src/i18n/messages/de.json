@@ -7657,5 +7657,49 @@
     "took": "dauerte {seconds} s",
     "fileMissing": "Die Bilddatei lässt sich nicht lesen. Sie wurde vielleicht verschoben oder gelöscht.",
     "statusLost": "Codeg wurde während der Erzeugung neu gestartet, das Ergebnis ist unbekannt."
+  },
+  "MyAgents": {
+    "title": "Meine Agenten",
+    "add": "Hinzufügen",
+    "addAgents": "Agenten hinzufügen",
+    "moreAvailable": "{count} weitere verfügbar",
+    "empty": "Noch keine Agenten hinzugefügt",
+    "emptyHint": "Wähle unter „Agenten hinzufügen“ die aus, die du nutzt. Ein nicht installierter lässt sich nach dem Hinzufügen in seinen Details installieren.",
+    "switchLabel": "Meine Agenten",
+    "removed": "{name} aus Meine Agenten entfernt",
+    "added": "{count, plural, one {# Agent hinzugefügt} other {# Agenten hinzugefügt}}",
+    "undo": "Rückgängig",
+    "saveFailed": "Meine Agenten konnten nicht aktualisiert werden",
+    "pickerAdd": "Agenten hinzufügen…",
+    "dialog": {
+      "title": "Agenten hinzufügen",
+      "description": "Wähle die Agenten, die du nutzt. Sie erscheinen in dieser Liste und in der Auswahl für neue Unterhaltungen. Ein nicht installierter lässt sich nach dem Hinzufügen in seinen Details installieren.",
+      "search": "Nach Name oder Beschreibung suchen",
+      "filter": {
+        "all": "Alle",
+        "installed": "Installiert",
+        "missing": "Nicht installiert"
+      },
+      "groupInstalled": "Auf diesem Rechner installiert · {count}",
+      "groupMissing": "Nicht installiert · {count}",
+      "groupCustom": "Eigene Agenten · {count}",
+      "installedVersion": "Installiert · {version}",
+      "notInstalled": "Nicht installiert",
+      "systemInstall": "Zuerst die CLI installieren",
+      "unavailable": "Auf dieser Plattform nicht verfügbar",
+      "noMatch": "Keine passenden Agenten",
+      "allAdded": "Alle Agenten sind bereits in Meine Agenten",
+      "addCustom": "Nicht dabei? Eigenen Agenten hinzufügen",
+      "cancel": "Abbrechen",
+      "confirm": "Hinzufügen",
+      "confirmCount": "{count} hinzufügen"
+    },
+    "hint": {
+      "title": "{count, plural, one {# Agent in Meine Agenten ist nicht installiert} other {# Agenten in Meine Agenten sind nicht installiert}}",
+      "body": "Sie erscheinen auch in der Auswahl für neue Unterhaltungen, lassen sich aber erst nach der Installation starten.",
+      "keepInstalled": "Nur die {count} installierten behalten",
+      "dismiss": "So lassen",
+      "kept": "{count, plural, one {# nicht installierter Agent entfernt} other {# nicht installierte Agenten entfernt}}"
+    }
   }
 }

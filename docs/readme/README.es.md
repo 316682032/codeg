@@ -43,7 +43,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">⏳ <strong>Resultados para agentes con tiempos de espera cortos</strong><br/>Algunos agentes esperan solo de 30 a 60 segundos por una llamada a una herramienta. Esta versión limita cada espera según el agente, responde a tiempo y recoge el resto en la siguiente llamada, así que una respuesta lenta a una pregunta ya no cuenta como sin respuesta.</td>
-    <td width="50%" valign="top">🔄 <strong>Al día con el original</strong><br/>Los cambios del proyecto original se incorporan con regularidad; lo que no aparece aquí funciona igual que en la versión oficial. Kiro CLI integrado, lo primero que añadió esta versión, forma parte de la versión oficial desde la 0.36.0.</td>
+    <td width="50%" valign="top">🗂️ <strong>Solo los agentes que usas</strong><br/>Ajustes muestra solo los agentes que añadiste; el resto queda en «Añadir agentes», con búsqueda y para añadir varios a la vez. Una instalación nueva activa solo los que están instalados aquí, así que el selector de nueva conversación queda corto.</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top">🔄 <strong>Al día con el original</strong><br/>Los cambios del proyecto original se incorporan con regularidad; lo que no aparece aquí funciona igual que en la versión oficial. Kiro CLI integrado, lo primero que añadió esta versión, forma parte de la versión oficial desde la 0.36.0.</td>
   </tr>
 </table>
 
@@ -138,6 +141,20 @@
 - Preguntas: si para entonces no has respondido, la tarjeta de la pregunta sigue donde está y el agente sigue esperando con una herramienta nueva, `get_question_answer`; cuando respondes, la respuesta aparece en la tarjeta original.
 - Tareas delegadas: cada llamada a `get_delegation_status` espera como mucho hasta el tope y devuelve el estado actual de las tareas. La generación de imágenes funciona igual; consulta la sección anterior.
 - Mientras espera, el agente recibe un aviso de progreso cada 10 segundos, con lo que los agentes que alargan su plazo con el progreso, como OpenCode, pueden esperar más.
+
+</details>
+
+<details>
+<summary><strong>Solo los agentes que usas</strong>: detalles</summary>
+<br/>
+
+- Hay cerca de 20 agentes integrados y la versión oficial los activa todos, estén instalados o no: una lista de ajustes larga, un selector de nueva conversación lleno de agentes sin instalar (la página de conversación nunca instala uno, así que elegirlo no sirve de nada) y una comprobación de cada uno cada vez que se abre la página de ajustes.
+- En esta versión, Ajustes → Agentes muestra solo «Mis agentes», que se pueden seguir reordenando arrastrando. «Añadir» en su barra de título y la fila bajo la lista abren «Añadir agentes»: busca por nombre o descripción, filtra por instalados / no instalados, encuentra primero los ya instalados en este equipo y añade varios a la vez. Uno que no esté instalado se instala desde sus detalles una vez añadido.
+- El interruptor de los detalles de un agente es «Mis agentes»: apágalo para quitar el agente de la lista, con opción de deshacer. Es el ajuste «activado» de la versión oficial, así que el selector de nueva conversación, la delegación y todo lo demás lo siguen.
+- Al abrir la página de ajustes solo se comprueban «Mis agentes»; cualquier otro agente se comprueba cuando lo abres.
+- Cuando codeg aún no tiene ajustes para un agente (una instalación nueva, o un agente integrado que añade una versión posterior), lo activa solo si detecta que está instalado aquí. Codeg considera instalado un agente cuando el adaptador ACP o la CLI que ejecuta están listos, así que una instalación nueva a menudo no tiene ninguno y la lista empieza vacía: elige en «Añadir agentes». Un agente que instales después no se añade solo, y los ajustes existentes nunca cambian.
+- Al actualizar desde una versión anterior con agentes en «Mis agentes» que no están instalados, un aviso arriba de la lista ofrece una vez «Quedarme solo con los instalados» o dejarlo así (la elección se recuerda por dispositivo).
+- El selector de nueva conversación termina su fila con un «+» que abre «Añadir agentes»; cuando no caben todos los agentes, está al final del menú «más». Sin ningún agente activado, el botón del selector también abre «Añadir agentes».
 
 </details>
 

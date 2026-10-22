@@ -12183,6 +12183,9 @@ pub(crate) async fn acp_list_agents_core(db: &AppDatabase) -> Result<Vec<AcpAgen
         )
         .collect::<Vec<_>>();
 
+    // keh4l: the rows `ensure_defaults` is about to create are settled below
+    // (see `acp::my_agents`).
+    let first_seen = crate::acp::my_agents::begin(&db.conn, &agent_types).await;
     agent_setting_service::ensure_defaults(&db.conn, &defaults)
         .await
         .map_err(|e| AcpError::protocol(e.to_string()))?;
@@ -12369,6 +12372,14 @@ pub(crate) async fn acp_list_agents_core(db: &AppDatabase) -> Result<Vec<AcpAgen
         } else {
             None
         };
+        let enabled = crate::acp::my_agents::settle_first_seen(
+            &db.conn,
+            first_seen.known(),
+            agent_type,
+            local_installed_version.as_deref(),
+            setting.map(|m| m.enabled).unwrap_or(true),
+        )
+        .await;
         agents.push(AcpAgentInfo {
             agent_type,
             registry_id: registry::registry_id_for(agent_type).to_string(),
@@ -12396,7 +12407,7 @@ pub(crate) async fn acp_list_agents_core(db: &AppDatabase) -> Result<Vec<AcpAgen
                 .custom_id()
                 .and_then(crate::acp::custom_registry::source_of)
                 .map(|s| s.as_str().to_string()),
-            enabled: setting.map(|m| m.enabled).unwrap_or(true),
+            enabled,
             sort_order,
             installed_version: local_installed_version,
             host_tools_agent_mode: !crate::acp::host_tools_policy::HostToolsPolicy::from_env(&env)
