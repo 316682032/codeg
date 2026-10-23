@@ -6175,12 +6175,17 @@ fn resolve_working_dir(working_dir: Option<&str>) -> PathBuf {
 /// for a connection, and every request of it must name the same object: the
 /// adapter restarts a session whose resume names other settings than it was
 /// started with (see `crate::acp::fork::build_fork_request`).
+///
+/// Sent to every agent that runs claude-agent-acp
+/// ([`registry::runs_claude_agent_acp`]), a custom one included: without the
+/// raw stream such an agent's sub-agent cards never learn their session and
+/// its plugin load failures never surface.
 pub(crate) fn claude_raw_sdk_session_meta(
     agent_type: AgentType,
     cwd: &Path,
     prompt_suggestions: bool,
 ) -> Option<serde_json::Map<String, serde_json::Value>> {
-    if agent_type != AgentType::ClaudeCode {
+    if !registry::runs_claude_agent_acp(agent_type) {
         return None;
     }
     Some(claude_session_meta(
@@ -6291,14 +6296,23 @@ fn claude_show_thinking_summaries_setting(paths: &[PathBuf]) -> Option<bool> {
 ///   these agents to keep the blast radius off the others (e.g. Claude's
 ///   native AskUserQuestion, which would otherwise un-gate and duplicate the
 ///   codeg-mcp ask tool).
-/// - Claude Code only: `_meta["subagent-transcript"] = true` — opt into
-///   claude-agent-acp ≥0.63's subagent transcript forwarding (#881, SDK
+/// - Every agent that runs claude-agent-acp
+///   ([`registry::runs_claude_agent_acp`]), custom ones included:
+///   `_meta["subagent-transcript"] = true` — opt into claude-agent-acp
+///   ≥0.63's subagent transcript forwarding (#881, SDK
 ///   `forwardSubagentText`). Subagent text/thought chunks then stream with
 ///   update-level `_meta.claudeCode.parentToolUseId` instead of being
 ///   filtered; codeg routes them into the live Agent capsule (see
-///   `claude_chunk_parent_tool_use_id`). The adapter checks strictly
-///   `=== true`, and a pre-0.63 binary ignores the unknown key, so this is
-///   inert everywhere it isn't understood.
+///   `claude_chunk_parent_tool_use_id`), and a custom agent's history reader
+///   leaves them out of the parent's turns (`parsers::acp_native`). The
+///   adapter checks strictly `=== true`, and a pre-0.63 binary ignores the
+///   unknown key, so this is inert everywhere it isn't understood.
+///
+///   The AIR, notices and compaction capabilities below stay with the
+///   built-in Claude Code type: each changes the shape of the frames a custom
+///   agent's own transcript records (keys sent once, moved under
+///   `jetbrains.air`, a compaction card that is no longer a tool call), and
+///   that transcript, unlike the Claude CLI's, is the custom agent's history.
 /// - Any agent that launches `cursor-agent … acp` (the built-in Cursor entry
 ///   and custom agents wrapping the same binary — see
 ///   `registry::uses_cursor_acp_backend`): `_meta["parameterizedModelPicker"]
@@ -6360,7 +6374,7 @@ fn build_client_capabilities(
     // banner). Only the two known AIR speakers get it: the capability-gate
     // convention is to advertise nothing an agent hasn't implemented.
     let mut meta = serde_json::Map::new();
-    if agent_type == AgentType::ClaudeCode {
+    if registry::runs_claude_agent_acp(agent_type) {
         meta.insert("subagent-transcript".to_string(), serde_json::Value::Bool(true));
     }
     // claude-agent-acp 0.73.0 added "asyncTasks", and codex-acp 1.10.0 joined
@@ -10819,15 +10833,15 @@ fn heal_retired_model_pick(option: &SessionConfigOption, value: &str) -> Option<
 
 /// [`heal_retired_model_pick`] over a whole preference set, against the
 /// options the session was established with. Every other entry is returned
-/// unchanged, and so is every entry for an agent other than Claude Code: both
-/// renames are claude-agent-acp's spellings, and it is the only agent whose
-/// renames of them have been observed.
+/// unchanged, and so is every entry for an agent that does not run
+/// claude-agent-acp: both renames are its spellings, and it is the only
+/// adapter whose renames of them have been observed.
 fn heal_retired_model_picks(
     agent_type: AgentType,
     options: &[SessionConfigOption],
     preferred: &BTreeMap<String, String>,
 ) -> BTreeMap<String, String> {
-    if agent_type != AgentType::ClaudeCode {
+    if !registry::runs_claude_agent_acp(agent_type) {
         return preferred.clone();
     }
     preferred
@@ -15131,7 +15145,7 @@ fn claude_complete_file_edit_input(
     own_raw_input: Option<&str>,
     content: &[ToolCallContent],
 ) -> Option<String> {
-    if agent_type != AgentType::ClaudeCode {
+    if !registry::runs_claude_agent_acp(agent_type) {
         return None;
     }
     let tool_name = meta
@@ -16580,7 +16594,7 @@ fn claude_viewed_result_for_completion(
     status: Option<&agent_client_protocol::schema::v1::ToolCallStatus>,
     carries_result: bool,
 ) -> Option<String> {
-    if agent_type != AgentType::ClaudeCode {
+    if !registry::runs_claude_agent_acp(agent_type) {
         return None;
     }
     let status = status?;
@@ -17014,7 +17028,7 @@ fn remote_control_command(
     blocks: &[ContentBlock],
 ) -> Option<RemoteControlCommand> {
     use crate::acp::js_text::is_js_whitespace;
-    if agent_type != AgentType::ClaudeCode {
+    if !registry::runs_claude_agent_acp(agent_type) {
         return None;
     }
     let [ContentBlock::Text(text)] = blocks else {
@@ -17425,14 +17439,14 @@ fn should_suppress_subagent_chunk(
 /// forwarded chunks once the client advertises the `subagent-transcript`
 /// capability (see `build_client_capabilities`). The chunk is emitted WITH
 /// this attribution (never suppressed): the frontend routes parented chunks
-/// into the live Agent capsule instead of the main thread. Gated on
-/// ClaudeCode so no other agent's namespaced meta can alias into parented
-/// routing; empty strings are treated as absent.
+/// into the live Agent capsule instead of the main thread. Gated on the
+/// agents that run claude-agent-acp so no other agent's namespaced meta can
+/// alias into parented routing; empty strings are treated as absent.
 fn claude_chunk_parent_tool_use_id(
     agent_type: AgentType,
     meta: Option<&serde_json::Map<String, serde_json::Value>>,
 ) -> Option<String> {
-    if agent_type != AgentType::ClaudeCode {
+    if !registry::runs_claude_agent_acp(agent_type) {
         return None;
     }
     meta?
@@ -17470,7 +17484,7 @@ fn tool_call_raw_input_text(
     meta: Option<&serde_json::Map<String, serde_json::Value>>,
     raw_input: &Option<serde_json::Value>,
 ) -> Option<String> {
-    if agent_type == AgentType::ClaudeCode {
+    if registry::runs_claude_agent_acp(agent_type) {
         let tool_name = meta
             .and_then(|m| m.get("claudeCode"))
             .and_then(|c| c.get("toolName"))
@@ -20152,8 +20166,9 @@ fn stash_claude_viewed_results(params: &serde_json::Value, cb_state: &mut CodeBu
 /// carries the sub-agent's id under (`{"agentId": …}`) — the id its transcript
 /// is filed by, which the card opens as the child's session (frontend
 /// `parseChildSessionId`). A `codeg.` key, so the `_meta` ledger keeps it
-/// across every later report of the call.
-const CLAUDE_SUBAGENT_META_KEY: &str = "codeg.claudeSubagent";
+/// across every later report of the call. A custom agent's history reader
+/// stamps the same key (`parsers::acp_native::with_claude_subagent_stamp`).
+pub(crate) const CLAUDE_SUBAGENT_META_KEY: &str = "codeg.claudeSubagent";
 
 /// The Agent call a Claude Code sub-agent was launched by and the sub-agent's
 /// id, off the raw SDK stream's `system/task_started` frame.
@@ -20437,7 +20452,8 @@ async fn maybe_emit_ext_notification(
     // so a stray notification the active-turn loop drains AFTER the status
     // already flipped back is still classified as out-of-turn.
     let turn_active = state.read().await.status == ConnectionStatus::Prompting;
-    if agent_type == AgentType::ClaudeCode && notification.method() == CLAUDE_SDK_EXT_METHOD {
+    if notification.method() == CLAUDE_SDK_EXT_METHOD && registry::runs_claude_agent_acp(agent_type)
+    {
         stash_claude_viewed_results(notification.params(), cb_state);
         // Gated like `settle_codex_subagent_launch`: once the turn is over the
         // card is not live, and an update would materialize it from nothing.
@@ -26996,6 +27012,94 @@ mod tests {
         // A frame that names the sub-agent type alone still counts.
         let typed = started(serde_json::json!({"task_id": "a2", "subagent_type": "Explore"}));
         assert!(claude_subagent_session_update(&typed, &mut cb).is_some());
+    }
+
+    /// A custom agent registered over claude-agent-acp (a second Claude Code
+    /// account, or Claude Code on another Anthropic-compatible endpoint) gets
+    /// the Claude wire handling the built-in entry gets — but not the AIR,
+    /// notices and compaction capabilities, whose frames its own transcript
+    /// could not replay.
+    #[test]
+    fn a_custom_agent_running_claude_agent_acp_speaks_the_claude_wire() {
+        use crate::acp::custom_registry::{
+            hydrate, hydrate_test_guard, CustomAgentDef, CustomAgentSpec, CustomDistributionKind,
+            NpxSpec,
+        };
+
+        let _guard = hydrate_test_guard();
+        let def = CustomAgentDef {
+            registry_id: "test-claude-acp".into(),
+            name: "Test Claude ACP".into(),
+            description: String::new(),
+            version: "0.94.0".into(),
+            distribution_kind: CustomDistributionKind::Npx,
+            spec: CustomAgentSpec {
+                npx: Some(NpxSpec {
+                    package: crate::acp::registry::CLAUDE_AGENT_ACP_PACKAGE.into(),
+                    args: vec![],
+                    env: Default::default(),
+                    cmd: Some("claude-agent-acp".into()),
+                    node_required: None,
+                }),
+                ..Default::default()
+            },
+            icon_url: None,
+            skills_shared_store: false,
+            skills_dir: None,
+            source: Default::default(),
+            version_probe: None,
+            supports_mcp: true,
+        };
+        // An unregistered id would make every negative below pass for the
+        // wrong reason.
+        assert!(hydrate(&[def]).is_empty());
+        let agent = AgentType::Custom("test-claude-acp");
+
+        let caps = serde_json::to_value(build_client_capabilities(agent, HostToolsPolicy::Default))
+            .unwrap();
+        assert_eq!(caps["_meta"]["subagent-transcript"], true);
+        assert!(caps["_meta"].get("jetbrains").is_none());
+        assert!(caps.get("session").is_none());
+
+        let session_meta =
+            claude_raw_sdk_session_meta(agent, std::path::Path::new("."), false).unwrap();
+        assert_eq!(session_meta["claudeCode"]["emitRawSDKMessages"], true);
+
+        let chunk = meta_map(serde_json::json!({"claudeCode": {"parentToolUseId": "toolu_agent"}}));
+        assert_eq!(
+            claude_chunk_parent_tool_use_id(agent, Some(&chunk)).as_deref(),
+            Some("toolu_agent")
+        );
+
+        // Without AIR the adapter repeats `toolName` on every frame; the ledger
+        // still has to remember the call for the raw stream's sub-agent start.
+        let mut cb = CodeBuddyLiveState::default();
+        cb.air_tool_call_meta
+            .open(agent, "toolu_agent", Some(claude_meta("Agent")));
+        let params = claude_task_started(serde_json::json!({
+            "task_id": "a2237d9c67d8cccc4",
+            "tool_use_id": "toolu_agent",
+            "task_type": "local_agent",
+        }));
+        let (_, event) =
+            claude_subagent_session_update(&params, &mut cb).expect("a sub-agent launch");
+        let AcpEvent::ToolCallUpdate {
+            meta: Some(meta), ..
+        } = event
+        else {
+            panic!("a meta-only update of the launching card");
+        };
+        assert_eq!(
+            meta[CLAUDE_SUBAGENT_META_KEY]["agentId"],
+            "a2237d9c67d8cccc4"
+        );
+        assert_eq!(meta["claudeCode"]["toolName"], "Agent");
+
+        // Any other custom agent keeps none of it.
+        let other = AgentType::Custom("test-not-claude");
+        assert!(claude_raw_sdk_session_meta(other, std::path::Path::new("."), false).is_none());
+        assert_eq!(claude_chunk_parent_tool_use_id(other, Some(&chunk)), None);
+        hydrate(&[]);
     }
 
     #[test]

@@ -72,6 +72,7 @@
 
 - Bei neueren Modellen bekommt die offizielle Version für jeden Thinking-Block nur eine verschlüsselte Signatur, Claudes Thinking bleibt also leer.
 - Diese Version fordert bei der API Thinking-Zusammenfassungen an – dasselbe, was das Terminal-`claude` mit eingeschaltetem `showThinkingSummaries` zeigt.
+- Das gilt auch für einen eigenen Agenten, der claude-agent-acp ausführt (etwa ein zweites Claude-Konto oder Claude Code an einem anderen Anthropic-kompatiblen Endpunkt).
 - Zum Abschalten trägst du das in `~/.claude/settings.json` (oder in die `.claude/settings.json` eines Projekts) ein:
 
   ```json
@@ -104,6 +105,7 @@
 
 - Claude Code speichert die gesamte Unterhaltung jedes Subagenten (Agent- / Task-Tool) in einer eigenen Datei, `~/.claude/projects/<Projekt>/<Sitzungs-ID>/subagents/agent-<id>.jsonl`. Im offiziellen Build zeigt die Karte nur eine Zusammenfassung des Ablaufs und das Endergebnis (bei einem Subagenten im Hintergrund nicht einmal die Zusammenfassung), und die Datei lässt sich nicht öffnen.
 - Dieser Build ergänzt neben dem Kartentitel die Schaltfläche „Subagent-Sitzung ansehen“, die diese Datei in einem Seitenbereich öffnet: die Aufgabe, die der Subagent bekommen hat, seine Denkprozesse und Antworten und jeden Tool-Aufruf mit Ein- und Ausgabe. Es ist dieselbe Schaltfläche wie auf den Subagent-Karten von Codex und Grok.
+- Ein eigener Agent, der claude-agent-acp ausführt, bekommt die Schaltfläche ebenfalls, auch nach dem Neuladen der Unterhaltung.
 - Die Schaltfläche erscheint, sobald der Subagent startet, im Vorder- wie im Hintergrund. Wird sie geöffnet, während er noch arbeitet, aktualisiert sich der Bereich alle 2 Sekunden und zeigt den gerade laufenden Tool-Aufruf als laufend an. Nach dem Neuladen der Unterhaltung geöffnet, zeigt er die Datei im damaligen Stand; Schließen und erneutes Öffnen zeigt den aktuellen.
 - Auch frühere Unterhaltungen funktionieren, solange die Datei des Subagenten noch da ist.
 

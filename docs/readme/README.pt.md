@@ -72,6 +72,7 @@
 
 - Com os modelos recentes, a versão oficial recebe só uma assinatura criptografada para cada bloco de pensamento, então o pensamento do Claude fica vazio.
 - Esta versão pede à API resumos do pensamento — o mesmo que o `claude` no terminal mostra com `showThinkingSummaries` ativado.
+- O mesmo vale para um agente personalizado que execute o claude-agent-acp (uma segunda conta do Claude, por exemplo, ou o Claude Code ligado a outro endpoint compatível com a Anthropic).
 - Para desativar, adicione isto em `~/.claude/settings.json` (ou no `.claude/settings.json` de um projeto):
 
   ```json
@@ -104,6 +105,7 @@
 
 - O Claude Code guarda a conversa inteira de cada subagente (ferramenta Agent / Task) em um arquivo próprio, `~/.claude/projects/<projeto>/<id da sessão>/subagents/agent-<id>.jsonl`. Na versão oficial o cartão mostra só um resumo do processo e o resultado final (o de um subagente em segundo plano, nem o resumo), e esse arquivo não pode ser aberto.
 - Esta versão adiciona ao lado do título do cartão o botão "Ver a sessão do subagente", que abre esse registro em um painel lateral: a tarefa recebida, o raciocínio e as respostas, e cada chamada de ferramenta com entrada e saída. É o mesmo botão dos cartões de subagente do Codex e do Grok.
+- Um agente personalizado que execute o claude-agent-acp também tem o botão, e ele continua lá depois de recarregar a conversa.
 - O botão aparece assim que o subagente começa, em primeiro ou em segundo plano. Aberto enquanto ele ainda trabalha, o painel se atualiza a cada 2 segundos e mostra como "Em execução" a chamada de ferramenta que está rodando. Aberto depois de recarregar a conversa, mostra o registro como estava naquele momento; feche e abra de novo para ver o mais recente.
 - Conversas anteriores também funcionam, desde que o arquivo do subagente ainda exista.
 

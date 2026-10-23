@@ -72,6 +72,7 @@
 
 - With recent models the official build gets only an encrypted signature for each thinking block, so Claude's thinking stays empty.
 - This build asks the API for thinking summaries — what the terminal `claude` shows with `showThinkingSummaries` on.
+- So does a custom agent that runs claude-agent-acp (a second Claude account, say, or Claude Code pointed at another Anthropic-compatible endpoint).
 - To turn it off, add this to `~/.claude/settings.json` (or a project's `.claude/settings.json`):
 
   ```json
@@ -104,6 +105,7 @@
 
 - Claude Code keeps each sub-agent's (Agent / Task tool) whole conversation in a file of its own, `~/.claude/projects/<project>/<session id>/subagents/agent-<id>.jsonl`. In the official build the card shows only a summary of what it did and the final result (a background sub-agent's not even the summary), and that file can't be opened.
 - This build adds a "View sub-agent session" button beside the card's title that opens the file in a side panel: the task the sub-agent was given, its thinking and replies, and every tool call with its input and output. It's the same button Codex and Grok sub-agent cards have.
+- A custom agent that runs claude-agent-acp gets the button too, and keeps it after the conversation is reloaded.
 - The button appears as soon as the sub-agent starts, in the foreground or the background. Opened while the sub-agent is still running, the panel refreshes every 2 seconds and shows the tool call in progress as running. Opened after the conversation is reloaded, it shows the file as it was then; close and reopen it to see the latest.
 - Earlier conversations work too, as long as the sub-agent's file is still there.
 

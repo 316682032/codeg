@@ -457,8 +457,12 @@ pub const PI_MIN_RUNTIME_VERSION: &str = "0.81.0";
 /// adapter reports as `agentInfo.name` at `initialize`, which is its
 /// `packageJson.name` (read from the 0.58.1 to 0.94.0 sources). A custom agent
 /// whose running adapter reports exactly this name follows the Claude Code
-/// steering policy (`connection.rs::steering_policy_agent`).
+/// steering policy (`connection.rs::steering_policy_agent`); one whose launch
+/// recipe names it speaks the Claude wire protocol ([`runs_claude_agent_acp`]).
 pub const CLAUDE_AGENT_ACP_PACKAGE: &str = "@agentclientprotocol/claude-agent-acp";
+
+/// The command claude-agent-acp installs (`bin` of [`CLAUDE_AGENT_ACP_PACKAGE`]).
+const CLAUDE_AGENT_ACP_CMD: &str = "claude-agent-acp";
 
 /// Minimum adapter version whose `_session/steering` honors the
 /// `_meta.steering.idleBehavior = "promptRequired"` opt-in — one of the three
@@ -563,12 +567,63 @@ fn distribution_uses_cursor_acp(distribution: &AgentDistribution) -> bool {
 /// True when the resolved executable basename is `cursor-agent` and the
 /// process is launched in ACP mode (`acp` argument present).
 fn launch_spec_uses_cursor_acp(cmd: &str, args: &[&str]) -> bool {
+    command_stem(cmd).eq_ignore_ascii_case("cursor-agent") && args.contains(&"acp")
+}
+
+/// The basename of `cmd` without its extension (`claude-agent-acp.cmd` →
+/// `claude-agent-acp`).
+fn command_stem(cmd: &str) -> &str {
     let trimmed = cmd.trim();
-    let base = std::path::Path::new(trimmed)
+    std::path::Path::new(trimmed)
         .file_stem()
         .and_then(|s| s.to_str())
-        .unwrap_or(trimmed);
-    base.eq_ignore_ascii_case("cursor-agent") && args.contains(&"acp")
+        .unwrap_or(trimmed)
+}
+
+/// Whether this agent's launch runs claude-agent-acp: the built-in Claude Code
+/// entry, or a custom agent registered over the same adapter — a second Claude
+/// Code account, or Claude Code pointed at another Anthropic-compatible
+/// endpoint. Such an agent speaks exactly the wire protocol codeg's Claude
+/// handling reads (`_meta.claudeCode`, the raw SDK message stream, the
+/// subagent transcript), so those protocol gates follow this rather than the
+/// built-in type.
+///
+/// Decided from the launch recipe, not from `agentInfo`, because some of the
+/// gates (the client capabilities) are sent before the adapter has said who it
+/// is. Everything that is about the AGENT rather than its wire — where its
+/// history is read from, its settings page, its transcript watcher — still
+/// keys on the type.
+pub fn runs_claude_agent_acp(agent_type: AgentType) -> bool {
+    match agent_type {
+        AgentType::ClaudeCode => true,
+        AgentType::Custom(_) => {
+            distribution_runs_claude_agent_acp(&get_agent_meta(agent_type).distribution)
+        }
+        _ => false,
+    }
+}
+
+fn distribution_runs_claude_agent_acp(distribution: &AgentDistribution) -> bool {
+    match distribution {
+        AgentDistribution::Npx { package, cmd, .. } => {
+            npm_package_name(package) == CLAUDE_AGENT_ACP_PACKAGE
+                || command_stem(cmd).eq_ignore_ascii_case(CLAUDE_AGENT_ACP_CMD)
+        }
+        AgentDistribution::Binary { cmd, .. } | AgentDistribution::System { cmd, .. } => {
+            command_stem(cmd).eq_ignore_ascii_case(CLAUDE_AGENT_ACP_CMD)
+        }
+        AgentDistribution::Uvx { .. } => false,
+    }
+}
+
+/// An npm package spec without its version: `@scope/name@1.2.3` → `@scope/name`,
+/// `name@latest` → `name`.
+fn npm_package_name(spec: &str) -> &str {
+    let spec = spec.trim();
+    match spec.rfind('@') {
+        Some(at) if at > 0 => &spec[..at],
+        _ => spec,
+    }
 }
 
 pub fn get_agent_meta(agent_type: AgentType) -> AcpAgentMeta {
@@ -6196,6 +6251,77 @@ mod tests {
         assert!(!launch_spec_uses_cursor_acp("cursor-agent", &[]));
         assert!(!launch_spec_uses_cursor_acp("codex-acp", &[]));
         assert!(!launch_spec_uses_cursor_acp("cursor-agent", &["stdio"]));
+    }
+
+    fn npx(package: &'static str, cmd: &'static str) -> AgentDistribution {
+        AgentDistribution::Npx {
+            version: "0.94.0",
+            package,
+            cmd,
+            args: &[],
+            env: &[],
+            node_required: None,
+        }
+    }
+
+    #[test]
+    fn runs_claude_agent_acp_follows_the_launch_recipe() {
+        assert!(runs_claude_agent_acp(AgentType::ClaudeCode));
+        assert!(!runs_claude_agent_acp(AgentType::Codex));
+        assert!(!runs_claude_agent_acp(AgentType::DeepSeek));
+        // Unregistered: an empty recipe launches nothing, so it speaks nothing.
+        assert!(!runs_claude_agent_acp(AgentType::Custom("acme")));
+
+        // The built-in entry's own recipe is the reference.
+        assert!(distribution_runs_claude_agent_acp(
+            &get_agent_meta(AgentType::ClaudeCode).distribution
+        ));
+        // A custom agent over the same package, versioned or not, by package
+        // or by the command it installs.
+        assert!(distribution_runs_claude_agent_acp(&npx(
+            CLAUDE_AGENT_ACP_PACKAGE,
+            "claude-agent-acp"
+        )));
+        assert!(distribution_runs_claude_agent_acp(&npx(
+            "@agentclientprotocol/claude-agent-acp@0.94.0",
+            ""
+        )));
+        assert!(distribution_runs_claude_agent_acp(&npx(
+            "some-wrapper",
+            "C:\\Users\\me\\AppData\\Roaming\\npm\\claude-agent-acp.cmd"
+        )));
+        assert!(distribution_runs_claude_agent_acp(
+            &AgentDistribution::System {
+                cmd: "claude-agent-acp",
+                args: &[],
+                env: &[],
+                install_url: "",
+                update_args: None,
+            }
+        ));
+        // A look-alike or another adapter does not.
+        assert!(!distribution_runs_claude_agent_acp(&npx(
+            "@agentclientprotocol/claude-agent-acp-fork",
+            "claude-agent-acp-fork"
+        )));
+        assert!(!distribution_runs_claude_agent_acp(&npx(
+            "@zed-industries/codex-acp",
+            "codex-acp"
+        )));
+    }
+
+    #[test]
+    fn npm_package_name_drops_the_version_only() {
+        assert_eq!(
+            npm_package_name("@agentclientprotocol/claude-agent-acp@0.94.0"),
+            CLAUDE_AGENT_ACP_PACKAGE
+        );
+        assert_eq!(
+            npm_package_name(CLAUDE_AGENT_ACP_PACKAGE),
+            CLAUDE_AGENT_ACP_PACKAGE
+        );
+        assert_eq!(npm_package_name("left-pad@latest"), "left-pad");
+        assert_eq!(npm_package_name(" left-pad "), "left-pad");
     }
 
     // Only Claude Code and Codex ship as a third-party ACP adapter wrapping a

@@ -19,6 +19,10 @@
 //! `emit_conversation_update` (CodeBuddy sub-agent folding, Grok `use_tool`
 //! unwrapping, codex sub-agent suppression …): custom agents get no quirk
 //! handling anywhere, live or historical, so there is nothing to diverge from.
+//! The exception is a custom agent running claude-agent-acp, which the live
+//! path reads as the Claude Code wire (`registry::runs_claude_agent_acp`): its
+//! sub-agent chunks stay out of the parent's turns and its Agent cards keep the
+//! sub-agent stamp, as they do live.
 //!
 //! ## Turn boundaries
 //!
@@ -651,6 +655,13 @@ fn apply_update(
         };
     }
     match update {
+        // A sub-agent's own prose and reasoning, which claude-agent-acp
+        // forwards once codeg asks for its subagent transcript: live, it goes
+        // to the Agent capsule, never into the parent's reply, and the Agent
+        // call's result already carries what the sub-agent answered.
+        SessionUpdate::AgentMessageChunk(ref chunk)
+        | SessionUpdate::AgentThoughtChunk(ref chunk)
+            if is_subagent_chunk(chunk.meta.as_ref()) => {}
         SessionUpdate::UserMessageChunk(chunk) => {
             // Live path: codeg already recorded the outgoing prompt, so the
             // agent's echo is a duplicate. Replay path: there is no recorded
@@ -827,6 +838,16 @@ fn apply_update(
 
 /// Text of an ACP content block. Non-text blocks that still carry a textual
 /// projection (resource links, embedded text resources) degrade to it.
+/// Whether a message or thought chunk is a sub-agent's, by the update-level
+/// `_meta.claudeCode.parentToolUseId` claude-agent-acp stamps on it (see
+/// `connection.rs::claude_chunk_parent_tool_use_id`).
+fn is_subagent_chunk(meta: Option<&serde_json::Map<String, serde_json::Value>>) -> bool {
+    meta.and_then(|m| m.get("claudeCode"))
+        .and_then(|c| c.get("parentToolUseId"))
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|id| !id.is_empty())
+}
+
 fn content_block_text(block: &agent_client_protocol::schema::v1::ContentBlock) -> String {
     match block {
         agent_client_protocol::schema::v1::ContentBlock::Text(t) => t.text.clone(),
@@ -868,6 +889,46 @@ fn closed_tool_card(
         }
     }
     (!uses.is_empty()).then_some((uses, results))
+}
+
+/// A tool call's next `_meta`, carrying the Claude sub-agent stamp the live
+/// path puts on an Agent card
+/// ([`CLAUDE_SUBAGENT_META_KEY`](crate::acp::connection::CLAUDE_SUBAGENT_META_KEY))
+/// so the reloaded card still opens the sub-agent's own session.
+///
+/// Live, the id comes off the raw SDK stream, which the transcript does not
+/// record. Here it is read off the frame that carries it: claude-agent-acp
+/// hands a client it has not declared AIR to — a custom agent running it, see
+/// `build_client_capabilities` — the SDK's whole tool response, `agentId`
+/// included. Later frames of the call carry no response, and an update
+/// replaces `_meta` whole, so the stamp is kept from the card's last `_meta`.
+fn with_claude_subagent_stamp(
+    mut incoming: serde_json::Value,
+    existing: Option<&serde_json::Value>,
+) -> serde_json::Value {
+    use crate::acp::connection::CLAUDE_SUBAGENT_META_KEY;
+    let Some(meta) = incoming.as_object_mut() else {
+        return incoming;
+    };
+    if meta.contains_key(CLAUDE_SUBAGENT_META_KEY) {
+        return incoming;
+    }
+    let stamp = meta
+        .get("claudeCode")
+        .and_then(|c| c.get("toolResponse"))
+        .and_then(|r| r.get("agentId"))
+        .and_then(serde_json::Value::as_str)
+        .filter(|id| crate::parsers::is_safe_subagent_id(id))
+        .map(|id| serde_json::json!({ "agentId": id }))
+        .or_else(|| {
+            existing
+                .and_then(|e| e.get(CLAUDE_SUBAGENT_META_KEY))
+                .cloned()
+        });
+    if let Some(stamp) = stamp {
+        meta.insert(CLAUDE_SUBAGENT_META_KEY.to_string(), stamp);
+    }
+    incoming
 }
 
 /// Insert or patch one tool call's `ToolUse` / `ToolResult` pair.
@@ -920,8 +981,8 @@ fn upsert_tool_call(
                 if input_preview.is_some() {
                     *existing_input = input_preview;
                 }
-                if meta.is_some() {
-                    *existing_meta = meta;
+                if let Some(meta) = meta {
+                    *existing_meta = Some(with_claude_subagent_stamp(meta, existing_meta.as_ref()));
                 }
             }
         }
@@ -935,7 +996,7 @@ fn upsert_tool_call(
                 tool_name: title.unwrap_or_else(|| "tool".to_string()),
                 input_preview,
                 status: None,
-                meta,
+                meta: meta.map(|meta| with_claude_subagent_stamp(meta, None)),
             });
         }
     }
@@ -1456,6 +1517,109 @@ mod tests {
             }
             other => panic!("unexpected blocks: {other:?}"),
         }
+    }
+
+    #[test]
+    fn a_sub_agents_chunks_stay_out_of_the_parent_turn() {
+        let parented = |kind: &str, text: &str, parent: &str| {
+            let mut chunk = text_chunk(kind, text);
+            chunk["_meta"] = serde_json::json!({ "claudeCode": { "parentToolUseId": parent } });
+            chunk
+        };
+        let entries = vec![
+            prompt(1, "go"),
+            update(2, text_chunk("agent_thought_chunk", "delegate")),
+            update(
+                3,
+                parented("agent_thought_chunk", "child thinks", "toolu_task"),
+            ),
+            update(
+                4,
+                parented("agent_message_chunk", "child says", "toolu_task"),
+            ),
+            // An empty parent id names no sub-agent.
+            update(5, parented("agent_message_chunk", "done", "")),
+        ];
+        let turns = project_turns(&entries);
+        match turns[1].blocks.as_slice() {
+            [ContentBlock::Thinking { text: think }, ContentBlock::Text { text }] => {
+                assert_eq!(think, "delegate");
+                assert_eq!(text, "done");
+            }
+            other => panic!("unexpected blocks: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_reloaded_claude_agent_card_keeps_its_sub_agent_stamp() {
+        let call = |kind: &str, meta: serde_json::Value| {
+            serde_json::json!({
+                "sessionUpdate": kind,
+                "toolCallId": "toolu_agent",
+                "title": "Task",
+                "status": "completed",
+                "_meta": meta,
+            })
+        };
+        let entries = vec![
+            prompt(1, "go"),
+            update(
+                2,
+                call(
+                    "tool_call",
+                    serde_json::json!({"claudeCode": {"toolName": "Agent"}}),
+                ),
+            ),
+            // Recorded off claude-agent-acp 0.94.0 for a client not declared AIR.
+            update(
+                3,
+                call(
+                    "tool_call_update",
+                    serde_json::json!({"claudeCode": {
+                        "toolName": "Agent",
+                        "toolResponse": {"status": "completed", "agentId": "a2237d9c67d8cccc4"}
+                    }}),
+                ),
+            ),
+            // The call's last frame carries no response, and replaces `_meta`.
+            update(
+                4,
+                call(
+                    "tool_call_update",
+                    serde_json::json!({"claudeCode": {"toolName": "Agent"}}),
+                ),
+            ),
+        ];
+        let turns = project_turns(&entries);
+        let meta = turns[1]
+            .blocks
+            .iter()
+            .find_map(|b| match b {
+                ContentBlock::ToolUse { meta, .. } => meta.clone(),
+                _ => None,
+            })
+            .expect("the Agent card's meta");
+        assert_eq!(meta["codeg.claudeSubagent"]["agentId"], "a2237d9c67d8cccc4");
+        assert_eq!(meta["claudeCode"]["toolName"], "Agent");
+
+        // An id that could leave the sub-agents directory is never stamped.
+        let traversal = vec![
+            prompt(1, "go"),
+            update(
+                2,
+                call(
+                    "tool_call",
+                    serde_json::json!({"claudeCode": {"toolResponse": {"agentId": "../x"}}}),
+                ),
+            ),
+        ];
+        let turns = project_turns(&traversal);
+        assert!(turns[1].blocks.iter().all(|b| match b {
+            ContentBlock::ToolUse { meta, .. } => meta
+                .as_ref()
+                .is_none_or(|m| m.get("codeg.claudeSubagent").is_none()),
+            _ => true,
+        }));
     }
 
     #[test]

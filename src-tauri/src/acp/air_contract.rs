@@ -35,18 +35,33 @@
 //!
 //! Everything here is keyed to the two adapters that speak the contract
 //! ([`speaks_air_contract`]): the keys are unnamespaced conventions another
-//! agent could mean something else by.
+//! agent could mean something else by. The one addition is a custom agent
+//! running claude-agent-acp, whose tool calls the ledger keeps too
+//! ([`keeps_ledger`]).
 
 use std::collections::{HashMap, VecDeque};
 
 use serde_json::{Map, Value};
 
+use crate::acp::registry;
 use crate::models::agent::AgentType;
 
 /// Whether codeg reads this agent's tool calls through the AIR contract — the
 /// two agents `build_client_capabilities` declares `_meta.jetbrains.air` to.
 pub(crate) fn speaks_air_contract(agent_type: AgentType) -> bool {
     matches!(agent_type, AgentType::ClaudeCode | AgentType::Codex)
+}
+
+/// Whether [`ToolCallMetaLedger`] keeps this agent's tool calls: the AIR
+/// speakers, and a custom agent that runs claude-agent-acp without being
+/// declared AIR (see `build_client_capabilities`). That adapter then repeats
+/// `claudeCode.toolName` / `parentToolUseId` on every frame, so merging
+/// changes nothing codeg reads (a `toolResponse` an earlier frame carried
+/// stays in the merged `_meta`, as it does for the built-in entry); what it
+/// needs the ledger for is the tool name a sub-agent start on the raw SDK
+/// stream is matched against (`connection.rs::claude_subagent_session_update`).
+fn keeps_ledger(agent_type: AgentType) -> bool {
+    speaks_air_contract(agent_type) || registry::runs_claude_agent_acp(agent_type)
 }
 
 /// `_meta.jetbrains.air.<key>`, wherever the adapter put its AIR payload.
@@ -93,7 +108,7 @@ const FRAME_DATA_KEYS: [&str; 5] = [
 /// (`ToolCallReports.reportedFields`), so for codex these are replaced whole
 /// like any other key.
 fn merges_per_key(agent_type: AgentType) -> bool {
-    agent_type == AgentType::ClaudeCode
+    registry::runs_claude_agent_acp(agent_type)
 }
 
 /// Fold `frame` into `state` under the agent's own merge rule. Frame-data keys
@@ -175,7 +190,7 @@ pub(crate) fn translate_air_meta(agent_type: AgentType, meta: &mut Map<String, V
         meta.entry("contextCompaction")
             .or_insert_with(|| compaction.clone());
     }
-    if agent_type != AgentType::ClaudeCode {
+    if !registry::runs_claude_agent_acp(agent_type) {
         return;
     }
     let mut derived = Map::new();
@@ -247,7 +262,7 @@ impl ToolCallMetaLedger {
         id: &str,
         frame: Option<Map<String, Value>>,
     ) -> Option<Map<String, Value>> {
-        if !speaks_air_contract(agent_type) {
+        if !keeps_ledger(agent_type) {
             return frame;
         }
         let mut state = Map::new();
@@ -286,7 +301,7 @@ impl ToolCallMetaLedger {
         id: &str,
         frame: Option<Map<String, Value>>,
     ) -> Option<Map<String, Value>> {
-        if !speaks_air_contract(agent_type) {
+        if !keeps_ledger(agent_type) {
             return frame;
         }
         let mut state = self
